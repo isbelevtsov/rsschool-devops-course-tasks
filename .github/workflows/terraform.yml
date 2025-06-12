@@ -8,18 +8,29 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write  # Required for OIDC token exchange
+  contents: read   # Required to checkout the repo
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
         with:
-          terraform_version: 1.5.0
+          terraform_version: 1.12.0
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionRole # AWS Account ID should be set in GitHub Secrets
+          aws-region: eu-north-1
 
       - name: Terraform Format
         run: terraform fmt -check -recursive
@@ -29,10 +40,10 @@ jobs:
         working-directory: task_1/project
 
       - name: Terraform Plan
-        run: terraform plan
+        run: terraform plan -out=output.tfplan -var="aws_region=${{ secrets.AWS_REGION }}" -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" -var="user_name=${{ secrets.USER_NAME }}" -var="create_access_key=true"
         working-directory: task_1/project
 
       - name: Terraform Apply
         if: github.event_name == 'push'
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve output.tfplan
         working-directory: task_1/project
