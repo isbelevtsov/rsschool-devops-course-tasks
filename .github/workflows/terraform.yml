@@ -29,10 +29,10 @@ jobs:
         working-directory: task_1/project
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan
+        run: terraform plan -out=output.tfplan
         working-directory: task_1/project
 
       - name: Terraform Apply
         if: github.event_name == 'push'
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve output.tfplan
         working-directory: task_1/project
