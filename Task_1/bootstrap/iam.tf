@@ -1,5 +1,5 @@
 locals {
-    role_name = "GithubActionRole"
+  role_name = "GithubActionRole"
 }
 
 resource "aws_iam_user" "rsschool_user" {
@@ -79,7 +79,7 @@ resource "aws_iam_openid_connect_provider" "github_oidc" {
 }
 
 resource "aws_iam_role" "github_action_role" {
-  name               = local.role_name
+  name = local.role_name
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -100,11 +100,11 @@ resource "aws_iam_role" "github_action_role" {
       }
     ]
   })
-  depends_on = [ aws_iam_openid_connect_provider.github_oidc ]
+  depends_on = [aws_iam_openid_connect_provider.github_oidc]
 }
 
 resource "aws_iam_role_policy_attachment" "github_action_role_attachment" {
-  for_each = toset(var.managed_policy_arns)
+  for_each   = toset(var.managed_policy_arns)
   role       = aws_iam_role.github_action_role.name
   policy_arn = each.key
 }
