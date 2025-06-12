@@ -26,13 +26,13 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: ./task_1/project
+        working-directory: task_1/project
 
       - name: Terraform Plan
         run: terraform plan
-        working-directory: ./task_1/project
+        working-directory: task_1/project
 
       - name: Terraform Apply
         if: github.event_name == 'push'
         run: terraform apply -auto-approve
-        working-directory: ./task_1/project
+        working-directory: task_1/project
