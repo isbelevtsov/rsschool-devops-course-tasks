@@ -9,8 +9,7 @@ repos:
     hooks:
     - id: terraform_fmt
       args:
-        - --args=-diff
-        - --args=-write=false
+        - --args=-recursive
     - id: terraform_tflint
       args:
         - --args=--call-module-type=all
