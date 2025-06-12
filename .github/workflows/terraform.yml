@@ -25,11 +25,17 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: Terraform Init
-        run: terraform init ./task_1/project
+        run: |
+          cd task_1/project
+          terraform init
 
       - name: Terraform Plan
-        run: terraform plan ./task_1/project
+        run: |
+          cd task_1/project
+          terraform plan
 
       - name: Terraform Apply
         if: github.event_name == 'push'
-        run: terraform apply -auto-approve ./task_1/project
+        run: |
+          cd task_1/project
+          terraform apply -auto-approve
