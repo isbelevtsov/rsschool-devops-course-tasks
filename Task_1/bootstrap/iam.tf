@@ -22,8 +22,10 @@ data "aws_iam_policy_document" "mfa_enforce_policy" {
       "iam:List*",
       "iam:CreateOpenIDConnectProvider",
       "iam:TagOpenIDConnectProvider",
+      "iam:DeleteOpenIDConnectProvider",
       "iam:CreateRole",
       "iam:PassRole",
+      "iam:DeleteRole",
       "iam:AttachRolePolicy",
       "iam:DetachRolePolicy"
     ]
