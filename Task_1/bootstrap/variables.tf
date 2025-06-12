@@ -43,3 +43,8 @@ variable "managed_policy_arns" {
   type        = list(string)
   default     = []
 }
+
+variable "github_repo" {
+  type        = string
+  description = "GitHub repository name in 'owner/repo' format"
+}
