@@ -10,6 +10,7 @@ on:
 
 permissions:
   id-token: write  # Required for OIDC token exchange
+  contents: read   # Required to checkout the repo
 
 jobs:
   terraform:
