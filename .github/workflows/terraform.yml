@@ -22,29 +22,17 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Format
-        run: |
-          pwd
-          ls -la
-          terraform fmt -check -recursive
+        run: terraform fmt -check -recursive
 
       - name: Terraform Init
-        run: |
-          pwd
-          ls -la
-          terraform init
-        working-directory: Task_1/project
+        run: terraform init
+        working-directory: task_1/project
 
       - name: Terraform Plan
-        run: |
-          pwd
-          ls -la
-          terraform plan
-        working-directory: Task_1/project
+        run: terraform plan -out=tfplan
+        working-directory: task_1/project
 
       - name: Terraform Apply
         if: github.event_name == 'push'
-        run: |
-          pwd
-          ls -la
-          terraform apply -auto-approve
-        working-directory: Task_1/project
+        run: terraform apply -auto-approve tfplan
+        working-directory: task_1/project
