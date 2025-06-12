@@ -13,10 +13,20 @@ resource "aws_iam_group" "rsschool_group" {
 
 data "aws_iam_policy_document" "mfa_enforce_policy" {
   statement {
-    sid    = "DenyAllExceptForMFA"
+    sid    = "DenyAllExceptS3WithoutMFA"
     effect = "Deny"
 
-    actions = ["*"]
+    not_actions = [
+      "s3:*",
+      "iam:Get*",
+      "iam:List*",
+      "iam:CreateOpenIDConnectProvider",
+      "iam:TagOpenIDConnectProvider",
+      "iam:CreateRole",
+      "iam:PassRole",
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy"
+    ]
     resources = ["*"]
 
     condition {
@@ -28,7 +38,7 @@ data "aws_iam_policy_document" "mfa_enforce_policy" {
 }
 
 resource "aws_iam_policy" "mfa_enforce" {
-  name        = "${var.group_name}-mfa-enforce"
+  name        = "${var.group_name}_mfa_enforce"
   description = "Enforce MFA for group ${var.group_name}"
   policy      = data.aws_iam_policy_document.mfa_enforce_policy.json
 }
