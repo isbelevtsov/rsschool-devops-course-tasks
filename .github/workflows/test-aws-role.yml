@@ -19,8 +19,8 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionRole # AWS Account ID should be set in GitHub Secrets
-          aws-region: eu-north-1
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionRole # AWS Account ID should be set in GitHub Secrets. Role must trust GitHub OIDC.
+          aws-region: eu-north-1 # Specify your AWS region
 
       - name: Verify caller identity
         run: aws sts get-caller-identity
