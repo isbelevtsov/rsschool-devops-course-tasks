@@ -125,6 +125,12 @@ terraform apply -auto-approve
 terraform init -migrate-state
 ```
 
+<details>
+
+![Terraform state](screenshots/image7.png)
+
+</details>
+
 Dont forget to approve migration by typing "yes" when console will ask you.
 
 7. Run `save-iam-credential.sh` shell script to retrive and save newly create AWS IAM user credentials and configs into shared file that locates under `~/.aws/` path. You need to set your actual profile name in the bottom of the script body here:
