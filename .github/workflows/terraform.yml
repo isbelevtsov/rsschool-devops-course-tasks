@@ -26,16 +26,16 @@ jobs:
 
       - name: Terraform Init
         run: |
-          cd task_1/project
+          cd ./task_1/project
           terraform init
 
       - name: Terraform Plan
         run: |
-          cd task_1/project
+          cd ./task_1/project
           terraform plan
 
       - name: Terraform Apply
         if: github.event_name == 'push'
         run: |
-          cd task_1/project
+          cd ./task_1/project
           terraform apply -auto-approve
