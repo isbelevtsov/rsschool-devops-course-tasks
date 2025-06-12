@@ -1,0 +1,26 @@
+# AWS Region
+aws_region = ""
+
+# GitHub OIDC Trust Policy Setup
+aws_account_id = ""  # Replace with your actual AWS account ID
+github_repo    = ""  # Format: owner/repo
+
+# S3 Bucket for Terraform state
+bucket_name = "rsschool-bootstrap-terraform-state"
+
+# Environment name for tagging
+environment = "dev"
+
+# AWS Managed Policies to Attach
+managed_policy_arns = [
+  "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
+  "arn:aws:iam::aws:policy/AmazonRoute53FullAccess",
+  "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+  "arn:aws:iam::aws:policy/IAMFullAccess",
+  "arn:aws:iam::aws:policy/AmazonVPCFullAccess",
+  "arn:aws:iam::aws:policy/AmazonSQSFullAccess",
+  "arn:aws:iam::aws:policy/AmazonEventBridgeFullAccess"
+]
+
+user_name = "github_action_user"
+create_access_key = true

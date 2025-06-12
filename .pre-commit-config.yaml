@@ -11,12 +11,14 @@ repos:
       args:
         - --args=-diff
         - --args=-write=false
-
     - id: terraform_tflint
       args:
-        - --args=--module
+        - --args=--call-module-type=all
         - --args=--enable-rule=terraform_documented_variables
     - id: terraform_trivy
+      args:
+        - --args=--ignorefile=__GIT_WORKING_DIR__/.trivyignore
+        - --args=--skip-dirs="development/"
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.2.0
