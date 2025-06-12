@@ -5,6 +5,5 @@ terraform {
     region       = "eu-north-1"
     encrypt      = true
     use_lockfile = true
-    profile      = "rsschool_user"
   }
 }
