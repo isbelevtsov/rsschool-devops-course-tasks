@@ -40,8 +40,7 @@ jobs:
         working-directory: task_1/project
 
       - name: Terraform Plan
-        run: |
-          TF_LOG=DEBUG terraform plan -out=output.tfplan
+        run: terraform plan -out=output.tfplan -var="aws_region=${{ secrets.AWS_REGION }}" -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" -var="user_name=${{ secrets.USER_NAME }}" -var="create_access_key=true"
         working-directory: task_1/project
 
       - name: Terraform Apply
