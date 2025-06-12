@@ -25,17 +25,14 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: Terraform Init
-        run: |
-          cd /home/runner/work/rsschool-devops-course-tasks/rsschool-devops-course-tasks/task_1/project
-          terraform init
+        run: terraform init
+        working-directory: ./task_1/project
 
       - name: Terraform Plan
-        run: |
-          cd /home/runner/work/rsschool-devops-course-tasks/rsschool-devops-course-tasks/task_1/project
-          terraform plan
+        run: terraform plan
+        working-directory: ./task_1/project
 
       - name: Terraform Apply
         if: github.event_name == 'push'
-        run: |
-          cd /home/runner/work/rsschool-devops-course-tasks/rsschool-devops-course-tasks/task_1/project
-          terraform apply -auto-approve
+        run: terraform apply -auto-approve
+        working-directory: ./task_1/project
