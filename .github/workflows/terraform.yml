@@ -32,14 +32,14 @@ jobs:
           pwd
           ls -la
           terraform init
-        working-directory: task_1/project
+        working-directory: Task_1/project
 
       - name: Terraform Plan
         run: |
           pwd
           ls -la
           terraform plan
-        working-directory: task_1/project
+        working-directory: Task_1/project
 
       - name: Terraform Apply
         if: github.event_name == 'push'
@@ -47,4 +47,4 @@ jobs:
           pwd
           ls -la
           terraform apply -auto-approve
-        working-directory: task_1/project
+        working-directory: Task_1/project
