@@ -20,13 +20,9 @@ jobs:
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: 1.5.0
-          
-      - name: Debug workspace
-        run: |
-          echo "Current path: $(pwd)"
-          ls -la
-          ls -la task_1
-          ls -la task_1/project || echo "Directory task_1/project does not exist"
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
 
       - name: Terraform Init
         run: terraform init
