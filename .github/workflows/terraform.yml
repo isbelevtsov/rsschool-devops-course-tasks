@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write  # Required for OIDC token exchange
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
