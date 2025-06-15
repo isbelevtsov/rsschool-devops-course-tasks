@@ -1,3 +1,5 @@
+# AVD-AWS-0178 (MEDIUM)
+# See https://avd.aquasec.com/misconfig/aws-autoscaling-enable-at-rest-encryption
 resource "aws_iam_role" "vpc_flow_logs_role" {
   name = "VPCFlowLogsRole"
 

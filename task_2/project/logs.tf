@@ -1,3 +1,5 @@
+# AVD-AWS-0017 (LOW)
+# See https://avd.aquasec.com/misconfig/avd-aws-0017
 resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
   name              = "/aws/vpc/flow-logs"
   retention_in_days = 30
@@ -11,6 +13,8 @@ resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
   )
 }
 
+# AVD-AWS-0178 (MEDIUM)
+# See https://avd.aquasec.com/misconfig/aws-autoscaling-enable-at-rest-encryption
 resource "aws_flow_log" "vpc_flow" {
   log_destination      = aws_cloudwatch_log_group.vpc_flow_logs.arn
   log_destination_type = "cloud-watch-logs"

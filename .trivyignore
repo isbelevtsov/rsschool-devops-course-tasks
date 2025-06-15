@@ -1,6 +1,9 @@
 # Accept the risk
 AVD-AWS-0164
+## AVD-AWS-0164 (HIGH): Subnet associates public IP address.
 AVD-AWS-0104
+## AVD-AWS-0104 (CRITICAL): Security group rule allows unrestricted egress to any IP address.
 AVD-AWS-0107
+## AVD-AWS-0107 (HIGH): Security group rule allows unrestricted ingress from any IP address.
 
 # No impact in our settings

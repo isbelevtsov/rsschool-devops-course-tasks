@@ -1,3 +1,5 @@
+# AVD-AWS-0017 (LOW)
+# See https://avd.aquasec.com/misconfig/avd-aws-0017
 resource "aws_kms_key" "cloudwatch" {
   description         = "KMS key for encrypting VPC flow logs"
   enable_key_rotation = true
