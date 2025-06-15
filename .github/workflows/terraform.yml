@@ -37,13 +37,35 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: task_1/project
+        working-directory: task_2/project
 
       - name: Terraform Plan
-        run: terraform plan -out=output.tfplan -var="aws_region=${{ secrets.AWS_REGION }}" -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" -var="user_name=${{ secrets.USER_NAME }}" -var="create_access_key=true"
-        working-directory: task_1/project
+        run: |
+          terraform plan -out=output.tfplan \
+            -var="aws_region=${{ secrets.AWS_REGION }}" \
+            -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
+            -var="vpc_cidr=${{ secrets.VPC_CIDR }}" \
+            -var="azs=${{ secrets.AZS }}" \
+            -var="public_subnet_cidrs=${{ secrets.PUBLIC_SUBNET_CIDRS }}" \
+            -var="private_subnet_cidrs=${{ secrets.PRIVATE_SUBNET_CIDRS }}" \
+            -var="allowed_ssh_cidr=${{ secrets.ALLOWED_SSH_CIDR }}" \
+            -var="key_pair=${{ secrets.KEY_PAIR }}"
+        working-directory: task_2/project
 
-      - name: Terraform Apply
-        if: github.event_name == 'push'
-        run: terraform apply -auto-approve output.tfplan
-        working-directory: task_1/project
+      - name: Terraform Show to file
+        if: github.event_name == 'pull_request'
+        run: terraform show -no-color output.tfplan > tfplan.txt
+        working-directory: task_2/project
+
+      - name: Comment Plan on PR
+        if: github.event_name == 'pull_request'
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "$(cat task_2/project/tfplan.txt | head -c 65000)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Terraform Apply
+      #   if: github.event_name == 'push'
+      #   run: terraform apply -auto-approve output.tfplan
+      #   working-directory: task_2/project
