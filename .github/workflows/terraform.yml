@@ -8,32 +8,62 @@ on:
     branches:
       - main
 
+env:
+  TF_VERSION: 1.12.0
+  AWS_REGION: eu-north-1
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
+  VPC_CIDR: ${{ secrets.VPC_CIDR }} # Set this in GitHub Secrets
+  AZS: ${{ secrets.AZS }} # Set this in GitHub Secrets
+  PUBLIC_SUBNET_CIDRS: ${{ secrets.PUBLIC_SUBNET_CIDRS }} # Set this in GitHub Secrets
+  PRIVATE_SUBNET_CIDRS: ${{ secrets.PRIVATE_SUBNET_CIDRS }} # Set this in GitHub Secrets
+  ALLOWED_SSH_CIDR: ${{ secrets.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
+  KEY_PAIR: ${{ secrets.KEY_PAIR }} # Set this in GitHub Secrets
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for commenting on PRs
+
 permissions:
   id-token: write  # Required for OIDC token exchange
   contents: read   # Required to checkout the repo
+  pull-requests: write  # Required to comment on PRs
+  actions: read   # Required to upload artifacts
+  issues: write   # Required to comment on issues
+  checks: write   # Required to update checks on PRs
+  statuses: write # Required to update commit statuses
 
 jobs:
-  terraform:
+  terraform-format:
+    name: Terraform Format
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.12.0
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionRole # AWS Account ID should be set in GitHub Secrets
-          aws-region: eu-north-1
-
-      - name: Terraform Format
-        run: terraform fmt -check -recursive
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole # AWS Account ID should be set in GitHub Secrets
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Terraform Init
         run: terraform init
@@ -42,14 +72,14 @@ jobs:
       - name: Terraform Plan
         run: |
           terraform plan -out=output.tfplan \
-            -var="aws_region=${{ secrets.AWS_REGION }}" \
-            -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
-            -var="vpc_cidr=${{ secrets.VPC_CIDR }}" \
-            -var="azs=${{ secrets.AZS }}" \
-            -var="public_subnet_cidrs=${{ secrets.PUBLIC_SUBNET_CIDRS }}" \
-            -var="private_subnet_cidrs=${{ secrets.PRIVATE_SUBNET_CIDRS }}" \
-            -var="allowed_ssh_cidr=${{ secrets.ALLOWED_SSH_CIDR }}" \
-            -var="key_pair=${{ secrets.KEY_PAIR }}"
+            -var="aws_region=${{ env.AWS_REGION }}" \
+            -var="aws_account_id=${{ env.AWS_ACCOUNT_ID }}" \
+            -var="vpc_cidr=${{ env.VPC_CIDR }}" \
+            -var="azs=${{ env.AZS }}" \
+            -var="public_subnet_cidrs=${{ env.PUBLIC_SUBNET_CIDRS }}" \
+            -var="private_subnet_cidrs=${{ env.PRIVATE_SUBNET_CIDRS }}" \
+            -var="allowed_ssh_cidr=${{ env.ALLOWED_SSH_CIDR }}" \
+            -var="key_pair=${{ env.KEY_PAIR }}"
         working-directory: task_2/project
 
       - name: Terraform Show to file
@@ -57,15 +87,53 @@ jobs:
         run: terraform show -no-color output.tfplan > tfplan.txt
         working-directory: task_2/project
 
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: |
+            output.tfplan
+            tfplan.txt
+
       - name: Comment Plan on PR
         if: github.event_name == 'pull_request'
         run: |
           gh pr comment ${{ github.event.pull_request.number }} \
             --body "$(cat task_2/project/tfplan.txt | head -c 65000)"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ env.GH_TOKEN }}
 
-      # - name: Terraform Apply
-      #   if: github.event_name == 'push'
-      #   run: terraform apply -auto-approve output.tfplan
-      #   working-directory: task_2/project
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole # AWS Account ID should be set in GitHub Secrets
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: task_2/project
+
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve output.tfplan
+        working-directory: task_2/project
