@@ -14,6 +14,7 @@ This project sets up a basic AWS infrastructure using Terraform and GitHub Actio
 - Bastion EC2 instance in the public subnet
 - Private EC2 instances in private subnets
 - Security Groups with descriptions and rule auditing
+- Network Access Lists for better subnet traffic control
 - CloudWatch log group for VPC flow logs
 - Tags including GitHub Actions metadata
 - GitHub Actions pipeline for Terraform Plan & Apply using OIDC
@@ -35,6 +36,7 @@ This project sets up a basic AWS infrastructure using Terraform and GitHub Actio
 │       ├── logs.tf                         # AWS S3 bucket logging for security purpose
 │       ├── main.tf                         # Terraform backend condiguration
 │       ├── Makefile                        # Makefile for better project and data magement
+│       ├── nacls.tf                        # AWS network access lists configuration
 │       ├── network.tf                      # AWS subnets and routing configuration
 │       ├── outputs.tf                      # Terraform outputs data
 │       ├── providers.tf                    # Terraform providers configuration
