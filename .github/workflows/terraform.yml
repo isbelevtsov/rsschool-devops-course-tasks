@@ -9,8 +9,8 @@ on:
       - main
 
 env:
-  TF_VERSION: 1.12.0
-  AWS_REGION: eu-north-1
+  TF_VERSION: ${{ secrets.TF_VERSION }} # Set this in GitHub Secrets
+  AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
   VPC_CIDR: ${{ secrets.VPC_CIDR }} # Set this in GitHub Secrets
   AZS: ${{ secrets.AZS }} # Set this in GitHub Secrets
