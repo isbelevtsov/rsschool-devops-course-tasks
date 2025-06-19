@@ -70,15 +70,7 @@ jobs:
         id: plan
         run: |
           cd ${{ env.TASK }}/project
-          terraform  plan -out=output.tfplan \
-            -var="aws_region=${{ env.AWS_REGION }}" \
-            -var="aws_account_id=${{ env.AWS_ACCOUNT_ID }}" \
-            -var="vpc_cidr=${{ env.VPC_CIDR }}" \
-            -var="azs=${{ env.AZS }}" \
-            -var="public_subnet_cidrs=${{ env.PUBLIC_SUBNET_CIDRS }}" \
-            -var="private_subnet_cidrs=${{ env.PRIVATE_SUBNET_CIDRS }}" \
-            -var="allowed_ssh_cidr=${{ env.ALLOWED_SSH_CIDR }}" \
-            -var="key_pair=${{ env.KEY_PAIR }}"
+          terraform  plan -out=output.tfplan -var="aws_region=${{ env.AWS_REGION }}" -var="aws_account_id=${{ env.AWS_ACCOUNT_ID }}" -var="vpc_cidr=${{ env.VPC_CIDR }}" -var="azs=${{ env.AZS }}" -var="public_subnet_cidrs=${{ env.PUBLIC_SUBNET_CIDRS }}" -var="private_subnet_cidrs=${{ env.PRIVATE_SUBNET_CIDRS }}" -var="allowed_ssh_cidr=${{ env.ALLOWED_SSH_CIDR }}" -var="key_pair=${{ env.KEY_PAIR }}"
 
       - name: Terraform Show to file
         if: github.event_name == 'pull_request'
