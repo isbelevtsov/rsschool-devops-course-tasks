@@ -1,14 +1,3 @@
-variable "tags" {
-  type        = map(string)
-  description = "Common tags to apply to all resources"
-  default = {
-    Task      = "2. Basic Infrastructure Configuration"
-    ManagedBy = "Terraform"
-    CI        = "GitHub Actions"
-    Date      = "2025-06-15"
-  }
-}
-
 variable "aws_region" {
   default     = "eu-north-1"
   type        = string

@@ -18,12 +18,9 @@ resource "aws_security_group" "bastion_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = merge(
-    var.tags,
-    {
-      Name = "BastionSecurityGroup"
-    }
-  )
+  tags = {
+    Name = "BastionSecurityGroup"
+  }
 }
 
 resource "aws_security_group" "vm_private_sg" {
@@ -46,10 +43,7 @@ resource "aws_security_group" "vm_private_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = merge(
-    var.tags,
-    {
-      Name = "PrivateVMSecurityGroup"
-    }
-  )
+  tags = {
+    Name = "PrivateVMSecurityGroup"
+  }
 }

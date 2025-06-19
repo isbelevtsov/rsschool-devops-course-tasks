@@ -5,12 +5,9 @@ resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
   retention_in_days = 30
   kms_key_id        = aws_kms_key.cloudwatch.arn
 
-  tags = merge(
-    var.tags,
-    {
-      Name = "VPCFlowLogGroup"
-    }
-  )
+  tags = {
+    Name = "VPCFlowLogGroup"
+  }
 }
 
 # AVD-AWS-0178 (MEDIUM)
@@ -22,10 +19,18 @@ resource "aws_flow_log" "vpc_flow" {
   vpc_id               = aws_vpc.main.id
   iam_role_arn         = aws_iam_role.vpc_flow_logs_role.arn
 
-  tags = merge(
-    var.tags,
-    {
-      Name = "VPCFlowLogs"
-    }
-  )
+  tags = {
+    Name = "VPCFlowLogs"
+  }
+}
+
+# AVD-AWS-0017 (LOW)
+# See https://avd.aquasec.com/misconfig/avd-aws-0017
+resource "aws_kms_key" "cloudwatch" {
+  description         = "KMS key for encrypting VPC flow logs"
+  enable_key_rotation = true
+
+  tags = {
+    Name = "CloudWatchKMSKey"
+  }
 }

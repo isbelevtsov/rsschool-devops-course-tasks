@@ -24,27 +24,25 @@ This project sets up a basic AWS infrastructure using Terraform and GitHub Actio
 ```
 .
 ├── .github
-|   └── workflows
-|       └── terraform.yml                   # Github Actions workflow pipeline configuration
+│   └── workflows
+│       └── terraform.yml                   # Github Actions workflow pipeline configuration
 ├── task_2
-│   └── project
-│       ├── .env.example                    # Example file contains variables for Makefile
-│       ├── ami.tf                          # AWS AMI configuration for future EC2 instaces deployment
-│       ├── ec2.tf                          # AWS EC2 instances configuration
-│       ├── iam.tf                          # AWS IAM configuration
-│       ├── kms.tf                          # AWS KMS key configuration for data encryption
-│       ├── logs.tf                         # AWS S3 bucket logging for security purpose
-│       ├── main.tf                         # Terraform backend condiguration
-│       ├── Makefile                        # Makefile for better project and data magement
-│       ├── nacls.tf                        # AWS network access lists configuration
-│       ├── network.tf                      # AWS subnets and routing configuration
-│       ├── outputs.tf                      # Terraform outputs data
-│       ├── providers.tf                    # Terraform providers configuration
-│       ├── README.md                       # This file
-│       ├── sg.tf                           # AWS security groups configuration for network traffic control
-│       ├── terraform.auto.tfvars.example   # Example file contains test variables or placeholders for Terraform
-│       ├── variables.tf                    # Terraform variables configuration
-│       └── vpc.tf                          # AWS VPC configuration
+│   ├── project
+│   │    ├── .env.example                    # Example file contains variables for Makefile
+│   │    ├── ami.tf                          # AWS AMI configuration for future EC2 instaces deployment
+│   │    ├── backend.tf                      # Terraform backend condiguration
+│   │    ├── ec2.tf                          # AWS EC2 instances configuration
+│   │    ├── iam.tf                          # AWS IAM configuration
+│   │    ├── logs.tf                         # AWS S3 bucket logging for security purpose and KMS key configuration for data encryption
+│   │    ├── Makefile                        # Makefile for better project and data magement
+│   │    ├── networking.tf                   # AWS subnets and routing configuration alongside with network access lists configuration
+│   │    ├── outputs.tf                      # Terraform outputs data
+│   │    ├── providers.tf                    # Terraform providers configuration
+│   │    ├── sg.tf                           # AWS security groups configuration for network traffic control
+│   │    ├── terraform.auto.tfvars.example   # Example file contains test variables or placeholders for Terraform
+│   │    ├── variables.tf                    # Terraform variables configuration
+│   │    └── vpc.tf                          # AWS VPC configuration
+│   └── README.md                            # This file
 ```
 
 ## GitHub Actions Workflow

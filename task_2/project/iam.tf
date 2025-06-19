@@ -15,7 +15,9 @@ resource "aws_iam_role" "vpc_flow_logs_role" {
     }]
   })
 
-  tags = var.tags
+  tags = {
+    Name = "VPCFlowLogsRole"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "vpc_flow_logs_policy" {

@@ -17,12 +17,9 @@ resource "aws_instance" "bastion" {
     http_endpoint = "enabled"  # Optional but recommended
   }
 
-  tags = merge(
-    var.tags,
-    {
-      Name = "BastionHost"
-    }
-  )
+  tags = {
+    Name = "BastionHost"
+  }
 }
 
 resource "aws_instance" "private_vm" {
@@ -45,12 +42,9 @@ resource "aws_instance" "private_vm" {
     http_endpoint = "enabled"  # Optional but recommended
   }
 
-  tags = merge(
-    var.tags,
-    {
-      Name = "PrivateVM-${count.index + 1}"
-    }
-  )
+  tags = {
+    Name = "PrivateVM-${count.index + 1}"
+  }
 }
 
 resource "aws_instance" "public_vm" {
@@ -72,10 +66,7 @@ resource "aws_instance" "public_vm" {
     http_endpoint = "enabled"  # Optional but recommended
   }
 
-  tags = merge(
-    var.tags,
-    {
-      Name = "PublicVM"
-    }
-  )
+  tags = {
+    Name = "PublicVM"
+  }
 }
