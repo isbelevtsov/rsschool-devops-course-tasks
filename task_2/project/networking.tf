@@ -9,7 +9,7 @@ resource "aws_subnet" "public" {
   availability_zone       = element(var.azs, count.index)
   map_public_ip_on_launch = true
   tags = {
-    Name = "PublicSubnet-${count.index + 1}"
+    Name = "${var.project_name}-public-${var.environment_name}-${count.index + 1}"
   }
 }
 
@@ -19,13 +19,13 @@ resource "aws_subnet" "private" {
   cidr_block        = var.private_subnet_cidrs[count.index]
   availability_zone = element(var.azs, count.index)
   tags = {
-    Name = "PrivateSubnet-${count.index + 1}"
+    Name = "${var.project_name}-private-${var.environment_name}-${count.index + 1}"
   }
 }
 
 resource "aws_eip" "nat" {
   tags = {
-    Name = "NATEIP"
+    Name = "${var.project_name}-nat-eip-${var.environment_name}"
   }
 }
 
@@ -34,7 +34,7 @@ resource "aws_nat_gateway" "natgw" {
   subnet_id     = aws_subnet.public[0].id
   depends_on    = [aws_internet_gateway.igw]
   tags = {
-    Name = "NATGateway"
+    Name = "${var.project_name}-nat-gateway-${var.environment_name}"
   }
 }
 
@@ -46,7 +46,7 @@ resource "aws_route_table" "public" {
     gateway_id = aws_internet_gateway.igw.id
   }
   tags = {
-    Name = "PublicRouteTable"
+    Name = "${var.project_name}-public-route-table-${var.environment_name}"
   }
 }
 
@@ -64,7 +64,7 @@ resource "aws_route_table" "private" {
     nat_gateway_id = aws_nat_gateway.natgw.id
   }
   tags = {
-    Name = "PrivateRouteTable"
+    Name = "${var.project_name}-private-route-table-${var.environment_name}"
   }
 }
 
@@ -78,7 +78,7 @@ resource "aws_network_acl" "public" {
   vpc_id     = aws_vpc.main.id
   subnet_ids = aws_subnet.public[*].id
   tags = {
-    Name = "PublicNACL"
+    Name = "${var.project_name}-public-nacl-${var.environment_name}"
   }
 }
 
@@ -108,7 +108,7 @@ resource "aws_network_acl" "private" {
   vpc_id     = aws_vpc.main.id
   subnet_ids = aws_subnet.private[*].id
   tags = {
-    Name = "PrivateNACL"
+    Name = "${var.project_name}-private-nacl-${var.environment_name}"
   }
 }
 

@@ -18,7 +18,7 @@ resource "aws_instance" "bastion" {
   }
 
   tags = {
-    Name = "BastionHost"
+    Name = "${var.project_name}-bastion-${var.environment_name}"
   }
 }
 
@@ -43,7 +43,7 @@ resource "aws_instance" "private_vm" {
   }
 
   tags = {
-    Name = "PrivateVM-${count.index + 1}"
+    Name = "${var.project_name}-vm-private-${var.environment_name}-${count.index + 1}"
   }
 }
 
@@ -67,6 +67,6 @@ resource "aws_instance" "public_vm" {
   }
 
   tags = {
-    Name = "PublicVM"
+    Name = "${var.project_name}-vm-public-${var.environment_name}"
   }
 }

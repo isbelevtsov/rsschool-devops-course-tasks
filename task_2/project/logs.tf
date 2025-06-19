@@ -6,7 +6,7 @@ resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
   kms_key_id        = aws_kms_key.cloudwatch.arn
 
   tags = {
-    Name = "VPCFlowLogGroup"
+    Name = "${var.project_name}-vpc-flow-log-group-${var.environment_name}"
   }
 }
 
@@ -20,7 +20,7 @@ resource "aws_flow_log" "vpc_flow" {
   iam_role_arn         = aws_iam_role.vpc_flow_logs_role.arn
 
   tags = {
-    Name = "VPCFlowLogs"
+    Name = "${var.project_name}-vpc-flow-logs-${var.environment_name}"
   }
 }
 
@@ -31,6 +31,6 @@ resource "aws_kms_key" "cloudwatch" {
   enable_key_rotation = true
 
   tags = {
-    Name = "CloudWatchKMSKey"
+    Name = "${var.project_name}-kms-key-cloudwatch-${var.environment_name}"
   }
 }

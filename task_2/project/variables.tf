@@ -50,3 +50,15 @@ variable "private_subnet_cidrs" {
   description = "List of CIDR blocks for private subnets"
   default     = ["10.0.3.0/24", "10.0.4.0/24"]
 }
+
+variable "environment_name" {
+  description = "Environment for the deployment (e.g., dev, prod)"
+  type        = string
+  default     = "dev"
+}
+
+variable "project_name" {
+  description = "Name of the project"
+  type        = string
+  default     = "rs"
+}
