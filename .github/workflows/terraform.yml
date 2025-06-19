@@ -7,8 +7,10 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 env:
+  TASK: task_2
   TF_VERSION: ${{ secrets.TF_VERSION }} # Set this in GitHub Secrets
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
@@ -33,6 +35,7 @@ jobs:
   terraform-format:
     name: Terraform Format
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -49,6 +52,7 @@ jobs:
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -67,7 +71,7 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: task_2/project
+        working-directory: ${{ env.TASK }}/project
 
       - name: Terraform Plan
         run: |
@@ -80,12 +84,12 @@ jobs:
             -var="private_subnet_cidrs=${{ env.PRIVATE_SUBNET_CIDRS }}" \
             -var="allowed_ssh_cidr=${{ env.ALLOWED_SSH_CIDR }}" \
             -var="key_pair=${{ env.KEY_PAIR }}"
-        working-directory: task_2/project
+        working-directory: ${{ env.TASK }}/project
 
       - name: Terraform Show to file
         if: github.event_name == 'pull_request'
         run: terraform show -no-color output.tfplan > tfplan.txt
-        working-directory: task_2/project
+        working-directory: ${{ env.TASK }}/project
 
       - name: Upload Plan
         uses: actions/upload-artifact@v4
@@ -99,7 +103,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           gh pr comment ${{ github.event.pull_request.number }} \
-            --body "$(cat task_2/project/tfplan.txt | head -c 65000)"
+            --body "$(cat ${{ env.TASK }}/project/tfplan.txt | head -c 65000)"
         env:
           GH_TOKEN: ${{ env.GH_TOKEN }}
 
@@ -107,6 +111,7 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     needs: terraform-plan
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
 
@@ -126,7 +131,7 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: task_2/project
+        working-directory: ${{ env.TASK }}/project
 
       - name: Download Plan
         uses: actions/download-artifact@v4
@@ -134,6 +139,42 @@ jobs:
           name: terraform-plan
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve output.tfplan
-        working-directory: task_2/project
+        working-directory: ${{ env.TASK }}/project
+
+  terraform-destroy:
+    name: Terraform Destroy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TASK }}/project
+
+      - name: Terraform Destroy
+        run: |
+          terraform destroy -auto-approve \
+            -var="aws_region=${{ env.AWS_REGION }}" \
+            -var="aws_account_id=${{ env.AWS_ACCOUNT_ID }}" \
+            -var="vpc_cidr=${{ env.VPC_CIDR }}" \
+            -var="azs=${{ env.AZS }}" \
+            -var="public_subnet_cidrs=${{ env.PUBLIC_SUBNET_CIDRS }}" \
+            -var="private_subnet_cidrs=${{ env.PRIVATE_SUBNET_CIDRS }}" \
+            -var="allowed_ssh_cidr=${{ env.ALLOWED_SSH_CIDR }}" \
+            -var="key_pair=${{ env.KEY_PAIR }}"
+        working-directory: ${{ env.TASK }}/project
