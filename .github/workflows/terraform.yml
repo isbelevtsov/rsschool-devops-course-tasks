@@ -11,6 +11,7 @@ on:
 
 env:
   TASK: task_2
+  INSTANCE_TYPE: t3.nano
   TF_VERSION: ${{ secrets.TF_VERSION }} # Set this in GitHub Secrets
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
@@ -52,9 +53,25 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Generate terraform.auto.tfvars
+        run: |
+          cat <<EOF > ${{ env.TASK }}/project/terraform.auto.tfvars
+            aws_region           = "${{ env.AWS_REGION }}"
+            aws_account_id       = "${{ env.AWS_ACCOUNT_ID }}"
+            vpc_cidr             = "${{ env.VPC_CIDR }}"
+            azs                  = "${{ env.AZS }}"
+            public_subnet_cidrs  = "${{ env.PUBLIC_SUBNET_CIDRS }}"
+            private_subnet_cidrs = "${{ env.PRIVATE_SUBNET_CIDRS }}"
+            allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
+            key_pair             = "${{ env.KEY_PAIR }}"
+            instance_type        = "${{ env.INSTANCE_TYPE }}"
+            EOF
+        working-directory: ${{ env.TASK }}/project
+
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check -recursive
+        working-directory: ${{ env.TASK }}/project
 
       - name: Terraform Init
         id: init
@@ -70,7 +87,7 @@ jobs:
         id: plan
         run: |
           cd ${{ env.TASK }}/project
-          terraform  plan -out=output.tfplan -var="aws_region=${{ env.AWS_REGION }}" -var="aws_account_id=${{ env.AWS_ACCOUNT_ID }}" -var="vpc_cidr=${{ env.VPC_CIDR }}" -var="azs=${{ env.AZS }}" -var="public_subnet_cidrs=${{ env.PUBLIC_SUBNET_CIDRS }}" -var="private_subnet_cidrs=${{ env.PRIVATE_SUBNET_CIDRS }}" -var="allowed_ssh_cidr=${{ env.ALLOWED_SSH_CIDR }}" -var="key_pair=${{ env.KEY_PAIR }}"
+          terraform  plan -out=output.tfplan
 
       - name: Terraform Show to file
         if: github.event_name == 'pull_request'
@@ -167,6 +184,21 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Generate terraform.auto.tfvars
+        run: |
+          cat <<EOF > ${{ env.TASK }}/project/terraform.auto.tfvars
+            aws_region           = "${{ env.AWS_REGION }}"
+            aws_account_id       = "${{ env.AWS_ACCOUNT_ID }}"
+            vpc_cidr             = "${{ env.VPC_CIDR }}"
+            azs                  = "${{ env.AZS }}"
+            public_subnet_cidrs  = "${{ env.PUBLIC_SUBNET_CIDRS }}"
+            private_subnet_cidrs = "${{ env.PRIVATE_SUBNET_CIDRS }}"
+            allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
+            key_pair             = "${{ env.KEY_PAIR }}"
+            instance_type        = "${{ env.INSTANCE_TYPE }}"
+            EOF
+        working-directory: ${{ env.TASK }}/project
+
       - name: Terraform Init
         run: terraform init
         working-directory: ${{ env.TASK }}/project
@@ -200,19 +232,25 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Generate terraform.auto.tfvars
+        run: |
+          cat <<EOF > ${{ env.TASK }}/project/terraform.auto.tfvars
+            aws_region           = "${{ env.AWS_REGION }}"
+            aws_account_id       = "${{ env.AWS_ACCOUNT_ID }}"
+            vpc_cidr             = "${{ env.VPC_CIDR }}"
+            azs                  = "${{ env.AZS }}"
+            public_subnet_cidrs  = "${{ env.PUBLIC_SUBNET_CIDRS }}"
+            private_subnet_cidrs = "${{ env.PRIVATE_SUBNET_CIDRS }}"
+            allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
+            key_pair             = "${{ env.KEY_PAIR }}"
+            instance_type        = "${{ env.INSTANCE_TYPE }}"
+            EOF
+        working-directory: ${{ env.TASK }}/project
+
       - name: Terraform Init
         run: terraform init
         working-directory: ${{ env.TASK }}/project
 
       - name: Terraform Destroy
-        run: |
-          terraform destroy -auto-approve \
-            -var="aws_region=${{ env.AWS_REGION }}" \
-            -var="aws_account_id=${{ env.AWS_ACCOUNT_ID }}" \
-            -var="vpc_cidr=${{ env.VPC_CIDR }}" \
-            -var="azs=${{ env.AZS }}" \
-            -var="public_subnet_cidrs=${{ env.PUBLIC_SUBNET_CIDRS }}" \
-            -var="private_subnet_cidrs=${{ env.PRIVATE_SUBNET_CIDRS }}" \
-            -var="allowed_ssh_cidr=${{ env.ALLOWED_SSH_CIDR }}" \
-            -var="key_pair=${{ env.KEY_PAIR }}"
+        run: terraform destroy -auto-approve
         working-directory: ${{ env.TASK }}/project
