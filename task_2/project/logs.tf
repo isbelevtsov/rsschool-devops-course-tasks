@@ -10,49 +10,49 @@ resource "aws_kms_key" "cloudwatch" {
   }
 }
 
-resource "aws_kms_key_policy" "cloudwatch" {
-  key_id = aws_kms_key.cloudwatch.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Id      = "key-default-1"
-    Statement = [
-      {
-        Sid    = "Enable IAM User Permissions"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${var.aws_account_id}:root",
-        },
-        Action   = "kms:*"
-        Resource = "*"
-      },
-      {
-        Sid    = "Enable IAM User Permissions"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${var.aws_account_id}:ow1eye",
-        },
-        Action   = "kms:*"
-        Resource = "*"
-      },
-      {
-        Sid    = "Enable IAM User Permissions"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${var.aws_account_id}:role/GithubActionRole",
-        },
-        Action   = "kms:*"
-        Resource = "*"
-      }
-    ]
-  })
-}
+# resource "aws_kms_key_policy" "cloudwatch" {
+#   key_id = aws_kms_key.cloudwatch.id
+#   policy = jsonencode({
+#     Version = "2012-10-17"
+#     Id      = "key-default-1"
+#     Statement = [
+#       {
+#         Sid    = "Enable IAM User Permissions"
+#         Effect = "Allow"
+#         Principal = {
+#           AWS = "arn:aws:iam::${var.aws_account_id}:root",
+#         },
+#         Action   = "kms:*"
+#         Resource = "*"
+#       },
+#       {
+#         Sid    = "Enable IAM User Permissions"
+#         Effect = "Allow"
+#         Principal = {
+#           AWS = "arn:aws:iam::${var.aws_account_id}:ow1eye",
+#         },
+#         Action   = "kms:*"
+#         Resource = "*"
+#       },
+#       {
+#         Sid    = "Enable IAM User Permissions"
+#         Effect = "Allow"
+#         Principal = {
+#           AWS = "arn:aws:iam::${var.aws_account_id}:role/GithubActionRole",
+#         },
+#         Action   = "kms:*"
+#         Resource = "*"
+#       }
+#     ]
+#   })
+# }
 
 # AVD-AWS-0017 (LOW)
 # See https://avd.aquasec.com/misconfig/avd-aws-0017
 resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
   name              = "/aws/vpc/flow-logs"
   retention_in_days = 30
-  kms_key_id        = aws_kms_key.cloudwatch.key_id
+  # kms_key_id        = aws_kms_key.cloudwatch.key_id
 
   tags = {
     Name = "${var.project_name}-vpc-flow-log-group-${var.environment_name}"

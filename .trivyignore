@@ -9,5 +9,7 @@ AVD-AWS-0107
 ## AVD-AWS-0107 (HIGH): Security group rule allows unrestricted ingress from any IP address.
 AVD-AWS-0164
 ## AVD-AWS-0164 (HIGH): Subnet associates public IP address.
+AVD-AWS-0017
+## AVD-AWS-0017 (LOW): Log group is not encrypted.
 
 # No impact in our settings
