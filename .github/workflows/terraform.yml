@@ -191,9 +191,9 @@ jobs:
           aws_region           = "${{ env.AWS_REGION }}"
           aws_account_id       = "${{ env.AWS_ACCOUNT_ID }}"
           vpc_cidr             = "${{ env.VPC_CIDR }}"
-          azs                  = "${{ env.AZS }}"
-          public_subnet_cidrs  = "${{ env.PUBLIC_SUBNET_CIDRS }}"
-          private_subnet_cidrs = "${{ env.PRIVATE_SUBNET_CIDRS }}"
+          azs                  = ${{ env.AZS }}
+          public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
           allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type        = "${{ env.INSTANCE_TYPE }}"
@@ -240,9 +240,9 @@ jobs:
           aws_region           = "${{ env.AWS_REGION }}"
           aws_account_id       = "${{ env.AWS_ACCOUNT_ID }}"
           vpc_cidr             = "${{ env.VPC_CIDR }}"
-          azs                  = "${{ env.AZS }}"
-          public_subnet_cidrs  = "${{ env.PUBLIC_SUBNET_CIDRS }}"
-          private_subnet_cidrs = "${{ env.PRIVATE_SUBNET_CIDRS }}"
+          azs                  = ${{ env.AZS }}
+          public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
           allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type        = "${{ env.INSTANCE_TYPE }}"
