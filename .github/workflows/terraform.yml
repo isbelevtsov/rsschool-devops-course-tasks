@@ -69,7 +69,8 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
-          terraform -chdir=${{ env.TASK }}/project plan -out=output.tfplan \
+          cd ${{ env.TASK }}/project
+          terraform  plan -out=output.tfplan \
             -var="aws_region=${{ env.AWS_REGION }}" \
             -var="aws_account_id=${{ env.AWS_ACCOUNT_ID }}" \
             -var="vpc_cidr=${{ env.VPC_CIDR }}" \
