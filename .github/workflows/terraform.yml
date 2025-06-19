@@ -66,6 +66,7 @@ jobs:
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type        = "${{ env.INSTANCE_TYPE }}"
           EOF
+          cat terraform.auto.tfvars
         working-directory: ${{ env.TASK }}/project
 
       - name: Terraform Format
