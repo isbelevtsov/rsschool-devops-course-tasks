@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  TASK: task_2
+  TASK_DIR: task_2/project
   INSTANCE_TYPE: t3.nano
   TF_VERSION: ${{ secrets.TF_VERSION }} # Set this in GitHub Secrets
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
@@ -67,41 +67,41 @@ jobs:
           instance_type        = "${{ env.INSTANCE_TYPE }}"
           EOF
           cat terraform.auto.tfvars
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check -recursive
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Init
         id: init
         run: terraform init
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Plan
         id: plan
         run: |
-          cd ${{ env.TASK }}/project
-          terraform  plan -out=output.tfplan
+          cd ${{ env.TASK_DIR }}
+          terraform  plan -no-color -out=output.tfplan
 
       - name: Terraform Show to file
         if: github.event_name == 'pull_request'
         run: terraform show -no-color output.tfplan > tfplan.txt
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Upload Plan
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
           path: |
-            output.tfplan
-            tfplan.txt
+            ${{ env.TASK_DIR }}/output.tfplan
+            ${{ env.TASK_DIR }}/tfplan.txt
 
       - name: Comment Plan on PR
         uses: actions/github-script@v7
@@ -143,7 +143,7 @@ jobs:
 
             </details>
 
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TASK }}/project\`, Workflow: \`${{ github.workflow }}\`*`;
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TASK_DIR }}\`, Workflow: \`${{ github.workflow }}\`*`;
 
             // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {
@@ -198,11 +198,11 @@ jobs:
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type        = "${{ env.INSTANCE_TYPE }}"
           EOF
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Init
         run: terraform init
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Download Plan
         uses: actions/download-artifact@v4
@@ -211,7 +211,7 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve output.tfplan
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
 
   terraform-destroy:
     name: Terraform Destroy
@@ -246,12 +246,12 @@ jobs:
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type        = "${{ env.INSTANCE_TYPE }}"
           EOF
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Init
         run: terraform init
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve
-        working-directory: ${{ env.TASK }}/project
+        working-directory: ${{ env.TASK_DIR }}
