@@ -1,8 +1,16 @@
 # Tasks 2: Basic Infrastructure Configuration
 
+[![Terraform Plan and Apply](https://github.com/isbelevtsov/rsschool-devops-course-tasks/actions/workflows/terraform.yml/badge.svg)](https://github.com/isbelevtsov/rsschool-devops-course-tasks/actions/workflows/terraform.yml)
+
 ## Overview
 
 This project sets up a basic AWS infrastructure using Terraform and GitHub Actions.
+
+## Prerequisites
+
+- Task 1 bootstrap Terraform code must be executed before running this task.
+- Github Action Secrets must be already initialized throught the Github web console.
+- Set variables according to your desire.
 
 ## Features
 
@@ -12,12 +20,13 @@ This project sets up a basic AWS infrastructure using Terraform and GitHub Actio
 - Internet Gateway for public subnet access
 - Route tables for intra-VPC and external access
 - Bastion EC2 instance in the public subnet
+- Pablic EC2 instance in the public subnet
 - Private EC2 instances in private subnets
 - Security Groups with descriptions and rule auditing
 - Network Access Lists for better subnet traffic control
 - CloudWatch log group for VPC flow logs
 - Tags including GitHub Actions metadata
-- GitHub Actions pipeline for Terraform Plan & Apply using OIDC
+- GitHub Actions pipeline for Terraform Plan, Apply & Destroy using OIDC
 
 ## Directory Structure
 
@@ -39,7 +48,8 @@ This project sets up a basic AWS infrastructure using Terraform and GitHub Actio
 │   │    ├── outputs.tf                      # Terraform outputs data
 │   │    ├── providers.tf                    # Terraform providers configuration
 │   │    ├── sg.tf                           # AWS security groups configuration for network traffic control
-│   │    ├── terraform.auto.tfvars.example   # Example file contains test variables or placeholders for Terraform
+│   │    ├── terraform.auto.tfvars.example   # Example file contains test variables or placeholders for Terraform (only for local usage, \
+│   │    │                                     Github Actions workflow will generate it in process)
 │   │    ├── variables.tf                    # Terraform variables configuration
 │   │    └── vpc.tf                          # AWS VPC configuration
 │   └── README.md                            # This file
@@ -52,7 +62,7 @@ The `terraform.yml` workflow performs:
 - Code checkout
 - Terraform setup
 - AWS credentials via OIDC
-- `terraform fmt`, `init`, `plan`, `apply`
+- `terraform fmt`, `init`, `plan`, `apply`, `destroy`
 - PR comment with `terraform plan` output
 
 ## Required GitHub Secrets
@@ -85,4 +95,7 @@ Tested with Terraform `1.12.0`
 ## Notes
 
 - All tagging includes `Task`, `ManagedBy`, `CI`, and `Date` fields.
-- `output.tfplan` is commented on PRs.
+- `output.tfplan` is commented on PRs automaticaly.
+- All resources can be destroyed using the same way as `Plan` or `Apply`.
+
+## Usability confirmation
