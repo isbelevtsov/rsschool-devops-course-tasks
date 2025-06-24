@@ -60,11 +60,20 @@ else
     exit 1
 fi
 
-#Set SSH certificate file permissions
+# Set SSH certificate file permissions
 chmod 600 "${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Permissions was successfully set"
 else
     echo "====> Failed to set permissions to file"
+    exit 1
+fi
+
+# Change certificate ownership
+chown ubuntu:ubuntu "${CERT_PATH}"
+if [ $? -eq 0 ]; then
+    echo "====> Certificate ownership changed successfully"
+else
+    echo "====> Failed to changle certificate ownership"
     exit 1
 fi
