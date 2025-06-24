@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# Define inherited variables
+CERT_PATH="${CERT_PATH}"
+PARAM_NAME="${PARAM_NAME}"
+
 # Update the instance
 apt-get update -y
 if [ $? -eq 0 ]; then
