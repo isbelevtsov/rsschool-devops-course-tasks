@@ -62,3 +62,15 @@ variable "project_name" {
   type        = string
   default     = "rs"
 }
+
+variable "cert_path" {
+  description = "Path to the certificate file"
+  type        = string
+  default     = "/etc/ssl/cert.pem"
+}
+
+variable "param_name" {
+  description = "Parameter name for the certificate in SSM"
+  type        = string
+  default     = "/ec2/cert"
+}

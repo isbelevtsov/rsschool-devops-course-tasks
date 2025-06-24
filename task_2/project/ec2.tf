@@ -7,22 +7,10 @@ resource "aws_instance" "bastion" {
   associate_public_ip_address = true
   iam_instance_profile        = aws_iam_instance_profile.ssm_profile.name
 
-  user_data = <<-EOF
-              #!/bin/bash
-              set -e
-
-              CERT_PATH="/home/ubuntu/blackbird.pem"
-              PARAM_NAME="/development/KEYPAIR"
-
-              # Install AWS CLI and jq if needed
-              apt-get update -y
-              apt-get install -y awscli jq
-
-              # Retrieve the cert and write it to file
-              CERT=$(aws ssm get-parameter --name "$${PARAM_NAME}" --with-decryption --query "Parameter.Value" --output text)
-              echo "$${CERT}" > "$${CERT_PATH}"
-              chmod 600 "$${CERT_PATH}"
-              EOF
+  user_data = templatefile("${path.module}/user_data.tpl", {
+    CERT_PATH  = var.cert_path
+    PARAM_NAME = var.param_name
+  })
 
   root_block_device {
     encrypted   = true  # Ensure encryption at rest
@@ -31,8 +19,10 @@ resource "aws_instance" "bastion" {
   }
 
   metadata_options {
-    http_tokens   = "required" # Enforce IMDSv2
-    http_endpoint = "enabled"  # Optional but recommended
+    http_tokens                 = "required" # Enforce IMDSv2
+    http_endpoint               = "enabled"  # Optional but recommended
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
   }
 
   tags = {
@@ -56,8 +46,10 @@ resource "aws_instance" "private_vm" {
   }
 
   metadata_options {
-    http_tokens   = "required" # Enforce IMDSv2
-    http_endpoint = "enabled"  # Optional but recommended
+    http_tokens                 = "required" # Enforce IMDSv2
+    http_endpoint               = "enabled"  # Optional but recommended
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
   }
 
   tags = {
@@ -80,8 +72,10 @@ resource "aws_instance" "public_vm" {
   }
 
   metadata_options {
-    http_tokens   = "required" # Enforce IMDSv2
-    http_endpoint = "enabled"  # Optional but recommended
+    http_tokens                 = "required" # Enforce IMDSv2
+    http_endpoint               = "enabled"  # Optional but recommended
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
   }
 
   tags = {

@@ -120,7 +120,7 @@ resource "aws_network_acl_rule" "private_inbound_all" {
   egress         = false
   protocol       = "-1"
   rule_action    = "allow"
-  cidr_block     = aws_subnet.public[0].cidr_block
+  cidr_block     = var.vpc_cidr
   from_port      = 0
   to_port        = 0
 }
