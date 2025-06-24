@@ -25,7 +25,7 @@ key_pair = "my-key-pair"          # Replace with your real key pair
 instance_type = "t3.nano"
 
 # EC2 SSH certificate file path
-cert_path = "/etc/ssl/cert.pem"
+cert_path = "/home/ubuntu/cert.pem"
 
 # SSM parameter path
 param_name = "/app/cert.pem"

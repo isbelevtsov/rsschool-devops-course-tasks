@@ -66,7 +66,7 @@ variable "project_name" {
 variable "cert_path" {
   description = "Path to the certificate file"
   type        = string
-  default     = "/etc/ssl/cert.pem"
+  default     = "/home/ubuntu/cert.pem"
 }
 
 variable "param_name" {
