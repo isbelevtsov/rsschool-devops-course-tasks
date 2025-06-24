@@ -39,6 +39,9 @@ jobs:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Project Initialize
         uses: ./.github/actions/initialize
 
@@ -131,6 +134,8 @@ jobs:
     # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Project Initialize
         uses: ./.github/actions/initialize
@@ -153,6 +158,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Project Initialize
         uses: ./.github/actions/initialize
 
