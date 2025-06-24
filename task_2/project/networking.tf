@@ -88,7 +88,7 @@ resource "aws_network_acl_rule" "public_inbound_all" {
   network_acl_id = aws_network_acl.public.id
   rule_number    = 100
   egress         = false
-  protocol       = "tcp"
+  protocol       = "-1"
   rule_action    = "allow"
   cidr_block     = "0.0.0.0/0"
   from_port      = 0
@@ -136,17 +136,28 @@ resource "aws_network_acl_rule" "private_inbound_all" {
 #   to_port        = 22
 # }
 
-# # Inbound: Allow ephemeral return traffic
-# resource "aws_network_acl_rule" "private_inbound_ephemeral" {
-#   network_acl_id = aws_network_acl.private.id
-#   rule_number    = 110
-#   egress         = false
-#   protocol       = "tcp"
-#   rule_action    = "allow"
-#   cidr_block     = "0.0.0.0/0"
-#   from_port      = 1024
-#   to_port        = 65535
-# }
+# Inbound: Allow ephemeral return traffic
+resource "aws_network_acl_rule" "private_inbound_ephemeral" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 110
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = "0.0.0.0/0"
+  from_port      = 1024
+  to_port        = 65535
+}
+
+resource "aws_network_acl_rule" "private_inbound_icmp" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 120
+  egress         = false
+  protocol       = "icmp"
+  rule_action    = "allow"
+  cidr_block     = "0.0.0.0/0"
+  from_port      = -1
+  to_port        = -1
+}
 
 # Outbound: Allow all
 resource "aws_network_acl_rule" "private_outbound_all" {

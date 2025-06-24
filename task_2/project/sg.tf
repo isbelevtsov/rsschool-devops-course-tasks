@@ -23,7 +23,7 @@ resource "aws_security_group" "bastion_sg" {
   }
 }
 
-resource "aws_security_group" "public_vm_sg" {
+resource "aws_security_group" "vm_public_sg" {
   name        = "${var.project_name}-sg-public-vm-${var.environment_name}"
   description = "Security group for public VM instances"
   vpc_id      = aws_vpc.main.id
