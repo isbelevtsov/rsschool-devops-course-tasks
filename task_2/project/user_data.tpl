@@ -23,7 +23,7 @@ else
 fi
 
 # Retrieve the SSH certificate
-CERT=$(aws ssm get-parameter --name "${PARAM_NAME}" --with-decryption --query "Parameter.Value" --output text)
+CERT=$$(aws ssm get-parameter --name "$${PARAM_NAME}" --with-decryption --query "Parameter.Value" --output text)
 if [ $? -eq 0 ]; then
     echo "Certificate received successfully"
 else
@@ -32,7 +32,7 @@ else
 fi
 
 # Write it to file
-echo "${CERT}" > "${CERT_PATH}"
+echo "$${CERT}" > "$${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "Saved SSH certificate to file"
 else
@@ -41,7 +41,7 @@ else
 fi
 
 #Set SSH certificate file permissions
-chmod 600 "${CERT_PATH}"
+chmod 600 "$${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "Permissions was successfully set"
 else
