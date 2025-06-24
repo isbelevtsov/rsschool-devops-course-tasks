@@ -3,6 +3,7 @@
 # Define inherited variables
 CERT_PATH="${CERT_PATH}"
 PARAM_NAME="${PARAM_NAME}"
+echo $CERT_PATH && echo $PARAM_NAME
 
 # Update the instance
 apt-get update -y
@@ -51,7 +52,7 @@ else
 fi
 
 # Write it to file
-echo "${CERT}" > "${CERT_PATH}"
+echo "$${CERT}" > "$${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Saved SSH certificate to file"
 else
