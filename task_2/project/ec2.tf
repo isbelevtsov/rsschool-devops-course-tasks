@@ -6,6 +6,7 @@ resource "aws_instance" "bastion" {
   key_name                    = var.key_pair
   associate_public_ip_address = true
   iam_instance_profile        = aws_iam_instance_profile.ssm_profile.name
+  user_data_replace_on_change = true
 
   user_data = templatefile("${path.module}/user_data.tpl", {
     CERT_PATH  = var.cert_path
