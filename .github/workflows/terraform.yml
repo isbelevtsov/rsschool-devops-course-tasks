@@ -42,8 +42,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Project Initialize
-        uses: ./.github/actions/action.yml
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Generate terraform.auto.tfvars
+        run: |
+          cat <<EOF > terraform.auto.tfvars
+          aws_region           = "${{ env.AWS_REGION }}"
+          aws_account_id       = "${{ env.AWS_ACCOUNT_ID }}"
+          vpc_cidr             = "${{ env.VPC_CIDR }}"
+          azs                  = ${{ env.AZS }}
+          public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
+          allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
+          key_pair             = "${{ env.KEY_PAIR }}"
+          instance_type        = "${{ env.INSTANCE_TYPE }}"
+          EOF
+          cat terraform.auto.tfvars
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check -recursive
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Validate
         id: validate
@@ -57,6 +91,7 @@ jobs:
           terraform  plan -no-color -out=output.tfplan
 
       - name: Terraform Show to file
+        if: github.event_name == 'pull_request'
         run: terraform show -no-color output.tfplan > tfplan.txt
         working-directory: ${{ env.TASK_DIR }}
 
@@ -70,6 +105,7 @@ jobs:
 
       - name: Comment Plan on PR
         uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
@@ -134,11 +170,39 @@ jobs:
     # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Project Initialize
-        uses: ./.github/actions/action.yml
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Generate terraform.auto.tfvars
+        run: |
+          cat <<EOF > terraform.auto.tfvars
+          aws_region           = "${{ env.AWS_REGION }}"
+          aws_account_id       = "${{ env.AWS_ACCOUNT_ID }}"
+          vpc_cidr             = "${{ env.VPC_CIDR }}"
+          azs                  = ${{ env.AZS }}
+          public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
+          allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
+          key_pair             = "${{ env.KEY_PAIR }}"
+          instance_type        = "${{ env.INSTANCE_TYPE }}"
+          EOF
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Download Plan
         uses: actions/download-artifact@v4
@@ -147,8 +211,7 @@ jobs:
           path: ${{ env.TASK_DIR }}
 
       - name: Terraform Apply
-        id: apply
-        run: terraform apply -auto-approve output.tfplan
+        run: terraform apply output.tfplan
         working-directory: ${{ env.TASK_DIR }}
 
   terraform-destroy:
@@ -161,10 +224,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Project Initialize
-        uses: ./.github/actions/action.yml
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Generate terraform.auto.tfvars
+        run: |
+          cat <<EOF > terraform.auto.tfvars
+          aws_region           = "${{ env.AWS_REGION }}"
+          aws_account_id       = "${{ env.AWS_ACCOUNT_ID }}"
+          vpc_cidr             = "${{ env.VPC_CIDR }}"
+          azs                  = ${{ env.AZS }}
+          public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
+          allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
+          key_pair             = "${{ env.KEY_PAIR }}"
+          instance_type        = "${{ env.INSTANCE_TYPE }}"
+          EOF
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Destroy
-        id: destroy
         run: terraform destroy -auto-approve
         working-directory: ${{ env.TASK_DIR }}
