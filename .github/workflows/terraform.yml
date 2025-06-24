@@ -22,6 +22,8 @@ env:
   ALLOWED_SSH_CIDR: ${{ secrets.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
   KEY_PAIR: ${{ secrets.KEY_PAIR }} # Set this in GitHub Secrets
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for commenting on PRs
+  CERT_PATH: ${{ secrets.CERT_PATH }} # Path to the certificate file, if needed
+  PARAM_NAME: ${{ secrets.PARAM_NAME }} # Name of the parameter in AWS Systems Manager Parameter Store, if needed
 
 permissions:
   id-token: write  # Required for OIDC token exchange
@@ -65,6 +67,8 @@ jobs:
           allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type        = "${{ env.INSTANCE_TYPE }}"
+          cert_path            = "${{ env.CERT_PATH }}"
+          param_name           = "${{ env.PARAM_NAME }}"
           EOF
           cat terraform.auto.tfvars
         working-directory: ${{ env.TASK_DIR }}
@@ -197,6 +201,8 @@ jobs:
           allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type        = "${{ env.INSTANCE_TYPE }}"
+          cert_path            = "${{ env.CERT_PATH }}"
+          param_name           = "${{ env.PARAM_NAME }}"
           EOF
         working-directory: ${{ env.TASK_DIR }}
 
@@ -247,6 +253,8 @@ jobs:
           allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type        = "${{ env.INSTANCE_TYPE }}"
+          cert_path            = "${{ env.CERT_PATH }}"
+          param_name           = "${{ env.PARAM_NAME }}"
           EOF
         working-directory: ${{ env.TASK_DIR }}
 

@@ -72,5 +72,5 @@ variable "cert_path" {
 variable "param_name" {
   description = "Parameter name for the certificate in SSM"
   type        = string
-  default     = "/ec2/cert"
+  default     = "/ec2/cert.pem"
 }
