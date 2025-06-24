@@ -19,9 +19,9 @@ resource "aws_instance" "bastion" {
               apt-get install -y awscli jq
 
               # Retrieve the cert and write it to file
-              CERT=$(aws ssm get-parameter --name "${PARAM_NAME}" --with-decryption --query "Parameter.Value" --output text)
-              echo "$CERT" > "$CERT_PATH"
-              chmod 600 "$CERT_PATH"
+              CERT=$(aws ssm get-parameter --name "$${PARAM_NAME}" --with-decryption --query "Parameter.Value" --output text)
+              echo "$${CERT}" > "$${CERT_PATH}"
+              chmod 600 "$${CERT_PATH}"
               EOF
 
   root_block_device {
