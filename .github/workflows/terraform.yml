@@ -60,19 +60,19 @@ jobs:
       - name: Generate terraform.auto.tfvars
         run: |
           cat <<EOF > terraform.auto.tfvars
-          aws_region = "${{ env.AWS_REGION }}"
-          aws_account_id = "${{ env.AWS_ACCOUNT_ID }}"
-          vpc_cidr = "${{ env.VPC_CIDR }}"
-          azs = ${{ env.AZS }}
-          public_subnet_cidrs = ${{ env.PUBLIC_SUBNET_CIDRS }}
-          private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
-          allowed_ssh_cidr = "${{ env.ALLOWED_SSH_CIDR }}"
-          key_pair = "${{ env.KEY_PAIR }}"
+          aws_region            = "${{ env.AWS_REGION }}"
+          aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
+          vpc_cidr              = "${{ env.VPC_CIDR }}"
+          azs                   = ${{ env.AZS }}
+          public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
+          allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
+          key_pair              = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
-          instance_type_cp = "${{ env.INSTANCE_TYPE_CP }}"
-          instance_type_worker = "${{ env.INSTANCE_TYPE_WORKER }}"
-          cert_path = "${{ env.CERT_PATH }}"
-          param_name = "${{ env.PARAM_NAME }}"
+          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
+          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
+          cert_path             = "${{ env.CERT_PATH }}"
+          param_name            = "${{ env.PARAM_NAME }}"
 
           EOF
         working-directory: ${{ env.TASK_DIR }}
@@ -196,19 +196,19 @@ jobs:
       - name: Generate terraform.auto.tfvars
         run: |
           cat <<EOF > terraform.auto.tfvars
-          aws_region = "${{ env.AWS_REGION }}"
-          aws_account_id = "${{ env.AWS_ACCOUNT_ID }}"
-          vpc_cidr = "${{ env.VPC_CIDR }}"
-          azs = ${{ env.AZS }}
-          public_subnet_cidrs = ${{ env.PUBLIC_SUBNET_CIDRS }}
-          private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
-          allowed_ssh_cidr = "${{ env.ALLOWED_SSH_CIDR }}"
-          key_pair = "${{ env.KEY_PAIR }}"
+          aws_region            = "${{ env.AWS_REGION }}"
+          aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
+          vpc_cidr              = "${{ env.VPC_CIDR }}"
+          azs                   = ${{ env.AZS }}
+          public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
+          allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
+          key_pair              = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
-          instance_type_cp = "${{ env.INSTANCE_TYPE_CP }}"
-          instance_type_worker = "${{ env.INSTANCE_TYPE_WORKER }}"
-          cert_path = "${{ env.CERT_PATH }}"
-          param_name = "${{ env.PARAM_NAME }}"
+          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
+          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
+          cert_path             = "${{ env.CERT_PATH }}"
+          param_name            = "${{ env.PARAM_NAME }}"
 
           EOF
         working-directory: ${{ env.TASK_DIR }}
@@ -251,19 +251,19 @@ jobs:
       - name: Generate terraform.auto.tfvars
         run: |
           cat <<EOF > terraform.auto.tfvars
-          aws_region = "${{ env.AWS_REGION }}"
-          aws_account_id = "${{ env.AWS_ACCOUNT_ID }}"
-          vpc_cidr = "${{ env.VPC_CIDR }}"
-          azs = ${{ env.AZS }}
-          public_subnet_cidrs = ${{ env.PUBLIC_SUBNET_CIDRS }}
-          private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
-          allowed_ssh_cidr = "${{ env.ALLOWED_SSH_CIDR }}"
-          key_pair = "${{ env.KEY_PAIR }}"
+          aws_region            = "${{ env.AWS_REGION }}"
+          aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
+          vpc_cidr              = "${{ env.VPC_CIDR }}"
+          azs                   = ${{ env.AZS }}
+          public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
+          allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
+          key_pair              = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
-          instance_type_cp = "${{ env.INSTANCE_TYPE_CP }}"
-          instance_type_worker = "${{ env.INSTANCE_TYPE_WORKER }}"
-          cert_path = "${{ env.CERT_PATH }}"
-          param_name = "${{ env.PARAM_NAME }}"
+          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
+          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
+          cert_path             = "${{ env.CERT_PATH }}"
+          param_name            = "${{ env.PARAM_NAME }}"
 
           EOF
         working-directory: ${{ env.TASK_DIR }}
