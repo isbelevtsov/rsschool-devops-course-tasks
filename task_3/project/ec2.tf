@@ -133,6 +133,8 @@ resource "null_resource" "provision_k3s_worker" {
     when = create
 
     inline = [
+      "apt-get update",
+      "apt-get install -y awscli",
       "aws ssm get-parameter --name \"${var.param_name}\" --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "chmod 600 ${local_file.ssh_key.filename}",
       "ls -lah ${local_file.ssh_key.filename}",
