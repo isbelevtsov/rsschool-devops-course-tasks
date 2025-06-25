@@ -79,7 +79,7 @@ jobs:
       - name: Terraform Format
         id: fmt
         run: |
-          cat terraform.auto.tfvars
+          echo "${{ env.ALLOWED_SSH_CIDR }}"
           terraform fmt -check -recursive
         working-directory: ${{ env.TASK_DIR }}
 
