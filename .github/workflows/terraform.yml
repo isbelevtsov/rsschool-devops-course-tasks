@@ -21,7 +21,7 @@ env:
   AZS: ${{ secrets.AZS }} # Set this in GitHub Secrets
   PUBLIC_SUBNET_CIDRS: ${{ secrets.PUBLIC_SUBNET_CIDRS }} # Set this in GitHub Secrets
   PRIVATE_SUBNET_CIDRS: ${{ secrets.PRIVATE_SUBNET_CIDRS }} # Set this in GitHub Secrets
-  ALLOWED_SSH_CIDR: ${{ secrets.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
+  ALLOWED_SSH_CIDR: ${{ vars.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
   KEY_PAIR: ${{ secrets.KEY_PAIR }} # Set this in GitHub Secrets
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for commenting on PRs
   CERT_PATH: ${{ secrets.CERT_PATH }} # Path to the certificate file, if needed
@@ -66,7 +66,7 @@ jobs:
           azs                  = ${{ env.AZS }}
           public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
           private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
-          allowed_ssh_cidr     = ${{ env.ALLOWED_SSH_CIDR }}
+          allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
@@ -202,7 +202,7 @@ jobs:
           azs                  = ${{ env.AZS }}
           public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
           private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
-          allowed_ssh_cidr     = ${{ env.ALLOWED_SSH_CIDR }}
+          allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
@@ -256,7 +256,7 @@ jobs:
           azs                  = ${{ env.AZS }}
           public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
           private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
-          allowed_ssh_cidr     = ${{ env.ALLOWED_SSH_CIDR }}
+          allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
