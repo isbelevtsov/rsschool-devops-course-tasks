@@ -69,7 +69,7 @@ resource "aws_instance" "k3s_control_plane" {
 }
 
 resource "null_resource" "provision_k3s_control_plane" {
-  depends_on = [local_file.ssh_key, aws_instance.bastion, aws_instance.k3s_control_plane]
+  depends_on = [local_file.ssh_key, aws_instance.bastion, aws_instance.k3s_control_plane, aws_nat_gateway.natgw]
 
   provisioner "remote-exec" {
     connection {
@@ -97,6 +97,7 @@ resource "aws_instance" "k3s_worker" {
   vpc_security_group_ids      = [aws_security_group.vm_private_sg.id]
   key_name                    = var.key_pair
   associate_public_ip_address = false
+  iam_instance_profile        = aws_iam_instance_profile.ssm_profile.name
 
   root_block_device {
     encrypted   = true  # Ensure encryption at rest
@@ -117,7 +118,7 @@ resource "aws_instance" "k3s_worker" {
 }
 
 resource "null_resource" "provision_k3s_worker" {
-  depends_on = [local_file.ssh_key, aws_instance.bastion, aws_instance.k3s_control_plane, null_resource.provision_k3s_control_plane]
+  depends_on = [local_file.ssh_key, aws_instance.bastion, aws_instance.k3s_control_plane, null_resource.provision_k3s_control_plane, aws_nat_gateway.natgw]
 
   provisioner "remote-exec" {
     connection {
@@ -132,6 +133,9 @@ resource "null_resource" "provision_k3s_worker" {
     when = create
 
     inline = [
+      "aws ssm get-parameter --name \"${var.param_name}\" --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
+      "chmod 600 ${local_file.ssh_key.filename}",
+      "ls -lah ${local_file.ssh_key.filename}",
       "K3S_TOKEN=$(ssh -o StrictHostKeyChecking=no -i ${local_file.ssh_key.filename} ubuntu@${aws_instance.k3s_control_plane.private_ip} 'sudo cat /var/lib/rancher/k3s/server/node-token')",
       "curl -sfL https://get.k3s.io | K3S_URL=https://${aws_instance.k3s_control_plane.private_ip}:6443 K3S_TOKEN=$K3S_TOKEN sh -"
     ]
