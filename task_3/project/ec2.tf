@@ -139,8 +139,9 @@ resource "null_resource" "provision_k3s_worker" {
       "aws ssm get-parameter --name \"${var.param_name}\" --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "sudo chmod 600 ${local_file.ssh_key.filename}",
       "ls -lah ${local_file.ssh_key.filename}",
-      "K3S_TOKEN=$(ssh -o StrictHostKeyChecking=no -i ${local_file.ssh_key.filename} ubuntu@${aws_instance.k3s_control_plane.private_ip} 'sudo cat /var/lib/rancher/k3s/server/node-token')",
-      "curl -sfL https://get.k3s.io | K3S_URL=https://${aws_instance.k3s_control_plane.private_ip}:6443 K3S_TOKEN=$K3S_TOKEN sh -"
+      "export K3S_TOKEN=$(ssh -o StrictHostKeyChecking=no -i ${local_file.ssh_key.filename} ubuntu@${aws_instance.k3s_control_plane.private_ip} 'sudo cat /var/lib/rancher/k3s/server/node-token')",
+      "export K3S_URL=https://${aws_instance.k3s_control_plane.private_ip}:6443",
+      "curl -sfL https://get.k3s.io | sh -"
     ]
   }
 }
