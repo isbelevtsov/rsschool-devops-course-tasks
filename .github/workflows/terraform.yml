@@ -66,7 +66,7 @@ jobs:
           azs                  = ${{ env.AZS }}
           public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
           private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
-          allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
+          allowed_ssh_cidr     = ${{ env.ALLOWED_SSH_CIDR }}
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
@@ -202,7 +202,7 @@ jobs:
           azs                  = ${{ env.AZS }}
           public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
           private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
-          allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
+          allowed_ssh_cidr     = ${{ env.ALLOWED_SSH_CIDR }}
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
@@ -256,7 +256,7 @@ jobs:
           azs                  = ${{ env.AZS }}
           public_subnet_cidrs  = ${{ env.PUBLIC_SUBNET_CIDRS }}
           private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
-          allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
+          allowed_ssh_cidr     = ${{ env.ALLOWED_SSH_CIDR }}
           key_pair             = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
