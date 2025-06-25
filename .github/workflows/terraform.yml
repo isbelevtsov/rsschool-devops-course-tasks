@@ -10,8 +10,10 @@ on:
   workflow_dispatch:
 
 env:
-  TASK_DIR: task_2/project
-  INSTANCE_TYPE: t3.nano
+  TASK_DIR: task_3/project
+  INSTANCE_TYPE_BASTION: t3.nano
+  INSTANCE_TYPE_CP: t3.medium
+  INSTANCE_TYPE_WORKER: t3.small
   TF_VERSION: ${{ secrets.TF_VERSION }} # Set this in GitHub Secrets
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
@@ -66,7 +68,9 @@ jobs:
           private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
           allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
-          instance_type        = "${{ env.INSTANCE_TYPE }}"
+          instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
+          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
+          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
           cert_path            = "${{ env.CERT_PATH }}"
           param_name           = "${{ env.PARAM_NAME }}"
           EOF
@@ -200,7 +204,9 @@ jobs:
           private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
           allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
-          instance_type        = "${{ env.INSTANCE_TYPE }}"
+          instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
+          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
+          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
           cert_path            = "${{ env.CERT_PATH }}"
           param_name           = "${{ env.PARAM_NAME }}"
           EOF
@@ -252,7 +258,9 @@ jobs:
           private_subnet_cidrs = ${{ env.PRIVATE_SUBNET_CIDRS }}
           allowed_ssh_cidr     = "${{ env.ALLOWED_SSH_CIDR }}"
           key_pair             = "${{ env.KEY_PAIR }}"
-          instance_type        = "${{ env.INSTANCE_TYPE }}"
+          instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
+          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
+          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
           cert_path            = "${{ env.CERT_PATH }}"
           param_name           = "${{ env.PARAM_NAME }}"
           EOF
