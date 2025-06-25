@@ -1,0 +1,33 @@
+# AWS Region
+aws_region = "us-east-1"
+
+# GitHub OIDC Trust Policy Setup
+aws_account_id = "123456789098" # Replace with your actual AWS account ID
+
+# VPC and Subnet Configuration
+# VPC CIDR Block
+vpc_cidr = "10.0.0.0/16"
+
+# Availability Zones and Subnet CIDRs
+azs = ["us-east-1a", "us-east-1b"]
+
+# Public and Private Subnet CIDRs
+public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.3.0/24", "10.0.4.0/24"]
+
+# SSH Access Configuration
+allowed_ssh_cidr = "1.2.3.4/32"
+
+# SSH key pair name
+key_pair = "my-key-pair"          # Replace with your real key pair
+
+# AWS instance type
+instance_type_bastion = "t3.nano"
+instance_type_cp = "t3.medium"
+instance_type_worker = "t3.small"
+
+# EC2 SSH certificate file path
+cert_path = "/home/ubuntu/cert.pem"
+
+# SSM parameter path
+param_name = "/app/cert.pem"
