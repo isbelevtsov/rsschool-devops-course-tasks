@@ -1,5 +1,5 @@
 data "aws_ssm_parameter" "ssh_key" {
-  name            = var.cert_path
+  name            = var.param_name
   with_decryption = true
 }
 

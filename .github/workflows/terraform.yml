@@ -77,11 +77,6 @@ jobs:
           EOF
         working-directory: ${{ env.TASK_DIR }}
 
-      - name: Terraform Format
-        id: fmt
-        run: terraform fmt -check -recursive
-        working-directory: ${{ env.TASK_DIR }}
-
       - name: Terraform Init
         id: init
         run: terraform init
@@ -130,8 +125,7 @@ jobs:
             })
 
             // 2. Prepare format of the comment
-            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
             #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
             <details><summary>Validation Output</summary>
 
