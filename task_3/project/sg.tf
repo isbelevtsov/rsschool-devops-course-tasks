@@ -62,19 +62,11 @@ resource "aws_security_group" "vm_private_sg" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description     = "Allow all from Bastion instance"
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    security_groups = [aws_security_group.bastion_sg.id]
-  }
-
-  ingress {
-    description     = "Allow all from public VM instances"
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    security_groups = [aws_security_group.vm_public_sg.id]
+    description = "Allow all VPC CIDR traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.vpc_cidr]
   }
 
   egress {
