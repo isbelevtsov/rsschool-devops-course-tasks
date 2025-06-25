@@ -1,0 +1,83 @@
+name: Project initialize action
+description: Project initialize action
+
+inputs:
+  TASK_DIR:
+    description: "Directory where the Terraform code is located"
+    default: "."
+  INSTANCE_TYPE:
+    description: "EC2 instance type, e.g. 't3.micro'"
+    required: true
+  TF_VERSION:
+    description: "Terraform version to use, e.g. '1.5.0'"
+    required: true
+  AWS_REGION:
+    description: "AWS Region, e.g. 'us-east-1'"
+    required: true
+  AWS_ACCOUNT_ID:
+    description: "AWS Account ID"
+    required: true
+  VPC_CIDR:
+    description: "CIDR block for the VPC"
+    required: true
+  AZS:
+    description: "Availability Zones to use, e.g. ['us-east-1a', 'us-east-1b']"
+    required: true
+  PUBLIC_SUBNET_CIDRS:
+    description: "CIDR blocks for public subnets, e.g. ['10.0.1.0/24', '10.0.2.0/24']"
+    required: true
+  PRIVATE_SUBNET_CIDRS:
+    description: "CIDR blocks for private subnets, e.g. ['10.0.3.0/24', '10.0.4.0/24']"
+    required: true
+  ALLOWED_SSH_CIDR:
+    description: "CIDR block allowed for SSH access, e.g. '203.0.113.0/24'"
+    required: true
+  KEY_PAIR:
+    description: "Name of the EC2 Key Pair to use for SSH access"
+    required: true
+  GITHUB_TOKEN:
+    description: "GitHub token for commenting on PRs"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Configure AWS credentials via OIDC
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ inputs.AWS_ACCOUNT_ID }}:role/GithubActionRole
+        aws-region: ${{ inputs.AWS_REGION }}
+
+    - name: Generate terraform.auto.tfvars
+      run: |
+        cat <<EOF > terraform.auto.tfvars
+        aws_region           = "${{ inputs.AWS_REGION }}"
+        aws_account_id       = "${{ inputs.AWS_ACCOUNT_ID }}"
+        vpc_cidr             = "${{ inputs.VPC_CIDR }}"
+        azs                  = ${{ inputs.AZS }}
+        public_subnet_cidrs  = ${{ inputs.PUBLIC_SUBNET_CIDRS }}
+        private_subnet_cidrs = ${{ inputs.PRIVATE_SUBNET_CIDRS }}
+        allowed_ssh_cidr     = "${{ inputs.ALLOWED_SSH_CIDR }}"
+        key_pair             = "${{ inputs.KEY_PAIR }}"
+        instance_type        = "${{ inputs.INSTANCE_TYPE }}"
+        EOF
+        cat terraform.auto.tfvars
+      working-directory: ${{ inputs.TASK_DIR }}
+      shell: bash
+
+    - name: Terraform Format
+      id: fmt
+      run: terraform fmt -check -recursive
+      working-directory: ${{ inputs.TASK_DIR }}
+      shell: bash
+
+    - name: Terraform Init
+      id: init
+      run: terraform init
+      working-directory: ${{ inputs.TASK_DIR }}
+      shell: bash
