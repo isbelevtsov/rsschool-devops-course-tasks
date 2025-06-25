@@ -81,6 +81,7 @@ resource "null_resource" "provision_k3s_control_plane" {
       bastion_user        = "ubuntu"
       bastion_private_key = file(local_file.ssh_key.filename)
     }
+    when = "create"
 
     inline = [
       "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644' sh -"
@@ -128,6 +129,7 @@ resource "null_resource" "provision_k3s_worker" {
       bastion_user        = "ubuntu"
       bastion_private_key = file(local_file.ssh_key.filename)
     }
+    when = "create"
 
     inline = [
       "K3S_TOKEN=$(ssh -o StrictHostKeyChecking=no -i ${local_file.ssh_key.filename} ubuntu@${aws_instance.k3s_control_plane.private_ip} 'sudo cat /var/lib/rancher/k3s/server/node-token')",
