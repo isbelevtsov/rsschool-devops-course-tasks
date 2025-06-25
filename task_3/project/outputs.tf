@@ -21,7 +21,7 @@ output "k3s_control_plane_ip" {
 }
 
 output "k3s_worker_ips" {
-  value = aws_instance.k3s_worker[*].private_ip
+  value = aws_instance.k3s_worker.private_ip
 }
 
 output "bastion_instance_id" {
@@ -33,7 +33,7 @@ output "k3s_control_plane_instance_id" {
 }
 
 output "k3s_worker_instance_ids" {
-  value = aws_instance.k3s_worker[*].id
+  value = aws_instance.k3s_worker.id
 }
 
 output "kubeconfig" {
