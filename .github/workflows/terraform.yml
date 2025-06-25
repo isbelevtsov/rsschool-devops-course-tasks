@@ -73,14 +73,13 @@ jobs:
           instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
           cert_path            = "${{ env.CERT_PATH }}"
           param_name           = "${{ env.PARAM_NAME }}"
+
           EOF
         working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Format
         id: fmt
-        run: |
-          echo "${{ env.ALLOWED_SSH_CIDR }}"
-          terraform fmt -check -recursive
+        run: terraform fmt -check -recursive
         working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Init
@@ -210,6 +209,7 @@ jobs:
           instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
           cert_path            = "${{ env.CERT_PATH }}"
           param_name           = "${{ env.PARAM_NAME }}"
+
           EOF
         working-directory: ${{ env.TASK_DIR }}
 
@@ -264,6 +264,7 @@ jobs:
           instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
           cert_path            = "${{ env.CERT_PATH }}"
           param_name           = "${{ env.PARAM_NAME }}"
+
           EOF
         working-directory: ${{ env.TASK_DIR }}
 
