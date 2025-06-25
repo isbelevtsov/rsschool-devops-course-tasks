@@ -26,7 +26,7 @@ resource "aws_instance" "bastion" {
 
   root_block_device {
     encrypted   = true  # Ensure encryption at rest
-    volume_size = 4     # Optional: override size in GiB
+    volume_size = 8     # Optional: override size in GiB
     volume_type = "gp3" # Optional: specify EBS volume type
   }
 
