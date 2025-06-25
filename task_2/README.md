@@ -6,8 +6,28 @@
 
 This project sets up a basic AWS infrastructure using Terraform and GitHub Actions.
 
+## Table of Contents
+
+- [Before you start](#before-you-start)
+- [Prerequisites](#prerequisites)
+- [Features](#features)
+- [Directory Structure](#directory-structure)
+- [GitHub Actions Workflow](#github-actions-workflow)
+- [Required GitHub Secrets](#required-github-secrets)
+- [Security Best Practices Implemented](#security-best-practices-implemented)
+- [Terraform Version](#terraform-version)
+- [Notes](#notes)
+- [Usability confirmation](#usability-confirmation)
+
+## Before you start
+
+Note that this task can uses AWS resources that are outside the AWS free tier, so be careful!
+
 ## Prerequisites
 
+- [Terraform](https://www.terraform.io/) - Terraform is an open-source infrastructure as code software tool that provides a consistent CLI workflow to manage hundreds of cloud services. Terraform codifies cloud APIs into declarative configuration files.
+- [Amazon AWS Account](https://aws.amazon.com/it/console/) - Amazon AWS account.
+- [AWS CLI](https://aws.amazon.com/cli/) - Amazon AWS CLI.
 - Task 1 bootstrap Terraform code must be executed before running this task.
 - Github Action Secrets must be already initialized throught the Github web console.
 - Set variables according to your desire.
@@ -19,8 +39,8 @@ This project sets up a basic AWS infrastructure using Terraform and GitHub Actio
 - 2 Private subnets in separate Availability Zones
 - Internet Gateway for public subnet access
 - Route tables for intra-VPC and external access
-- Bastion EC2 instance in the public subnet
-- Pablic EC2 instance in the public subnet
+- Bastion EC2 instance in the public subnet with predefined SSH key and custom instance profile with SSM access
+- Public EC2 instance in the public subnet
 - Private EC2 instances in private subnets
 - Security Groups with descriptions and rule auditing
 - Network Access Lists for better subnet traffic control
@@ -33,8 +53,10 @@ This project sets up a basic AWS infrastructure using Terraform and GitHub Actio
 ```
 .
 ├── .github
+│   ├── actions
+│   │   └── action.yml.off                   # Github Actions workflow separate action that can be reused in the pipeline
 │   └── workflows
-│       └── terraform.yml                   # Github Actions workflow pipeline configuration
+│       └── terraform.yml                    # Github Actions workflow pipeline configuration
 ├── task_2
 │   ├── project
 │   │    ├── .env.example                    # Example file contains variables for Makefile
@@ -48,10 +70,13 @@ This project sets up a basic AWS infrastructure using Terraform and GitHub Actio
 │   │    ├── outputs.tf                      # Terraform outputs data
 │   │    ├── providers.tf                    # Terraform providers configuration
 │   │    ├── sg.tf                           # AWS security groups configuration for network traffic control
-│   │    ├── terraform.auto.tfvars.example   # Example file contains test variables or placeholders for Terraform (only for local usage, \
-│   │    │                                     Github Actions workflow will generate it in process)
+│   │    ├── terraform.auto.tfvars.example   # Example file contains test variables or placeholders for Terraform (only for
+│   │    │                                   # local usage, Github Actions workflow will generate it in process)
+│   │    ├── user_data.tpl                   # User data script template for AWS bastion EC2 instance
 │   │    ├── variables.tf                    # Terraform variables configuration
 │   │    └── vpc.tf                          # AWS VPC configuration
+│   ├── screenshots                          # Screenshots location that mentioned in PR
+│   │    └── ...
 │   └── README.md                            # This file
 ```
 
@@ -67,18 +92,20 @@ The `terraform.yml` workflow performs:
 
 ## Required GitHub Secrets
 
-| Secret Name            | Description                      |
-|------------------------|----------------------------------|
-| `TF_VERSION`           | Terraform version                |
-| `AWS_REGION`           | AWS region                       |
-| `AWS_ACCOUNT_ID`       | AWS account ID                   |
-| `VPC_CIDR`             | VPC CIDR block                   |
-| `AZS`                  | Comma-separated AZ list          |
-| `PUBLIC_SUBNET_CIDRS`  | Comma-separated CIDRs for public |
-| `PRIVATE_SUBNET_CIDRS` | Comma-separated CIDRs for private|
-| `ALLOWED_SSH_CIDR`     | CIDR block for SSH access        |
-| `KEY_PAIR`             | EC2 key pair name                |
-| `GH_TOKEN`             | Github token for commenting PR   |
+| Secret Name              | Description                        |
+| ------------------------ | ---------------------------------- |
+| `ALLOWED_SSH_CIDR`       | CIDR block for SSH access          |
+| `AWS_ACCOUNT_ID`         | AWS account ID                     |
+| `AWS_REGION`             | AWS region                         |
+| `AZS`                    | Comma-separated AZ list            |
+| `CERT_PATH`              | SSH key file full path             |
+| `GH_TOKEN`               | Github token for commenting PR     |
+| `KEY_PAIR`               | EC2 key pair name                  |
+| `PARAM_NAME`             | SSM Parameter Store key path       |
+| `PRIVATE_SUBNET_CIDRS`   | Comma-separated CIDRs for private  |
+| `PUBLIC_SUBNET_CIDRS`    | Comma-separated CIDRs for public   |
+| `TF_VERSION`             | Terraform version                  |
+| `VPC_CIDR`               | VPC CIDR block                     |
 
 ## Security Best Practices Implemented
 
@@ -99,3 +126,49 @@ Tested with Terraform `1.12.0`
 - All resources can be destroyed using the same way as `Plan` or `Apply`.
 
 ## Usability confirmation
+
+<details><summary>Resources creation and usage proofs</summary>
+
+### AWS VPC Resource map<br>
+
+![AWS VPC Resource map](screenshots/scr_1.png)<br>
+
+### AWS EC2 instances<br>
+
+![AWS EC2 instances](screenshots/scr_2.png)<br>
+
+### NAT gateway for private network<br>
+
+![NAT gateway for private network](screenshots/scr_3.png)<br>
+
+### Connectivity tests
+
+#### Bastion to Private VM 1 in the same AZ<br>
+
+![Bastion to Private VM 1 in the same AZ](screenshots/scr_4.png)<br>
+
+#### Bastion to Private VM 2 in another AZ<br>
+
+![Bastion to Private VM 2 in another AZ](screenshots/scr_5.png)<br>
+
+#### Bastion to Internet<br>
+
+![Bastion to Internet](screenshots/scr_6.png)<br>
+
+#### Bastion to Public VM in another AZ (private IP)<br>
+
+![Bastion to Public VM in another AZ (private IP)](screenshots/scr_7.png)<br>
+
+#### Same as previous but with public IP<br>
+
+![Same as previous but with public IP](screenshots/scr_8.png)<br>
+
+#### Private VM 1 to Internet<br>
+
+![Private VM 1 to Internet](screenshots/scr_9.png)<br>
+
+#### Private VM 1 to Private VM 2 in another AZ<br>
+
+![Private VM 1 to Private VM 2 in another AZ](screenshots/scr_10.png)<br>
+
+</details>
