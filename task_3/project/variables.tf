@@ -86,3 +86,9 @@ variable "param_name" {
   type        = string
   default     = "/ec2/cert.pem"
 }
+
+variable "kubeconfig_param_path" {
+  description = "Path to the kubeconfig parameter in SSM"
+  type        = string
+  default     = "/ec2/kubeconfig"
+}

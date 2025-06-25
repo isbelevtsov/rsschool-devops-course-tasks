@@ -84,7 +84,11 @@ resource "null_resource" "provision_k3s_control_plane" {
     when = create
 
     inline = [
-      "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644' sh -"
+      "sudo apt-get update",
+      "sudo apt-get install -y awscli",
+      "export AWS_DEFAULT_REGION=\"${var.aws_region}\"",
+      "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644' sh -",
+      "aws ssm put-parameter --name \"${var.kubeconfig_param_path}\" --value file:///etc/rancher/k3s/k3s.yaml --type SecureString"
     ]
   }
 }

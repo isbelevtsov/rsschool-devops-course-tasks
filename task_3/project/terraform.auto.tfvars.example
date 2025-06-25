@@ -31,3 +31,5 @@ cert_path = "/home/ubuntu/cert.pem"
 
 # SSM parameter path
 param_name = "/app/cert.pem"
+
+kubeconfig_param_path = /app/kubeconfig
