@@ -78,7 +78,9 @@ jobs:
 
       - name: Terraform Format
         id: fmt
-        run: TF_LOG=DEBUG terraform fmt -check -recursive
+        run: |
+          cat terraform.auto.tfvars
+          terraform fmt -check -recursive
         working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Init
