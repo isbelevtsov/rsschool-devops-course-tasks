@@ -21,7 +21,7 @@ env:
   AZS: ${{ secrets.AZS }} # Set this in GitHub Secrets
   PUBLIC_SUBNET_CIDRS: ${{ secrets.PUBLIC_SUBNET_CIDRS }} # Set this in GitHub Secrets
   PRIVATE_SUBNET_CIDRS: ${{ secrets.PRIVATE_SUBNET_CIDRS }} # Set this in GitHub Secrets
-  ALLOWED_SSH_CIDR: ${{ vars.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
+  ALLOWED_SSH_CIDR: ${{ secrets.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
   KEY_PAIR: ${{ secrets.KEY_PAIR }} # Set this in GitHub Secrets
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for commenting on PRs
   CERT_PATH: ${{ secrets.CERT_PATH }} # Path to the certificate file, if needed
@@ -79,7 +79,7 @@ jobs:
 
       - name: Terraform Format
         id: fmt
-        run: terraform fmt -check -recursive
+        run: TF_LOG=DEBUG terraform fmt -check -recursive
         working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Init
