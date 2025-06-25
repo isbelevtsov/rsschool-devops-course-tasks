@@ -138,10 +138,10 @@ resource "null_resource" "provision_k3s_worker" {
   }
 }
 
-resource "null_resource" "delete_key_file" {
-  depends_on = [null_resource.provision_k3s_control_plane, null_resource.provision_k3s_worker]
+# resource "null_resource" "delete_key_file" {
+#   depends_on = [null_resource.provision_k3s_control_plane, null_resource.provision_k3s_worker]
 
-  provisioner "local-exec" {
-    command = "if [ -f '${local_file.ssh_key.filename}' ]; then rm -f '${local_file.ssh_key.filename}'; fi"
-  }
-}
+#   provisioner "local-exec" {
+#     command = "if [ -f '${local_file.ssh_key.filename}' ]; then rm -f '${local_file.ssh_key.filename}'; fi"
+#   }
+# }
