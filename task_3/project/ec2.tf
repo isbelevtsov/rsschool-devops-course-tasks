@@ -135,6 +135,7 @@ resource "null_resource" "provision_k3s_worker" {
     inline = [
       "sudo apt-get update",
       "sudo apt-get install -y awscli",
+      "export AWS_DEFAULT_REGION=\"${var.aws_region}\"",
       "aws ssm get-parameter --name \"${var.param_name}\" --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "sudo chmod 600 ${local_file.ssh_key.filename}",
       "ls -lah ${local_file.ssh_key.filename}",
