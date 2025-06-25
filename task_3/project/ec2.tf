@@ -49,6 +49,7 @@ resource "aws_instance" "k3s_control_plane" {
   vpc_security_group_ids      = [aws_security_group.vm_private_sg.id]
   key_name                    = var.key_pair
   associate_public_ip_address = false
+  iam_instance_profile        = aws_iam_instance_profile.ssm_profile.name
 
   root_block_device {
     encrypted   = true  # Ensure encryption at rest
