@@ -1,11 +1,11 @@
 #!/bin/bash
 
-AWS_DEFAULT_REGION= # Replace with your AWS region
-AWS_PROFILE= # Replace with your AWS profile
-AWS_ACCESS_KEY_ID= # Replace with your AWS access key ID
-AWS_SECRET_ACCESS_KEY= # Replace with your AWS secret access key
-SSM_PARAMETER_NAME="/path/to/your/key" # Replace with your SSM parameter name
-KUBECONFIG_PATH="~/.kube" # Path where kubeconfig will be saved
+export AWS_DEFAULT_REGION= # Replace with your AWS region
+export AWS_PROFILE= # Replace with your AWS profile
+export AWS_ACCESS_KEY_ID= # Replace with your AWS access key ID
+export AWS_SECRET_ACCESS_KEY= # Replace with your AWS secret access key
+export SSM_PARAMETER_NAME="" # Replace with your SSM parameter name
+export KUBECONFIG_PATH=../kubernetes # Path where kubeconfig will be saved
 
 if [ -z "$AWS_DEFAULT_REGION" ] || [ -z "$AWS_PROFILE" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ] || [ -z "$SSM_PARAMETER_NAME" ]; then
     echo "Please set AWS_DEFAULT_REGION, AWS_PROFILE, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and SSM_PARAMETER_NAME."
@@ -14,9 +14,9 @@ fi
 
 # Ensure the .kube directory exists
 if [ -d $KUBECONFIG_PATH ]; then
-    echo ".kube directory already exists in home directory."
+    echo "$KUBECONFIG_PATH directory already exists."
 else
-    echo "Creating .kube directory in home directory."
+    echo "Creating $KUBECONFIG_PATH directory."
     mkdir -p $KUBECONFIG_PATH
 fi
 

@@ -44,6 +44,14 @@ resource "aws_security_group" "vm_public_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "Allow all from VPC CIDR"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
   egress {
     description = "Allow all outbound traffic"
     from_port   = 0

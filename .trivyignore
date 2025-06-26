@@ -1,4 +1,5 @@
 # Accept the risk
+# AWS
 AVD-AWS-0102
 ## AVD-AWS-0102 (CRITICAL): Network ACL rule allows access using ALL ports.
 AVD-AWS-0104
@@ -11,5 +12,15 @@ AVD-AWS-0164
 ## AVD-AWS-0164 (HIGH): Subnet associates public IP address.
 AVD-AWS-0017
 ## AVD-AWS-0017 (LOW): Log group is not encrypted.
+# Kubernetes
+AVD-KSV-0012
+## AVD-KSV-0012 (MEDIUM): Container 'web' of Deployment 'hello-world' should set 'securityContext.runAsNonRoot' to true
+AVD-KSV-0106
+## AVD-KSV-0106 (LOW): container should drop all
+AVD-KSV-0125
+## AVD-KSV-0125 (MEDIUM): Container web in deployment hello-world (namespace: web) uses an image from an untrusted registry.
+AVD-KSV-0118
+## AVD-KSV-0118 (HIGH): deployment hello-world in web namespace is using the default security context, which allows root privileges
+
 
 # No impact in our settings

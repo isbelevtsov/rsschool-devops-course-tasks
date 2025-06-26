@@ -4,13 +4,17 @@
 
 ______________________________________________________________________
 
-## 📌 Overview
+## Overview
 
-This project will bootstrap a basic AWS infrastructure with bastion host at front and K8s Cluster using K3s that allocated behind in private subnet.
+📌
+
+This project will bootstrap a basic AWS infrastructure with bastion host at front and K8s Cluster using K3s that allocated behind in private subnet. When cluster will be ready you can deploy a simple web application to it using provided manifest.
 
 ______________________________________________________________________
 
-## 📂 Table of Contents
+## Table of Contents
+
+📂
 
 - [Before you start](#before-you-start)
 - [Prerequisites](#prerequisites)
@@ -20,18 +24,24 @@ ______________________________________________________________________
 - [Required GitHub Secrets](#required-github-secrets)
 - [Security Best Practices Implemented](#security-best-practices-implemented)
 - [Terraform Version](#terraform-version)
+- [Script](#script)
+- [How to manage kubernetes cluster](#how-to-manage-kubernetes-cluster)
 - [Notes](#notes)
 - [Usability confirmation](#usability-confirmation)
 
 ______________________________________________________________________
 
-## ❗Before you start
+## Before you start
+
+❗
 
 Note that this task uses AWS resources that are outside the AWS free tier, so be careful!
 
 ______________________________________________________________________
 
-## ⚙️ Prerequisites
+## Prerequisites
+
+⚙️
 
 - [Terraform](https://www.terraform.io/) - Terraform is an open-source infrastructure as code software tool that provides a consistent CLI workflow to manage hundreds of cloud services. Terraform codifies cloud APIs into declarative configuration files.
 - [Amazon AWS Account](https://aws.amazon.com/it/console/) - Amazon AWS account.
@@ -43,7 +53,9 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-## 🔍 Features
+## Features
+
+🔍
 
 - VPC creation with CIDR block `10.0.0.0/16`
 - 2 Public subnets in separate Availability Zones
@@ -62,7 +74,9 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-## 📂 Directory Structure
+## Directory Structure
+
+📂
 
 ```
 .
@@ -73,6 +87,11 @@ ______________________________________________________________________
 │       └── terraform.yml                    # Github Actions workflow pipeline configuration
 ├── task_3
 │   ├── project
+│   │    ├── kubernetes                      # Kubernetes manifests location for deploying a simple web server
+│   │    │    ├── configmap.yaml             # Kubernetes configmap manifest
+│   │    │    ├── deployment.yaml            # Kubernetes deployment manifest
+│   │    │    ├── namespace.yaml             # Kubernetes namespace manifest
+│   │    │    └── service.yaml               # Kubernetes service manifest
 │   │    ├── scripts
 │   │    │    └── get_kubeconfig.sh          # Scripts that will get kubeconfig from AWS SSM Parameter Store and save it to you system
 │   │    ├── templates
@@ -100,7 +119,9 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-## 🔍 GitHub Actions Workflow
+## GitHub Actions Workflow
+
+🔍
 
 The `terraform.yml` workflow performs:
 
@@ -112,7 +133,9 @@ The `terraform.yml` workflow performs:
 
 ______________________________________________________________________
 
-## ❔ Required GitHub Secrets
+## Required GitHub Secrets
+
+❔
 
 | Secret Name              | Description                        |
 | ------------------------ | ---------------------------------- |
@@ -130,7 +153,9 @@ ______________________________________________________________________
 | `TF_VERSION`             | Terraform version                  |
 | `VPC_CIDR`               | VPC CIDR block                     |
 
-### ❔ Other variables that can be set inside terraform.yml
+### Other variables that can be set inside terraform.yml
+
+❔
 
 | Variable Name            | Description                                                                   |
 | ------------------------ | ----------------------------------------------------------------------------- |
@@ -140,7 +165,9 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-## 🛡️ Security Best Practices Implemented
+## Security Best Practices Implemented
+
+🛡️
 
 - IMDSv2 enforcement for EC2 (AVD-AWS-0028)
 - Encrypted root EBS volumes (AVD-AWS-0131)
@@ -150,24 +177,32 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-## 🔖 Terraform Version
+## Terraform Version
+
+🔖
 
 Tested with Terraform `1.12.0`
 
 ______________________________________________________________________
 
-## 💻 Script
+## Script
+
+💻
 
 This script automates the process of securely retrieving a Kubernetes `kubeconfig` file from AWS Systems Manager (SSM) Parameter Store and saving it locally to the `~/.kube/` directory for use with `kubectl`.
 
-### ⚙️ Prerequisites
+### Prerequisites
+
+⚙️
 
 - AWS CLI installed and configured
 - Access to AWS SSM Parameter Store with necessary IAM permissions
 - Kubernetes `kubeconfig` file already stored as a secure SSM parameter
 - Linux/macOS shell (e.g., Bash)
 
-### ❔ Script Variables
+### Script Variables
+
+❔
 
 You need to **set the following variables** before running the script:
 
@@ -180,7 +215,9 @@ SSM_PARAMETER_NAME="/path/to/your/key"  # Full name of the SSM parameter (e.g., 
 KUBECONFIG_PATH="~/.kube"     # Path where kubeconfig will be stored
 ```
 
-### 🔍 Script Workflow
+### Script Workflow
+
+🔍
 
 1. **Input Validation**
 
@@ -208,7 +245,9 @@ KUBECONFIG_PATH="~/.kube"     # Path where kubeconfig will be stored
 
    - The script includes a commented-out `export KUBECONFIG=...` line in case you want to make this kubeconfig the default for your shell session.
 
-### 🧪 Example Usage
+### Example Usage
+
+🧪
 
 ```bash
 export AWS_DEFAULT_REGION="us-west-2"
@@ -216,35 +255,71 @@ export AWS_PROFILE="default"
 export AWS_ACCESS_KEY_ID="AKIA..."
 export AWS_SECRET_ACCESS_KEY="..."
 export SSM_PARAMETER_NAME="/prod/k3s/kubeconfig"
+export KUBECONFIG_PATH=../kubernetes
 
 bash get_kubeconfig.sh
 ```
 
 > 💡 You may also set these variables directly in the script or through a `.env` file if preferred.
 
-### 📁 Output
+### Output
+
+📁
 
 - The kubeconfig file will be available at:\
-  `~/.kube/kubeconfig`
+  `task_3/project/kubernetes/kubeconfig`
 
 - If a file already existed, it will be backed up as:\
-  `~/.kube/kubeconfig.bak`
+  `task_3/project/kubernetes/kubeconfig.bak`
 
 ______________________________________________________________________
 
-## 🔧 How to manage cluster
+## How to manage kubernetes cluster
+
+🔧
 
 1. You will need to get output from you Github Action pipeline that contains `bastion_public_ip`, `k3s_control_plane_private_ip` or check it from your AWS Web Console/CLI.
+
 1. Run this command to establish SSH tunnel from your local PC to K3s control plane node:
 
 ```bash
-ssh -L localhost:6443:k3s_control_plane_private_ip:6443 ubuntu@bastion_public_ip
+ssh -i /ssh/key/path -L localhost:6443:k3s_control_plane_private_ip:6443 ubuntu@bastion_public_ip
 ```
 
-where are you need to change `k3s_control_plane_private_ip` and `bastion_public_ip` with your actual IP addresses taked from step 1.
-3\. If you aleady export you `$KUBECONFIG` system variable with kibeconfig configuration file location then you can run `kubectl` commands as well as you can import kubeconfig to any Kubernetes IDE like **Lens** from Mirantis.
+*Dont forget to change `/ssh/key/path` with your actual SSH key that used to access your EC2 instances, `k3s_control_plane_private_ip` and `bastion_public_ip` with your actual IP addresses taked from step 1.*
+Tunnel will be exist till your ssh remote session lives.
 
-## 📎 Notes
+3. If you aleady export you `$KUBECONFIG` system variable with kibeconfig configuration file location then you can run `kubectl` commands as well as you can import kubeconfig to any Kubernetes IDE like **Lens** from Mirantis.
+
+______________________________________________________________________
+
+In this path `task_3/project/kubernetes` you can find kubernetes manifests that can be deployed to our kubernetes cluster to achieve next goals:
+
+- Create `Namespace` with name **Web**.
+- Create `ConfigMap` with simple one page **Hello World** site.
+- Create `Deployment` pod that will be serve our web application.
+- Create `Service` to be able rich our web server and check that all works fine.
+
+To do this go to mentioned path and run this commands:
+
+```bash
+ssh -i /ssh/key/path -L localhost:31000:k3s_control_plane_private_ip:31000 ubuntu@bastion_public_ip
+```
+
+to establish one more SSH tunnel to cluster and then
+
+*Dont forget to change `/ssh/key/path` with your actual SSH key that used to access your EC2 instances,  `k3s_control_plane_private_ip` and `bastion_public_ip` with your actual IP addresses.*
+
+```bash
+cd ./task_3/project/kubernetes/
+KUBECONFIG=kubeconfig kubectl apply -f .
+```
+
+After that you can test that all work by open [locahost:31000](http://localhost:31000/) in your web browser or by running `curl http://localhost:31000/` command from your terminal.
+
+## Notes
+
+📎
 
 - All tagging includes `Task`, `ManagedBy`, `CI`, and `Date` fields.
 - `output.tfplan` is commented on PRs automaticaly.
@@ -252,7 +327,9 @@ where are you need to change `k3s_control_plane_private_ip` and `bastion_public_
 
 ______________________________________________________________________
 
-## ✅ Usability confirmation
+## Usability confirmation
+
+✅
 
 <details><summary>Resources creation and usage proofs</summary>
 
@@ -267,5 +344,29 @@ ______________________________________________________________________
 ### NAT gateway for private network<br>
 
 ![NAT gateway for private network](screenshots/scr_3.png)<br>
+
+### Kubernetes cluster overview from Lens<br>
+
+![Kubernetes cluster overview from Lens](screenshots/scr_4.png)<br>
+
+### Kubernetes cluster Nodes overview<br>
+
+![Kubernetes cluster Nodes overview](screenshots/scr_5.png)<br>
+
+### Kubernetes cluster Deployments overview<br>
+
+![Kubernetes cluster Deployments overview](screenshots/scr_6.png)<br>
+
+### Kubernetes cluster ConfigMaps overview<br>
+
+![Kubernetes cluster ConfigMaps overview](screenshots/scr_7.png)<br>
+
+### Kubernetes cluster Services overview<br>
+
+![Kubernetes cluster Services overview](screenshots/scr_8.png)<br>
+
+### Web browser connectivity test<br>
+
+![Web browser connectivity test](screenshots/scr_9.png)<br>
 
 </details>
