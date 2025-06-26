@@ -130,9 +130,12 @@ resource "aws_iam_policy" "ssm_worker_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = "ssm:GetParameter",
-        Resource = "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/development/kubeconfig"
+        Effect = "Allow",
+        Action = "ssm:GetParameter",
+        Resource = [
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/development/kubeconfig",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/development/KEYPAIR"
+        ]
       }
     ]
   })
