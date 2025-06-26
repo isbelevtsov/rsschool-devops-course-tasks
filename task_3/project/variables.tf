@@ -81,8 +81,8 @@ variable "cert_path" {
   default     = "/home/ubuntu/cert.pem"
 }
 
-variable "param_name" {
-  description = "Parameter name for the certificate in SSM"
+variable "key_param_path" {
+  description = "Parameter name for the SSH certificate in SSM"
   type        = string
   default     = "/ec2/cert.pem"
 }

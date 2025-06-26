@@ -10,23 +10,23 @@ on:
   workflow_dispatch:
 
 env:
-  TASK_DIR: task_3/project
+  ALLOWED_SSH_CIDR: ${{ secrets.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
+  AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
+  AZS: ${{ secrets.AZS }} # Set this in GitHub Secrets
+  CERT_PATH: ${{ secrets.CERT_PATH }} # Path to the certificate file, if needed
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for commenting on PRs
   INSTANCE_TYPE_BASTION: t3.nano
   INSTANCE_TYPE_CP: t3.medium
   INSTANCE_TYPE_WORKER: t3.small
-  TF_VERSION: ${{ secrets.TF_VERSION }} # Set this in GitHub Secrets
-  AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
-  VPC_CIDR: ${{ secrets.VPC_CIDR }} # Set this in GitHub Secrets
-  AZS: ${{ secrets.AZS }} # Set this in GitHub Secrets
-  PUBLIC_SUBNET_CIDRS: ${{ secrets.PUBLIC_SUBNET_CIDRS }} # Set this in GitHub Secrets
-  PRIVATE_SUBNET_CIDRS: ${{ secrets.PRIVATE_SUBNET_CIDRS }} # Set this in GitHub Secrets
-  ALLOWED_SSH_CIDR: ${{ secrets.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
   KEY_PAIR: ${{ secrets.KEY_PAIR }} # Set this in GitHub Secrets
-  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for commenting on PRs
-  CERT_PATH: ${{ secrets.CERT_PATH }} # Path to the certificate file, if needed
-  PARAM_NAME: ${{ secrets.PARAM_NAME }} # Name of the parameter in AWS Systems Manager Parameter Store, if needed
+  KEY_PARAM_PATH: ${{ secrets.KEY_PARAM_PATH }} # Name of the parameter in AWS Systems Manager Parameter Store, if needed
   KUBECONFIG_PARAM_PATH: ${{ secrets.KUBECONFIG_PARAM_PATH }} # Path to the kubeconfig in AWS Systems Manager Parameter Store, if needed
+  PRIVATE_SUBNET_CIDRS: ${{ secrets.PRIVATE_SUBNET_CIDRS }} # Set this in GitHub Secrets
+  PUBLIC_SUBNET_CIDRS: ${{ secrets.PUBLIC_SUBNET_CIDRS }} # Set this in GitHub Secrets
+  TASK_DIR: task_3/project
+  TF_VERSION: ${{ secrets.TF_VERSION }} # Set this in GitHub Secrets
+  VPC_CIDR: ${{ secrets.VPC_CIDR }} # Set this in GitHub Secrets
 
 permissions:
   id-token: write  # Required for OIDC token exchange
@@ -73,7 +73,7 @@ jobs:
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
           instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
           cert_path             = "${{ env.CERT_PATH }}"
-          param_name            = "${{ env.PARAM_NAME }}"
+          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
           kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
 
           EOF
@@ -171,7 +171,7 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     needs: terraform-plan
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
 
@@ -204,7 +204,7 @@ jobs:
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
           instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
           cert_path             = "${{ env.CERT_PATH }}"
-          param_name            = "${{ env.PARAM_NAME }}"
+          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
           kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
 
           EOF
@@ -228,7 +228,7 @@ jobs:
     name: Terraform Destroy
     runs-on: ubuntu-latest
     needs: terraform-plan
-    # if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
@@ -260,7 +260,7 @@ jobs:
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
           instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
           cert_path             = "${{ env.CERT_PATH }}"
-          param_name            = "${{ env.PARAM_NAME }}"
+          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
           kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
 
           EOF

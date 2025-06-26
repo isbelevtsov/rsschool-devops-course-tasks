@@ -1,8 +1,8 @@
 #!/bin/bash
-
-# Define inherited variables
-CERT_PATH="${CERT_PATH}"
-PARAM_NAME="${PARAM_NAME}"
+# Set the hostname
+hostnamectl set-hostname ${PROJECT_NAME}-bastion-${ENVIRONMENT_NAME}
+echo "127.0.0.1 $(hostname)" >> /etc/hosts
+cloud-init single --name set-hostname --frequency always
 
 # Update the instance
 apt-get update -y
@@ -42,7 +42,7 @@ else
 fi
 
 # Retrieve the SSH certificate
-CERT=$(aws ssm get-parameter --name "${PARAM_NAME}" --with-decryption --query "Parameter.Value" --output text)
+CERT=$(aws ssm get-parameter --name "${KEY_PARAM_PATH}" --with-decryption --query "Parameter.Value" --output text)
 if [ $? -eq 0 ]; then
     echo "====> Certificate received successfully"
 else

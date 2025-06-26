@@ -30,6 +30,6 @@ instance_type_worker = "t3.small"
 cert_path = "/home/ubuntu/cert.pem"
 
 # SSM parameter path
-param_name = "/app/cert.pem"
+key_param_path = "/app/cert.pem"
 
 kubeconfig_param_path = /app/kubeconfig
