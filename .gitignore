@@ -152,3 +152,7 @@ terraform.rc
 blackbird.pem
 development/
 development/*
+
+# Kubernetes config files
+kube.yml
+kubeconfig
