@@ -152,3 +152,4 @@ terraform.rc
 blackbird.pem
 development/
 development/*
+kube.yml
