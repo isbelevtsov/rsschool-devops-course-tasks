@@ -82,7 +82,7 @@ resource "aws_iam_role" "controlplane_role" {
 }
 
 resource "aws_iam_policy" "ssm_controlplane_write_policy" {
-  name        = "${var.project_name}-ssm-controlplane-policy-${var.environment_name}"
+  name        = "${var.project_name}-ssm-controlplane-write-policy-${var.environment_name}"
   description = "Allow EC2 to read kubeconfig from SSM"
 
   policy = jsonencode({
@@ -98,7 +98,7 @@ resource "aws_iam_policy" "ssm_controlplane_write_policy" {
 }
 
 resource "aws_iam_policy" "ssm_controlplane_read_policy" {
-  name        = "${var.project_name}-ssm-controlplane-policy-${var.environment_name}"
+  name        = "${var.project_name}-ssm-controlplane-read-policy-${var.environment_name}"
   description = "Allow EC2 to read kubeconfig from SSM"
 
   policy = jsonencode({
