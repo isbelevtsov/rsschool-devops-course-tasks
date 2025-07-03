@@ -1,0 +1,103 @@
+name: "K8s Management"
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Terraform Plan and Apply"]
+    types:
+      - completed
+    branches:
+      - main
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
+  KUBECONFIG_PARAM_PATH: ${{ secrets.KUBECONFIG_PARAM_PATH }} # Set this in GitHub Secrets
+  TASK_DIR: task_4/project
+
+permissions:
+  id-token: write  # Required for OIDC token exchange
+  contents: read   # Required to checkout the repo
+  pull-requests: write  # Required to comment on PRs
+
+jobs:
+  deploy_jenkins:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get GitHub Runner IP
+        id: runner_ip
+        run: |
+          echo "RUNNER_IP=$(curl -s https://checkip.amazonaws.com)/32" >> $GITHUB_ENV
+
+      - name: Get Bastion security group ID
+        run: |
+          bastion_sg_id=$(terraform output -raw bastion_sg_id)
+          echo "BASTION_SG_ID=$bastion_sg_id" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Add IP to Security Group
+        env:
+          RUNNER_IP: ${{ env.RUNNER_IP }}
+          BASTION_SG_ID: ${{ env.BASTION_SG_ID }}
+        run: |
+          echo "Adding $RUNNER_IP to Security Group ${{ env.BASTION_SG_ID }}"
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ env.BASTION_SG_ID }} \
+            --protocol tcp \
+            --port 6443 \
+            --cidr $RUNNER_IP
+
+      - name: Set up kubeconfig
+        run: |
+          KUBECONFIG=$(aws ssm get-parameter --name ${{ env.KUBECONFIG_PARAM_PATH }} --with-decryption --query "Parameter.Value" --output text)
+          echo "$KUBECONFIG" > kubeconfig
+          export KUBECONFIG=$(pwd)/kubeconfig
+        working-directory: ${{ env.TASK_DIR }}
+
+
+      - name: Install helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: v3.18.3
+
+      - name: Deploy Jenkins Helm Chart
+        run: |
+          kubectl create namespace jenkins
+          kubectl apply -f kubernetes/jenkins_pvc.yaml -n jenkins
+          helm repo add jenkins https://charts.jenkins.io
+          helm repo update
+          helm upgrade --install my-jenkins kubernetes/jenkins \
+          --namespace jenkins \
+          --values kubernetes/jenkins_values.yaml \
+          --kubeconfig kubeconfig
+          kubectl apply -f kubernetes/jenkins_ingress.yaml -n jenkins
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Verify Deployment
+        run: |
+          kubectl get pods --namespace jenkins --kubeconfig kubeconfig
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Remove IP from Security Group
+        if: success()
+        env:
+          RUNNER_IP: ${{ env.RUNNER_IP }}
+          BASTION_SG_ID: ${{ env.BASTION_SG_ID }}
+        run: |
+          echo "Removing $RUNNER_IP from Security Group ${{ env.BASTION_SG_ID }}"
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ env.BASTION_SG_ID }} \
+            --protocol tcp \
+            --port 6443 \
+            --cidr $RUNNER_IP

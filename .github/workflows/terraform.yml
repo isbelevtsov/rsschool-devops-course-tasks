@@ -1,20 +1,191 @@
 name: Terraform Plan and Apply
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
+    paths:
+      - './github/workflows/terraform.yml'
+      - '**/*.tpl'
+      - '**/*.tf'
+      - '**/*.example'
+      - '**/*.yml'
+      - '**/*.yaml'
   pull_request:
     branches:
       - main
+    paths:
+      - './github/workflows/terraform.yml'
+      - '**/*.tpl'
+      - '**/*.tf'
+      - '**/*.example'
+      - '**/*.yml'
+      - '**/*.yaml'
+
+env:
+  ALLOWED_SSH_CIDR: ${{ secrets.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
+  AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
+  AZS: ${{ secrets.AZS }} # Set this in GitHub Secrets
+  CERT_PATH: ${{ secrets.CERT_PATH }} # Path to the certificate file, if needed
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for commenting on PRs
+  INSTANCE_TYPE_BASTION: ${{ vars.INSTANCE_TYPE_BASTION }} # Set this in GitHub Variables
+  INSTANCE_TYPE_CP: ${{ vars.INSTANCE_TYPE_CP }} # Set this in GitHub Variables
+  INSTANCE_TYPE_WORKER: ${{ vars.INSTANCE_TYPE_WORKER }} # Set this in GitHub Variables
+  KEY_PAIR: ${{ secrets.KEY_PAIR }} # Set this in GitHub Secrets
+  KEY_PARAM_PATH: ${{ secrets.KEY_PARAM_PATH }} # Name of the parameter in AWS Systems Manager Parameter Store, if needed
+  KUBECONFIG_PARAM_PATH: ${{ secrets.KUBECONFIG_PARAM_PATH }} # Path to the kubeconfig in AWS Systems Manager Parameter Store, if needed
+  PRIVATE_SUBNET_CIDRS: ${{ secrets.PRIVATE_SUBNET_CIDRS }} # Set this in GitHub Secrets
+  PUBLIC_SUBNET_CIDRS: ${{ secrets.PUBLIC_SUBNET_CIDRS }} # Set this in GitHub Secrets
+  TASK_DIR: ${{ vars.TASK_DIR }} # Set this in GitHub Variables
+  TF_VERSION: ${{ secrets.TF_VERSION }} # Set this in GitHub Secrets
+  VPC_CIDR: ${{ secrets.VPC_CIDR }} # Set this in GitHub Secrets
 
 permissions:
   id-token: write  # Required for OIDC token exchange
   contents: read   # Required to checkout the repo
+  pull-requests: write  # Required to comment on PRs
+  actions: read   # Required to upload artifacts
+  issues: write   # Required to comment on issues
+  checks: write   # Required to update checks on PRs
+  statuses: write # Required to update commit statuses
 
 jobs:
-  terraform:
+  terraform-plan:
+    name: Terraform Plan
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Generate terraform.auto.tfvars
+        run: |
+          cat <<EOF > terraform.auto.tfvars
+          aws_region            = "${{ env.AWS_REGION }}"
+          aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
+          vpc_cidr              = "${{ env.VPC_CIDR }}"
+          azs                   = ${{ env.AZS }}
+          public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
+          allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
+          key_pair              = "${{ env.KEY_PAIR }}"
+          instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
+          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
+          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
+          cert_path             = "${{ env.CERT_PATH }}"
+          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
+          kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
+
+          EOF
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd ${{ env.TASK_DIR }}
+          terraform  plan -no-color -out=output.tfplan
+
+      - name: Terraform Show to file
+        if: github.event_name == 'pull_request'
+        run: terraform show -no-color output.tfplan > tfplan.txt
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: |
+            ${{ env.TASK_DIR }}/output.tfplan
+            ${{ env.TASK_DIR }}/tfplan.txt
+
+      - name: Comment Plan on PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // 1. Retrieve existing bot comments for the PR
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            })
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('Terraform Format and Style')
+            })
+
+            // 2. Prepare format of the comment
+            const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+
+            </details>
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TASK_DIR }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+            // 3. If we have a comment, update it, otherwise create a new one
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              })
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              })
+            }
+
+
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
 
@@ -22,28 +193,97 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.12.0
+          terraform_version: ${{ env.TF_VERSION }}
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionRole # AWS Account ID should be set in GitHub Secrets
-          aws-region: eu-north-1
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Terraform Format
-        run: terraform fmt -check -recursive
+      - name: Generate terraform.auto.tfvars
+        run: |
+          cat <<EOF > terraform.auto.tfvars
+          aws_region            = "${{ env.AWS_REGION }}"
+          aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
+          vpc_cidr              = "${{ env.VPC_CIDR }}"
+          azs                   = ${{ env.AZS }}
+          public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
+          allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
+          key_pair              = "${{ env.KEY_PAIR }}"
+          instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
+          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
+          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
+          cert_path             = "${{ env.CERT_PATH }}"
+          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
+          kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
+
+          EOF
+        working-directory: ${{ env.TASK_DIR }}
 
       - name: Terraform Init
         run: terraform init
-        working-directory: task_1/project
+        working-directory: ${{ env.TASK_DIR }}
 
-      - name: Terraform Plan
-        run: terraform plan -out=output.tfplan -var="aws_region=${{ secrets.AWS_REGION }}" -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" -var="user_name=${{ secrets.USER_NAME }}" -var="create_access_key=true"
-        working-directory: task_1/project
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: ${{ env.TASK_DIR }}
 
       - name: Terraform Apply
-        if: github.event_name == 'push'
-        run: terraform apply -auto-approve output.tfplan
-        working-directory: task_1/project
+        run: terraform apply output.tfplan
+        working-directory: ${{ env.TASK_DIR }}
+
+  terraform-destroy:
+    name: Terraform Destroy
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    # if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Generate terraform.auto.tfvars
+        run: |
+          cat <<EOF > terraform.auto.tfvars
+          aws_region            = "${{ env.AWS_REGION }}"
+          aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
+          vpc_cidr              = "${{ env.VPC_CIDR }}"
+          azs                   = ${{ env.AZS }}
+          public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
+          allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
+          key_pair              = "${{ env.KEY_PAIR }}"
+          instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
+          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
+          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
+          cert_path             = "${{ env.CERT_PATH }}"
+          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
+          kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
+
+          EOF
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
+        working-directory: ${{ env.TASK_DIR }}
