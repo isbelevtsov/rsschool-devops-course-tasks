@@ -271,7 +271,7 @@ jobs:
   configure-dns:
     name: Configure DNS Records
     runs-on: ubuntu-latest
-    needs: terraform-apply
+    # needs: terraform-apply
     if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'update-dns'
 
     defaults:
