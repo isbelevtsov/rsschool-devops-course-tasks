@@ -43,10 +43,12 @@ env:
   INSTANCE_TYPE_BASTION: ${{ vars.INSTANCE_TYPE_BASTION }} # Set this in GitHub Variables
   INSTANCE_TYPE_CP: ${{ vars.INSTANCE_TYPE_CP }} # Set this in GitHub Variables
   INSTANCE_TYPE_WORKER: ${{ vars.INSTANCE_TYPE_WORKER }} # Set this in GitHub Variables
+  JENKINS_CF_RECORD_NAME: ${{ secrets.JENKINS_CF_RECORD_NAME }}
   JENKINS_DATA_DIR: ${{ vars.JENKINS_DATA_DIR }}
   KEY_PAIR: ${{ secrets.KEY_PAIR }} # Set this in GitHub Secrets
   KEY_PARAM_PATH: ${{ secrets.KEY_PARAM_PATH }} # Name of the parameter in AWS Systems Manager Parameter Store, if needed
   KUBECONFIG_PARAM_PATH: ${{ secrets.KUBECONFIG_PARAM_PATH }} # Path to the kubeconfig in AWS Systems Manager Parameter Store, if needed
+  K8S_CF_RECORD_NAME: ${{ secrets.K8S_CF_RECORD_NAME }}
   NODE_TOKEN_PARAM_PATH: ${{ secrets.NODE_TOKEN_PARAM_PATH }}
   PRIVATE_SUBNET_CIDRS: ${{ secrets.PRIVATE_SUBNET_CIDRS }} # Set this in GitHub Secrets
   PUBLIC_SUBNET_CIDRS: ${{ secrets.PUBLIC_SUBNET_CIDRS }} # Set this in GitHub Secrets
@@ -309,6 +311,62 @@ jobs:
               -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
               -H "Content-Type: application/json" \
               --data "{\"type\":\"A\",\"name\":\"${{ env.BASTION_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          fi
+
+      - name: Update K8s A record on Cloudflare
+        run: |
+          # Get Bastion public IP address
+          BASTION_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Role,Values=bastion" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
+
+          # Get existing record ID
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.K8S_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          # Set or update existing bastion host DNS A record
+          if [ "$RECORD_ID" = "null" ]; then
+            echo "Creating new A record..."
+            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.K8S_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          else
+            echo "Updating existing A record..."
+            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.K8S_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          fi
+
+      - name: Update Jenkins A record on Cloudflare
+        run: |
+          # Get Bastion public IP address
+          BASTION_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Role,Values=bastion" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
+
+          # Get existing record ID
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.JENKINS_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          # Set or update existing bastion host DNS A record
+          if [ "$RECORD_ID" = "null" ]; then
+            echo "Creating new A record..."
+            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.JENKINS_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          else
+            echo "Updating existing A record..."
+            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.JENKINS_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
           fi
 
   terraform-destroy:
