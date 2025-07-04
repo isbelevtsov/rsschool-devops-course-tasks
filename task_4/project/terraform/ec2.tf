@@ -73,11 +73,12 @@ resource "aws_instance" "k3s_worker" {
   }
 
   user_data = templatefile("${path.module}/templates/worker.tpl", {
-    PROJECT_NAME     = var.project_name
-    ENVIRONMENT_NAME = var.environment_name
-    CERT_PATH        = var.cert_path
-    KEY_PARAM_PATH   = var.key_param_path
-    JENKINS_DATA_DIR = var.jenkins_data_dir
+    PROJECT_NAME          = var.project_name
+    ENVIRONMENT_NAME      = var.environment_name
+    CERT_PATH             = var.cert_path
+    KEY_PARAM_PATH        = var.key_param_path
+    JENKINS_DATA_DIR      = var.jenkins_data_dir
+    NODE_TOKEN_PARAM_PATH = var.node_token_param_path
   })
 
   tags = {
