@@ -11,6 +11,7 @@ on:
           - plan
           - apply
           - destroy
+          - update-dns
   # push:
   #   branches:
   #     - main
@@ -271,7 +272,7 @@ jobs:
     name: Configure DNS Records
     runs-on: ubuntu-latest
     needs: terraform-apply
-    if: github.event.inputs.action == 'apply'
+    if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'update-dns'
 
     defaults:
       run:
