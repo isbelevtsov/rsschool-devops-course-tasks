@@ -83,17 +83,17 @@ else
     exit 1
 fi
 
-# # Retrive control plane node private IP address
-# K3S_CONTROL_PLANE_PRIVATE_IP=$(aws ec2 describe-instances \
-#   --filters "Name=tag:k3s_role,Values=controlplane" \
-#   --query "Reservations[*].Instances[*].PrivateIpAddress" \
-#   --output text)
-# if [ ! -z $K3S_CONTROL_PLANE_PRIVATE_IP ]; then
-#     echo "====> Getting K3s control plane node private IP address $K3S_CONTROL_PLANE_PRIVATE_IP"
-# else
-#     echo "====> Failed to fetch K3s control plane node private IP address"
-#     exit 1
-# fi
+# Retrive control plane node private IP address
+K3S_CONTROL_PLANE_PRIVATE_IP=$(aws ec2 describe-instances \
+  --filters "Name=tag:k3s_role,Values=controlplane" \
+  --query "Reservations[*].Instances[*].PrivateIpAddress" \
+  --output text)
+if [ ! -z $K3S_CONTROL_PLANE_PRIVATE_IP ]; then
+    echo "====> Getting K3s control plane node private IP address ${K3S_CONTROL_PLANE_PRIVATE_IP}"
+else
+    echo "====> Failed to fetch K3s control plane node private IP address"
+    exit 1
+fi
 
 # Retrieve K3s worker node token from control plane
 K3S_TOKEN=$(ssh -o StrictHostKeyChecking=no -i ${CERT_PATH} ubuntu@$K3S_CONTROL_PLANE_PRIVATE_IP 'sudo cat /var/lib/rancher/k3s/server/node-token')
