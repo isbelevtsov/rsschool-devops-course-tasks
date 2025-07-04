@@ -73,12 +73,13 @@ resource "aws_instance" "k3s_worker" {
   }
 
   user_data = templatefile("${path.module}/templates/worker.tpl", {
-    PROJECT_NAME          = var.project_name
-    ENVIRONMENT_NAME      = var.environment_name
-    CERT_PATH             = var.cert_path
-    KEY_PARAM_PATH        = var.key_param_path
-    JENKINS_DATA_DIR      = var.jenkins_data_dir
-    NODE_TOKEN_PARAM_PATH = var.node_token_param_path
+    PROJECT_NAME                 = var.project_name
+    ENVIRONMENT_NAME             = var.environment_name
+    CERT_PATH                    = var.cert_path
+    KEY_PARAM_PATH               = var.key_param_path
+    JENKINS_DATA_DIR             = var.jenkins_data_dir
+    NODE_TOKEN_PARAM_PATH        = var.node_token_param_path
+    K3S_CONTROL_PLANE_PRIVATE_IP = aws_instance.k3s_control_plane.private_ip
   })
 
   tags = {
@@ -89,7 +90,7 @@ resource "aws_instance" "k3s_worker" {
 
 resource "aws_instance" "bastion" {
   depends_on                  = [aws_instance.k3s_control_plane, aws_instance.k3s_worker]
-  ami                         = data.aws_ami.ubuntu.id # Assuming the AMI is defined in ami.tf
+  ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_bastion
   subnet_id                   = aws_subnet.public[0].id
   vpc_security_group_ids      = [aws_security_group.bastion_sg.id]
@@ -118,10 +119,11 @@ resource "aws_instance" "bastion" {
   }
 
   user_data = templatefile("${path.module}/templates/bastion.tpl", {
-    PROJECT_NAME     = var.project_name
-    ENVIRONMENT_NAME = var.environment_name
-    CERT_PATH        = var.cert_path
-    KEY_PARAM_PATH   = var.key_param_path
+    PROJECT_NAME                 = var.project_name
+    ENVIRONMENT_NAME             = var.environment_name
+    CERT_PATH                    = var.cert_path
+    KEY_PARAM_PATH               = var.key_param_path
+    K3S_CONTROL_PLANE_PRIVATE_IP = aws_instance.k3s_control_plane.private_ip
 
   })
 

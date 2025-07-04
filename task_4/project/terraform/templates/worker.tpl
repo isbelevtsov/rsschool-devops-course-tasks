@@ -97,12 +97,12 @@ K3S_CONTROL_PLANE_PRIVATE_IP=$(aws ec2 describe-instances \
   --filters "Name=tag:k3s_role,Values=controlplane" \
   --query "Reservations[*].Instances[*].PrivateIpAddress" \
   --output text)
-# if [ ! -z $K3S_CONTROL_PLANE_PRIVATE_IP ]; then
-#     echo "====> Getting K3s control plane node private IP address $K3S_CONTROL_PLANE_PRIVATE_IP"
-# else
-#     echo "====> Failed to fetch K3s control plane node private IP address"
-#     exit 1
-# fi
+if [ ! -z $K3S_CONTROL_PLANE_PRIVATE_IP ]; then
+    echo "====> Getting K3s control plane node private IP address $K3S_CONTROL_PLANE_PRIVATE_IP"
+else
+    echo "====> Failed to fetch K3s control plane node private IP address"
+    exit 1
+fi
 
 # Set K3s control plane API server URL
 K3S_URL=https://$K3S_CONTROL_PLANE_PRIVATE_IP:6443
