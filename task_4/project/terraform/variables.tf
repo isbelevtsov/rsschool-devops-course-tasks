@@ -93,6 +93,12 @@ variable "kubeconfig_param_path" {
   default     = "/ec2/kubeconfig"
 }
 
+variable "node_token_param_path" {
+  description = "Path to the node token parameter in SSM"
+  type        = string
+  default     = "/ec2/node-token"
+}
+
 variable "jenkins_data_dir" {
   description = "Jenkins data directory path"
   type        = string

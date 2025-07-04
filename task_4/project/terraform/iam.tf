@@ -89,9 +89,13 @@ resource "aws_iam_policy" "controlplane_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = "ssm:PutParameter",
-        Resource = "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.kubeconfig_param_path}"
+        Effect = "Allow",
+        Action = "ssm:PutParameter",
+        Resource = [
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.kubeconfig_param_path}",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.node_token_param_path}"
+        ]
+
       },
       {
         Effect   = "Allow",
@@ -139,6 +143,7 @@ resource "aws_iam_policy" "worker_policy" {
         Action = "ssm:GetParameter",
         Resource = [
           "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.kubeconfig_param_path}",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.node_token_param_path}",
           "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.key_param_path}"
         ]
       },

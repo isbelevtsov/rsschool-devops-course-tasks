@@ -33,6 +33,7 @@ resource "aws_instance" "k3s_control_plane" {
     CERT_PATH             = var.cert_path
     KEY_PARAM_PATH        = var.key_param_path
     KUBECONFIG_PARAM_PATH = var.kubeconfig_param_path
+    NODE_TOKEN_PARAM_PATH = var.node_token_param_path
   })
 
   tags = {

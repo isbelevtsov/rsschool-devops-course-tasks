@@ -108,3 +108,12 @@ else
     echo "====> Failed to upload kubeconfig"
     exit 1
 fi
+
+# Export K3s kubernetes cluster node token to SSM Parameter Store
+aws ssm put-parameter --name "${NODE_TOKEN_PARAM_PATH}" --value file:///var/lib/rancher/k3s/server/node-token --type SecureString --overwrite
+if [ $? -eq 0 ]; then
+    echo "====> Node token has been successfully exported to SSM Parameter Store"
+else
+    echo "====> Failed to upload node token"
+    exit 1
+fi
