@@ -26,7 +26,7 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
   AZS: ${{ secrets.AZS }} # Set this in GitHub Secrets
-  BASION_CF_RECORD_NAME: ${{ secrets.BASION_CF_RECORD_NAME }}
+  BASTION_CF_RECORD_NAME: ${{ secrets.BASTION_CF_RECORD_NAME }}
   CERT_PATH: ${{ secrets.CERT_PATH }} # Path to the certificate file, if needed
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
   CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
@@ -280,7 +280,7 @@ jobs:
             --output text)
 
           # Get existing record ID
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.BASION_CF_RECORD_NAME }}" \
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.BASTION_CF_RECORD_NAME }}" \
             -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
             -H "Content-Type: application/json" | jq -r '.result[0].id')
 
@@ -295,13 +295,13 @@ jobs:
             curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
               -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
               -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"${{ env.BASION_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+              --data "{\"type\":\"A\",\"name\":\"${{ env.BASTION_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
           fi
 
   terraform-destroy:
     name: Terraform Destroy
     runs-on: ubuntu-latest
-    needs: terraform-plan
+    needs: terraform-apply
     if: github.event_name == 'workflow_dispatch'
 
     steps:
