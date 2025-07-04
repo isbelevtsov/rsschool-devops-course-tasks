@@ -7,7 +7,7 @@ if [ $? -eq 0 ]; then
     cloud-init single --name set-hostname --frequency always
 else
     echo "====> Failed to set instance hostname"
-    exit 1
+    # exit 1
 fi
 
 # Update the instance
@@ -16,7 +16,7 @@ if [ $? -eq 0 ]; then
     echo "====> Updated the instance successfully."
 else
     echo "====> Failed to update the instance."
-    exit 1
+    # exit 1
 fi
 
 # Install AWS CLI and jq if needed
@@ -25,7 +25,7 @@ if [ $? -eq 0 ]; then
     echo "====> AWS CLI and JQ installed successfully"
 else
     echo "====> Failed to install AWS CLI and JQ"
-    exit 1
+    # exit 1
 fi
 
 # Creates token to authenticate and retrieve instance metadata
@@ -34,7 +34,7 @@ if [ ! -z $TOKEN ]; then
     echo "====> Created token for instance metadata."
 else
     echo "====> Failed to create token."
-    exit 1
+    # exit 1
 fi
 
 # Set the AWS region using the token
@@ -44,7 +44,7 @@ if [ ! -z $AWS_REGION ]; then
     echo "====> Setting AWS Region to: $AWS_DEFAULT_REGION"
 else
     echo "====> Failed to fetch AWS region."
-    exit 1
+    # exit 1
 fi
 
 # Retrieve the SSH certificate
@@ -53,7 +53,7 @@ if [ ! -z $CERT ]; then
     echo "====> Certificate received successfully"
 else
     echo "====> Failed to get SSH certificate"
-    exit 1
+    # exit 1
 fi
 
 # Write it to file
@@ -62,7 +62,7 @@ if [ $? -eq 0 ]; then
     echo "====> Saved SSH certificate to file"
 else
     echo "====> Failed to save SSH certificate"
-    exit 1
+    # exit 1
 fi
 
 # Set SSH certificate file permissions
@@ -71,7 +71,7 @@ if [ $? -eq 0 ]; then
     echo "====> Permissions was successfully set"
 else
     echo "====> Failed to set permissions to file"
-    exit 1
+    # exit 1
 fi
 
 # Change certificate ownership
@@ -80,7 +80,7 @@ if [ $? -eq 0 ]; then
     echo "====> Certificate ownership changed successfully"
 else
     echo "====> Failed to changle certificate ownership"
-    exit 1
+    # exit 1
 fi
 
 # Retrieve K3s worker node token from control plane
@@ -89,7 +89,7 @@ if [ ! -z $K3S_TOKEN ]; then
     echo "====> Getting K3s worker node token form SSM Parameter Store"
 else
     echo "====> Failed to fetch K3s worker node token"
-    exit 1
+    # exit 1
 fi
 
 # Get K3s control plane private IP address
@@ -101,7 +101,7 @@ if [ ! -z $K3S_CONTROL_PLANE_PRIVATE_IP ]; then
     echo "====> Getting K3s control plane node private IP address $K3S_CONTROL_PLANE_PRIVATE_IP"
 else
     echo "====> Failed to fetch K3s control plane node private IP address"
-    exit 1
+    # exit 1
 fi
 
 # Set K3s control plane API server URL
@@ -114,7 +114,7 @@ if [ $? -eq 0 ]; then
     echo "====> K3s has been successfully installed as worker node"
 else
     echo "====> Failed to install K3s"
-    exit 1
+    # exit 1
 fi
 
 # Prepare data directory for Jenkins
@@ -123,5 +123,5 @@ if [ $? -eq 0 ]; then
     echo "====> Data directory has been created successfully ${JENKINS_DATA_DIR}"
 else
     echo "====> Failed to create Jenkins data directory"
-    exit 1
+    # exit 1
 fi

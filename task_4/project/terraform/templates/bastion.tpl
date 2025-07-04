@@ -7,7 +7,7 @@ if [ $? -eq 0 ]; then
     cloud-init single --name set-hostname --frequency always
 else
     echo "====> Failed to set instance hostname"
-    exit 1
+    # exit 1
 fi
 
 # Update the instance
@@ -16,7 +16,7 @@ if [ $? -eq 0 ]; then
     echo "====> Updated the instance successfully."
 else
     echo "====> Failed to update the instance."
-    exit 1
+    # exit 1
 fi
 
 # Install needed packages
@@ -25,7 +25,7 @@ if [ $? -eq 0 ]; then
     echo "====> Packages has been installed successfully"
 else
     echo "====> Failed to install system packages"
-    exit 1
+    # exit 1
 fi
 
 # Creates token to authenticate and retrieve instance metadata
@@ -34,7 +34,7 @@ if [ ! -z $TOKEN ]; then
     echo "====> Created token for instance metadata."
 else
     echo "====> Failed to create token."
-    exit 1
+    # exit 1
 fi
 
 # Set the AWS region using the token
@@ -44,7 +44,7 @@ if [ ! -z $AWS_REGIOM ]; then
     echo "====> Setting AWS Region to: $AWS_DEFAULT_REGION"
 else
     echo "====> Failed to fetch AWS region."
-    exit 1
+    # exit 1
 fi
 
 # Retrieve the SSH certificate
@@ -53,7 +53,7 @@ if [ ! -z $CERT ]; then
     echo "====> SSH certificate received successfully"
 else
     echo "====> Failed to get SSH certificate"
-    exit 1
+    # exit 1
 fi
 
 # Write it to file
@@ -62,7 +62,7 @@ if [ $? -eq 0 ]; then
     echo "====> Saved SSH certificate to file"
 else
     echo "====> Failed to save SSH certificate"
-    exit 1
+    # exit 1
 fi
 
 # Set SSH certificate file permissions
@@ -71,7 +71,7 @@ if [ $? -eq 0 ]; then
     echo "====> Permissions was successfully set"
 else
     echo "====> Failed to set permissions to file"
-    exit 1
+    # exit 1
 fi
 
 # Change certificate ownership
@@ -80,7 +80,7 @@ if [ $? -eq 0 ]; then
     echo "====> Certificate ownership changed successfully"
 else
     echo "====> Failed to changle certificate ownership"
-    exit 1
+    # exit 1
 fi
 
 # Retrive control plane node private IP address
@@ -92,7 +92,7 @@ if [ ! -z $K3S_CONTROL_PLANE_PRIVATE_IP ]; then
     echo "====> Getting K3s control plane node private IP address ${K3S_CONTROL_PLANE_PRIVATE_IP}"
 else
     echo "====> Failed to fetch K3s control plane node private IP address"
-    exit 1
+    # exit 1
 fi
 
 # Backup existing default config
@@ -120,7 +120,7 @@ if [ -f $NGINX_KUBE_SITE_PATH ]; then
     echo "====> Nginx config has been create succsessfully: $$NGINX_KUBE_SITE_PATH "
 else
     echo "====> Failed to create Nginx reverse proxy config"
-    exit 1
+    # exit 1
 fi
 
 NGINX_JENKINS_SITE_PATH="/etc/nginx/sites-available/jenkins"
@@ -143,7 +143,7 @@ if [ -f $NGINX_JENKINS_SITE_PATH ]; then
     echo "====> Nginx config has been create succsessfully: $$NGINX_JENKINS_SITE_PATH "
 else
     echo "====> Failed to create Nginx reverse proxy config"
-    exit 1
+    # exit 1
 fi
 
 # Test Nginx configuration
@@ -152,7 +152,7 @@ if [ $? -eq 0 ]; then
     echo "====> Nginx configuration test has been succsessfully passed"
 else
     echo "====> Failed to test Nginx configuration"
-    exit 1
+    # exit 1
 fi
 
 # Enable nginx sites
@@ -161,7 +161,7 @@ if [ $? -eq 0 ]; then
     echo "====> Nginx sites has been succsessfully enabled"
 else
     echo "====> Failed to enable Nginx site"
-    exit 1
+    # exit 1
 fi
 
 # Restart and enable Nginx systemd service
@@ -170,7 +170,7 @@ if [ $? -eq 0 ]; then
     echo "====> Nginx service has been succsessfully restarted and enabled"
 else
     echo "====> Failed to restart and enable Nginx systemd service"
-    exit 1
+    # exit 1
 fi
 
 # Open firewall
@@ -185,5 +185,5 @@ if [ $? -eq 0 ]; then
     echo "Configuring firewall to allow TCP $${NGINX_PORT}"
 else
     echo "Failed to open $${NGINX_PORT} thought firewall"
-    exit 1
+    # exit 1
 fi

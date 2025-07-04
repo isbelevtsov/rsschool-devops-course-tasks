@@ -45,15 +45,9 @@ jobs:
         run: |
           echo "RUNNER_IP=$(curl -s https://checkip.amazonaws.com)/32" >> $GITHUB_ENV
 
-      - name: Download Bastion SG ID from Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: bastion-sg-id
-          path: ${{ env.TASK_DIR }}/bastion-sg.id.txt
-
       - name: Save Bastion SG ID
         run: |
-          echo "BASTION_SG_ID=$(cat bastion_sg_id.txt)" >> $GITHUB_ENV
+          echo "BASTION_SG_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=*bastion*" --query "SecurityGroups[*].GroupId" --output text)" >> $GITHUB_ENV
         working-directory: ${{ env.TASK_DIR }}
 
       - name: Add GitHub Runner IP to Security Group

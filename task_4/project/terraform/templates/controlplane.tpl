@@ -7,7 +7,7 @@ if [ $? -eq 0 ]; then
     cloud-init single --name set-hostname --frequency always
 else
     echo "====> Failed to set instance hostname"
-    exit 1
+    # exit 1
 fi
 
 # Update the instance
@@ -16,7 +16,7 @@ if [ $? -eq 0 ]; then
     echo "====> Updated the instance successfully."
 else
     echo "====> Failed to update the instance."
-    exit 1
+    # exit 1
 fi
 
 # Install AWS CLI and jq if needed
@@ -25,7 +25,7 @@ if [ $? -eq 0 ]; then
     echo "====> AWS CLI and JQ installed successfully"
 else
     echo "====> Failed to install AWS CLI and JQ"
-    exit 1
+    # exit 1
 fi
 
 # Creates token to authenticate and retrieve instance metadata
@@ -34,7 +34,7 @@ if [ ! -z $TOKEN ]; then
     echo "====> Created token for instance metadata."
 else
     echo "====> Failed to create token."
-    exit 1
+    # exit 1
 fi
 
 # Set the AWS region using the token
@@ -44,7 +44,7 @@ if [ ! -z $AWS_REGION ]; then
     echo "====> Setting AWS Region to: $AWS_DEFAULT_REGION"
 else
     echo "====> Failed to fetch AWS region."
-    exit 1
+    # exit 1
 fi
 
 # Retrieve the SSH certificate
@@ -53,7 +53,7 @@ if [ ! -z $CERT ]; then
     echo "====> Certificate received successfully"
 else
     echo "====> Failed to get SSH certificate"
-    exit 1
+    # exit 1
 fi
 
 # Write it to file
@@ -62,7 +62,7 @@ if [ $? -eq 0 ]; then
     echo "====> Saved SSH certificate to file"
 else
     echo "====> Failed to save SSH certificate"
-    exit 1
+    # exit 1
 fi
 
 # Set SSH certificate file permissions
@@ -71,7 +71,7 @@ if [ $? -eq 0 ]; then
     echo "====> Permissions was successfully set"
 else
     echo "====> Failed to set permissions to file"
-    exit 1
+    # exit 1
 fi
 
 # Change certificate ownership
@@ -80,7 +80,7 @@ if [ $? -eq 0 ]; then
     echo "====> Certificate ownership changed successfully"
 else
     echo "====> Failed to changle certificate ownership"
-    exit 1
+    # exit 1
 fi
 
 # Install K3s as control plane node
@@ -89,7 +89,7 @@ if [ $? -eq 0 ]; then
     echo "====> K3s has been successfully installed as control plane node"
 else
     echo "====> Failed to install K3s"
-    exit 1
+    # exit 1
 fi
 
 # Set K3s kubernetes cluster IP control plane IP address
@@ -106,7 +106,7 @@ if [ $? -eq 0 ]; then
     echo "====> Kubeconfig has been successfully exported to SSM Parameter Store"
 else
     echo "====> Failed to upload kubeconfig"
-    exit 1
+    # exit 1
 fi
 
 # Export K3s kubernetes cluster node token to SSM Parameter Store
@@ -115,5 +115,5 @@ if [ $? -eq 0 ]; then
     echo "====> Node token has been successfully exported to SSM Parameter Store"
 else
     echo "====> Failed to upload node token"
-    exit 1
+    # exit 1
 fi
