@@ -1,21 +1,103 @@
 controller:
-  # Setting the service type, namespace, and other configurations
+  image:
+    tag: "lts"
+
+  namespace: jenkins
+
+  existingSecret: jenkins-admin
+  admin:
+    userKey: jenkins-admin-user
+    passwordKey: jenkins-admin-password
+
+  initContainerEnv:
+
+  containerEnv:
+    # Tell the plugin where to find its config.
+    - name: CASC_JENKINS_CONFIG
+      value: /var/jenkins_home/casc_configs/jenkins.yaml
+
   serviceType: ClusterIP
   servicePort: 8080
-  namespace: jenkins
-  #jenkinsUrl: "http://jenkins.local"
+
+
   jenkinsHome: /var/jenkins_home
 
-  # Installing additional plugins
   installPlugins:
-    - kubernetes:4356.vfa_556c21f086
-    - git:5.7.0
-    - configuration-as-code:1971.vf9280461ea_89
-    - workflow-aggregator:608.v67378e9d3db_1
+    - kubernetes:latest
+    - kubernetes-credentials:latest
+    - git:latest
+    - configuration-as-code:latest
+    - workflow-aggregator:latest
+    - workflow-job:latest
+    - job-dsl:latest
 
-persistence:
-  enabled: true
-  existingClaim:
-  storageClass: jenkins-pv
-  accessMode: "ReadWriteOnce"
-  size: "2Gi"
+  persistence:
+    enabled: true
+    existingClaim: jenkins-pvc
+    storageClass: jenkins-pv
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 3000
+
+  containerSecurityContext:
+    runAsUser: 1000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+  JCasC:
+    defaultConfig: true
+    configScripts:
+     welcome-message: |
+       jenkins:
+         systemMessage: Welcome to our RS School DevOps 2025 Q2 course CI\CD server.  This Jenkins is configured and managed 'as code'.
+       jobs:
+          - script: >
+              pipelineJob('test-job') {
+                definition {
+                  cps {
+                    script('''
+                      pipeline {
+                              agent any
+                              stages {
+                                  stage('Stage 1') {
+                                      steps {
+                                          echo 'Hello World!'
+                                      }
+                                  }
+                                  stage('Stage 2') {
+                                      steps {
+                                          echo 'Is it me your looking for'
+                                      }
+                                  }
+                              }
+
+                      }
+                    '''.stripIndent())
+                    sandbox()
+                  }
+                }
+              }
+
+  sidecars:
+    configAutoReload:
+      enabled: true
+      image: kiwigrid/k8s-sidecar:1.14.2
+      imagePullPolicy: IfNotPresent
+      resources: {}
+      reqRetryConnect: 10
+      sshTcpPort: 1044
+      folder: "/var/jenkins_home/casc_configs"

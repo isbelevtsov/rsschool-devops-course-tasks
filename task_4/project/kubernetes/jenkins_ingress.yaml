@@ -5,6 +5,7 @@ metadata:
   namespace: jenkins
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.middlewares: jenkins-redirect@kubernetescrd
 spec:
   rules:
     - host: jenkins.elysium-space.com
@@ -14,6 +15,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: jenkins
+                name: my-jenkins
                 port:
                   number: 8080

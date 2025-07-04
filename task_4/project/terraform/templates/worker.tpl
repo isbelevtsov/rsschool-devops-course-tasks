@@ -116,3 +116,12 @@ else
     echo "====> Failed to install K3s"
     exit 1
 fi
+
+# Prepare data directory for Jenkins
+sudo mkdir -p $JENKINS_DATA_DIR && sudo chown ubuntu:ubuntu $JENKINS_DATA_DIR
+if [ $? -eq 0 ]; then
+    echo "====> Data directory has been created successfully ${JENKINS_DATA_DIR}"
+else
+    echo "====> Failed to create Jenkins data directory"
+    exit 1
+fi

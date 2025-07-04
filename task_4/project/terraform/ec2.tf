@@ -76,6 +76,7 @@ resource "aws_instance" "k3s_worker" {
     ENVIRONMENT_NAME = var.environment_name
     CERT_PATH        = var.cert_path
     KEY_PARAM_PATH   = var.key_param_path
+    JENKINS_DATA_DIR = var.jenkins_data_dir
   })
 
   tags = {
@@ -123,6 +124,7 @@ resource "aws_instance" "bastion" {
   })
 
   tags = {
-    Name = "${var.project_name}-bastion-${var.environment_name}"
+    Name = "${var.project_name}-bastion-${var.environment_name}",
+    Role = "bastion"
   }
 }

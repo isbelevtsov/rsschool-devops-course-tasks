@@ -145,7 +145,6 @@ else
     echo "====> Failed to restart and enable Nginx systemd service"
 fi
 
-
 # Open firewall
 NGINX_PORT=6443
 if command -v ufw >/dev/null 2>&1; then

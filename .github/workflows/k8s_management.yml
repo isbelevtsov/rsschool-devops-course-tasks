@@ -1,6 +1,9 @@
 name: "K8s Management"
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - task_4
   workflow_run:
     workflows: ["Terraform Plan and Apply"]
     types:
@@ -11,6 +14,8 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
+  JENKINS_ADMIN_USER: ${{ secrets.JENKINS_ADMIN_USER }}
+  JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }}
   KUBECONFIG_PARAM_PATH: ${{ secrets.KUBECONFIG_PARAM_PATH }} # Set this in GitHub Secrets
   TASK_DIR: task_4/project
 
@@ -27,26 +32,33 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Get GitHub Runner IP
-        id: runner_ip
-        run: |
-          echo "RUNNER_IP=$(curl -s https://checkip.amazonaws.com)/32" >> $GITHUB_ENV
-
-      - name: Get Bastion security group ID
-        run: |
-          bastion_sg_id=$(terraform output -raw bastion_sg_id)
-          echo "BASTION_SG_ID=$bastion_sg_id" >> $GITHUB_ENV
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
           aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-k8s-management
 
-      - name: Add IP to Security Group
+      - name: Get GitHub Runner IP
+        id: runner_ip
+        run: |
+          echo "RUNNER_IP=$(curl -s https://checkip.amazonaws.com)/32" >> $GITHUB_ENV
+
+      - name: Download Bastion SG ID from Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bastion-sg-id
+          path: ${{ env.TASK_DIR }}/bastion-sg.id.txt
+
+      - name: Save Bastion SG ID
+        run: |
+          echo "BASTION_SG_ID=$(cat bastion_sg_id.txt)" >> $GITHUB_ENV
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Add GitHub Runner IP to Security Group
         env:
           RUNNER_IP: ${{ env.RUNNER_IP }}
           BASTION_SG_ID: ${{ env.BASTION_SG_ID }}
@@ -58,36 +70,81 @@ jobs:
             --port 6443 \
             --cidr $RUNNER_IP
 
-      - name: Set up kubeconfig
+      - name: Set up Kubeconfig
         run: |
           KUBECONFIG=$(aws ssm get-parameter --name ${{ env.KUBECONFIG_PARAM_PATH }} --with-decryption --query "Parameter.Value" --output text)
           echo "$KUBECONFIG" > kubeconfig
-          export KUBECONFIG=$(pwd)/kubeconfig
-        working-directory: ${{ env.TASK_DIR }}
-
+          chmod 600 kubeconfig
+          # Get Bastion public IP address
+          BASTION_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Role,Values=bastion" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
+          sed -i "s|^\( *server: https://\)[^:]*|\1$BASTION_IP|" kubeconfig
+          echo "KUBECONFIG=${{ env.TASK_DIR }}/kubernetes/kubeconfig" >> $GITHUB_ENV
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Install helm
         uses: azure/setup-helm@v4.3.0
         with:
           version: v3.18.3
 
-      - name: Deploy Jenkins Helm Chart
+      - name: Create Jenkins Admin Secret
+        env:
+          JENKINS_ADMIN_USER: ${{ env.JENKINS_ADMIN_USER }}
+          JENKINS_ADMIN_PASSWORD: ${{ env.JENKINS_ADMIN_PASSWORD }}
         run: |
-          kubectl create namespace jenkins
-          kubectl apply -f kubernetes/jenkins_pvc.yaml -n jenkins
+          kubectl create namespace jenkins --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl create secret generic jenkins-admin \
+            --namespace jenkins \
+            --from-literal=jenkins-admin-user="$JENKINS_ADMIN_USER" \
+            --from-literal=jenkins-admin-password="$JENKINS_ADMIN_PASSWORD" \
+            --dry-run=client -o yaml | kubectl apply -f -
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Apply Persistent Storage Configuration (Optional)
+        run: |
+          kubectl apply -f jenkins_storage_class.yaml -n jenkins
+          kubectl apply -f jenkins_pv.yaml -n jenkins
+          kubectl apply -f jenkins_pvc.yaml -n jenkins
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Deploy Jenkins with Helm
+        run: |
           helm repo add jenkins https://charts.jenkins.io
           helm repo update
-          helm upgrade --install my-jenkins kubernetes/jenkins \
+          helm upgrade --install my-jenkins jenkins/jenkins \
           --namespace jenkins \
-          --values kubernetes/jenkins_values.yaml \
-          --kubeconfig kubeconfig
-          kubectl apply -f kubernetes/jenkins_ingress.yaml -n jenkins
-        working-directory: ${{ env.TASK_DIR }}
+          --values jenkins_values.yaml \
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
 
-      - name: Verify Deployment
+      - name: Apply Jenkins Ingress (Optional)
         run: |
-          kubectl get pods --namespace jenkins --kubeconfig kubeconfig
-        working-directory: ${{ env.TASK_DIR }}
+          kubectl apply -f jenkins_ingress.yaml -n jenkins
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Collect Jenkins Deployment Info
+        id: jenkins-info
+        run: |
+          echo '::group::kubectl get svc -n jenkins'
+          kubectl get svc -n jenkins > svc.txt
+          cat svc.txt
+          echo '::endgroup::'
+
+          echo '::group::helm status my-jenkins -n jenkins'
+          helm status my-jenkins -n jenkins > status.txt
+          cat status.txt
+          echo '::endgroup::'
+
+          echo "svc_output<<EOF" >> $GITHUB_OUTPUT
+          cat svc.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "helm_output<<EOF" >> $GITHUB_OUTPUT
+          cat status.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Remove IP from Security Group
         if: success()
@@ -101,3 +158,52 @@ jobs:
             --protocol tcp \
             --port 6443 \
             --cidr $RUNNER_IP
+
+      - name: Comment Jenkins Deployment Info on PR
+        if: github.event.workflow_run.conclusion == 'success'
+        uses: actions/github-script@v7
+        env:
+          svc_output: ${{ steps.jenkins-info.outputs.svc_output }}
+          helm_output: ${{ steps.jenkins-info.outputs.helm_output }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { svc_output, helm_output } = process.env;
+            const body = `
+            ### 🚀 Jenkins Deployment Status
+
+            #### 🧭 Helm Status:
+            \`\`\`
+            ${helm_output}
+            \`\`\`
+
+            #### 🛰 Service Info:
+            \`\`\`
+            ${svc_output}
+            \`\`\`
+
+            _Workflow: \`${{ github.workflow }}\`, Commit: \`${context.sha.slice(0, 7)}\`_`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c => c.user.type === "Bot" && c.body.includes("Jenkins Deployment Status"));
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }

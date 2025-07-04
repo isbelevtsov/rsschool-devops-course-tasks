@@ -92,3 +92,9 @@ variable "kubeconfig_param_path" {
   type        = string
   default     = "/ec2/kubeconfig"
 }
+
+variable "jenkins_data_dir" {
+  description = "Jenkins data directory path"
+  type        = string
+  default     = "/data/jenkins"
+}
