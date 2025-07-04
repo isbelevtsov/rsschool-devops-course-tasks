@@ -66,7 +66,7 @@ else
 fi
 
 # Set SSH certificate file permissions
-chmod 600 "${CERT_PATH}"
+chmod 600 "$${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Permissions was successfully set"
 else
@@ -75,7 +75,7 @@ else
 fi
 
 # Change certificate ownership
-chown ubuntu:ubuntu "${CERT_PATH}"
+chown ubuntu:ubuntu "$${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Certificate ownership changed successfully"
 else
@@ -89,7 +89,7 @@ K3S_CONTROL_PLANE_PRIVATE_IP=$(aws ec2 describe-instances \
   --query "Reservations[*].Instances[*].PrivateIpAddress" \
   --output text)
 if [ ! -z $K3S_CONTROL_PLANE_PRIVATE_IP ]; then
-    echo "====> Getting K3s control plane node private IP address ${K3S_CONTROL_PLANE_PRIVATE_IP}"
+    echo "====> Getting K3s control plane node private IP address $${K3S_CONTROL_PLANE_PRIVATE_IP}"
 else
     echo "====> Failed to fetch K3s control plane node private IP address"
     # exit 1

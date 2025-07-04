@@ -66,7 +66,7 @@ else
 fi
 
 # Set SSH certificate file permissions
-chmod 600 "${CERT_PATH}"
+chmod 600 "$${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Permissions was successfully set"
 else
@@ -75,7 +75,7 @@ else
 fi
 
 # Change certificate ownership
-chown ubuntu:ubuntu "${CERT_PATH}"
+chown ubuntu:ubuntu "$${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Certificate ownership changed successfully"
 else
