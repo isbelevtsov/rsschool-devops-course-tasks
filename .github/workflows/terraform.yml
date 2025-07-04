@@ -289,7 +289,7 @@ jobs:
             curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
               -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
               -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"$CF_RECORD_NAME\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+              --data "{\"type\":\"A\",\"name\":\"${{ env.BASTION_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
           else
             echo "Updating existing A record..."
             curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
