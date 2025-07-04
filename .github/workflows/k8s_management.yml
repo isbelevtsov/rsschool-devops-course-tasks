@@ -1,15 +1,13 @@
 name: "K8s Management"
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - main
+
   workflow_run:
     workflows: ["Terraform Plan and Apply"]
     types:
       - completed
     branches:
-      - main
+      - task_4
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets

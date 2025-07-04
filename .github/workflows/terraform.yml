@@ -2,24 +2,33 @@ name: Terraform Plan and Apply
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '**/*.tpl'
-      - '**/*.tf'
-      - '**/*.example'
-      - '**/*.yml'
-      - '**/*.yaml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - '**/*.tpl'
-      - '**/*.tf'
-      - '**/*.example'
-      - '**/*.yml'
-      - '**/*.yaml'
+    inputs:
+      action:
+        description: 'Terraform Action'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - '**/*.tpl'
+  #     - '**/*.tf'
+  #     - '**/*.example'
+  #     - '**/*.yml'
+  #     - '**/*.yaml'
+  # pull_request:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - '**/*.tpl'
+  #     - '**/*.tf'
+  #     - '**/*.example'
+  #     - '**/*.yml'
+  #     - '**/*.yaml'
 
 env:
   ALLOWED_SSH_CIDR: ${{ secrets.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
@@ -58,7 +67,12 @@ jobs:
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    if : github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'
+    # if: github.event_name == 'pull_request' || github.event_name == 'push'
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout code
@@ -191,7 +205,11 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     needs: terraform-plan
-    # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event.inputs.action == 'apply'
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
 
@@ -262,6 +280,11 @@ jobs:
     name: Configure DNS Records
     runs-on: ubuntu-latest
     needs: terraform-apply
+    if: github.event.inputs.action == 'apply'
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Configure AWS credentials via OIDC
@@ -302,8 +325,12 @@ jobs:
   terraform-destroy:
     name: Terraform Destroy
     runs-on: ubuntu-latest
-    needs: terraform-apply
-    # if: github.event_name == 'workflow_dispatch'
+    # needs: terraform-apply
+    if: github.event.inputs.action == 'destroy'
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout code
