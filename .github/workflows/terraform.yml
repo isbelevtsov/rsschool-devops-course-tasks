@@ -265,17 +265,6 @@ jobs:
         run: terraform apply output.tfplan
         working-directory: ${{ env.TASK_DIR }}
 
-      - name: Save Bastion SG ID
-        run: |
-          terraform output -raw bastion_sg_id > bastion_sg_id.txt
-        working-directory: ${{ env.TASK_DIR }}
-
-      - name: Upload Bastion SG ID as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bastion-sg-id
-          path: ${{ env.TASK_DIR }}/bastion_sg_id.txt
-
   configure-dns:
     name: Configure DNS Records
     runs-on: ubuntu-latest
