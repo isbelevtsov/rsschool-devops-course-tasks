@@ -89,7 +89,7 @@ K3S_CONTROL_PLANE_PRIVATE_IP=$(aws ec2 describe-instances \
   --query "Reservations[*].Instances[*].PrivateIpAddress" \
   --output text)
 if [ ! -z $K3S_CONTROL_PLANE_PRIVATE_IP ]; then
-    echo "====> Getting K3s control plane node private IP address ${K3S_CONTROL_PLANE_PRIVATE_IP}"
+    echo "====> Getting K3s control plane node private IP address $K3S_CONTROL_PLANE_PRIVATE_IP"
 else
     echo "====> Failed to fetch K3s control plane node private IP address"
     exit 1
@@ -105,8 +105,8 @@ else
 fi
 
 # Set K3s control plane API server URL
-K3S_URL=https://${K3S_CONTROL_PLANE_PRIVATE_IP}:6443
-echo "====> Setting K3s API server URL to ${K3S_URL}"
+K3S_URL=https://$K3S_CONTROL_PLANE_PRIVATE_IP:6443
+echo "====> Setting K3s API server URL to $K3S_URL"
 
 # Install K3s as worker node
 curl -sfL https://get.k3s.io | sh -
@@ -118,7 +118,7 @@ else
 fi
 
 # Prepare data directory for Jenkins
-sudo mkdir -p $JENKINS_DATA_DIR && sudo chown ubuntu:ubuntu $JENKINS_DATA_DIR
+sudo mkdir -p ${JENKINS_DATA_DIR} && sudo chown ubuntu:ubuntu ${JENKINS_DATA_DIR}
 if [ $? -eq 0 ]; then
     echo "====> Data directory has been created successfully ${JENKINS_DATA_DIR}"
 else
