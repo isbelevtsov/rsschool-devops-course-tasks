@@ -110,7 +110,7 @@ fi
 
 # Create Nginx reverse proxy config for K3s kubernetes cluster API
 CONF_PATH=/etc/nginx/modules-enabled/k3s.conf
-cat <<EOF > $CONF_PATH
+cat <<EOF > $$CONF_PATH
 stream {
         upstream api {
                 server ${K3S_CONTROL_PLANE_PRIVATE_IP}:6443;
@@ -122,8 +122,8 @@ stream {
         }
 }
 EOF
-if [ -f $CONF_PATH ]; then
-    echo "====> Nginx config has been create succsessfully: ${CONF_PATH} "
+if [ -f $$CONF_PATH ]; then
+    echo "====> Nginx config has been create succsessfully: $$CONF_PATH "
 else
     echo "====> Failed to create Nginx reverse proxy config"
     exit 1
@@ -150,11 +150,11 @@ NGINX_PORT=6443
 if command -v ufw >/dev/null 2>&1; then
     sudo ufw allow "$NGINX_PORT/tcp"
 elif command -v firewall-cmd >/dev/null 2>&1; then
-    sudo firewall-cmd --add-port=${NGINX_PORT}/tcp --permanent
+    sudo firewall-cmd --add-port=$${NGINX_PORT}/tcp --permanent
     sudo firewall-cmd --reload
 fi
 if [ $? -eq 0 ]; then
-    echo "Configuring firewall to allow TCP ${NGINX_PORT}"
+    echo "Configuring firewall to allow TCP $${NGINX_PORT}"
 else
-    echo "Failed to open ${NGINX_PORT} thought firewall"
+    echo "Failed to open $${NGINX_PORT} thought firewall"
 fi
