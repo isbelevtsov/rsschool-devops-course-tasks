@@ -109,21 +109,47 @@ else
 fi
 
 # Create Nginx reverse proxy config for K3s kubernetes cluster API
-CONF_PATH=/etc/nginx/modules-enabled/k3s.conf
-cat <<EOF > $$CONF_PATH
-stream {
-        upstream api {
-                server ${K3S_CONTROL_PLANE_PRIVATE_IP}:6443;
-        }
-        server {
-                listen 6443;
-                proxy_pass api;
-                proxy_timeout 20s;
-        }
+NGINX_KUBE_SITE_PATH="/etc/nginx/sites-available/k3s"
+cat <<EOF > $NGINX_KUBE_SITE_PATH
+server {
+    listen 6443;
+    server_name k8s.elysium-space.com;
+
+    location / {
+        proxy_pass https://$K3S_CONTROL_PLANE_PRIVATE_IP:6443;
+        proxy_ssl_verify off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
 EOF
-if [ -f $$CONF_PATH ]; then
-    echo "====> Nginx config has been create succsessfully: $$CONF_PATH "
+if [ -f $NGINX_KUBE_SITE_PATH ]; then
+    echo "====> Nginx config has been create succsessfully: $$NGINX_KUBE_SITE_PATH "
+else
+    echo "====> Failed to create Nginx reverse proxy config"
+    exit 1
+fi
+
+NGINX_JENKINS_SITE_PATH="/etc/nginx/sites-available/jenkins"
+cat <<EOF > $NGINX_JENKINS_SITE_PATH
+server {
+    listen 8080;
+    server_name jenkins.elysium-space.com;
+
+    location / {
+        proxy_pass https://$K3S_CONTROL_PLANE_PRIVATE_IP:8080;
+        proxy_ssl_verify off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+if [ -f $NGINX_JENKINS_SITE_PATH ]; then
+    echo "====> Nginx config has been create succsessfully: $$NGINX_JENKINS_SITE_PATH "
 else
     echo "====> Failed to create Nginx reverse proxy config"
     exit 1
@@ -135,6 +161,16 @@ if [ $? -eq 0 ]; then
     echo "====> Nginx configuration test has been succsessfully passed"
 else
     echo "====> Failed to test Nginx configuration"
+    exit 1
+fi
+
+# Enable nginx sites
+ln -s /etc/nginx/sites-available/k3s /etc/nginx/sites-enabled/ && ln -s /etc/nginx/sites-available/jenkins /etc/nginx/sites-enabled/
+if [ $? -eq 0 ]; then
+    echo "====> Nginx sites has been succsessfully enabled"
+else
+    echo "====> Failed to enable Nginx site"
+    exit 1
 fi
 
 # Restart and enable Nginx systemd service
@@ -143,6 +179,7 @@ if [ $? -eq 0 ]; then
     echo "====> Nginx service has been succsessfully restarted and enabled"
 else
     echo "====> Failed to restart and enable Nginx systemd service"
+    exit 1
 fi
 
 # Open firewall
@@ -157,4 +194,5 @@ if [ $? -eq 0 ]; then
     echo "Configuring firewall to allow TCP $${NGINX_PORT}"
 else
     echo "Failed to open $${NGINX_PORT} thought firewall"
+    exit 1
 fi

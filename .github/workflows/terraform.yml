@@ -284,6 +284,7 @@ jobs:
             -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
             -H "Content-Type: application/json" | jq -r '.result[0].id')
 
+          # Set or update existing bastion host DNS A record
           if [ "$RECORD_ID" = "null" ]; then
             echo "Creating new A record..."
             curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
