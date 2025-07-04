@@ -99,15 +99,6 @@ fi
 mv /etc/nginx/sites-enabled/default /etc/nginx/sites-enabled/default.bak 2>/dev/null || true
 mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.bak 2>/dev/null || true
 
-# Check if Nginx stream module exist
-nginx -V 2>&1 | grep -o with-stream
-if [ $? -eq 0 ]; then
-    echo "====> Nginx stream module already installed"
-else
-    apt-get -y install nginx-stream-module
-    echo "====> Nginx stream module has been succsessfully installed"
-fi
-
 # Create Nginx reverse proxy config for K3s kubernetes cluster API
 NGINX_KUBE_SITE_PATH="/etc/nginx/sites-available/k3s"
 cat <<EOF > $NGINX_KUBE_SITE_PATH

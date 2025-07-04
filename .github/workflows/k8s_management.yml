@@ -1,9 +1,9 @@
 name: "K8s Management"
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     branches:
-      - task_4
+      - main
   workflow_run:
     workflows: ["Terraform Plan and Apply"]
     types:
