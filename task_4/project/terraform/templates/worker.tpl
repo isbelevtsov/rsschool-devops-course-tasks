@@ -89,7 +89,7 @@ K3S_CONTROL_PLANE_PRIVATE_IP=$(aws ec2 describe-instances \
   --query "Reservations[*].Instances[*].PrivateIpAddress" \
   --output text)
 if [ ! -z $${K3S_CONTROL_PLANE_PRIVATE_IP} ]; then
-    echo "====> Getting K3s control plane node private IP address $${K3S_CONTROL_PLANE_PRIVATE_IP}"
+    echo "====> Getting K3s control plane node private IP address"
 else
     echo "====> Failed to fetch K3s control plane node private IP address"
     exit 1
