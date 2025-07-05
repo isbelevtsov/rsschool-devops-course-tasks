@@ -2,10 +2,11 @@ controller:
   image:
     tag: "lts"
 
-  existingSecret: jenkins-admin
   admin:
     userKey: jenkins-admin-user
     passwordKey: jenkins-admin-password
+    createSecret: false
+    existingSecret: jenkins-admin
 
   # containerEnv:
   #   # Tell the plugin where to find its config.
