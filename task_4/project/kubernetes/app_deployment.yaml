@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-world
+  namespace: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-world
+  template:
+    metadata:
+      labels:
+        app: hello-world
+    spec:
+      seccompProfile:
+        type: RuntimeDefault
+      containers:
+      - name: web
+        image: nginxinc/nginx-unprivileged:alpine
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html
+          name: html
+        securityContext:
+          runAsUser: 10100
+          runAsGroup: 10100
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "50m"
+            memory: "32Mi"
+      volumes:
+      - name: html
+        configMap:
+          name: hello-world-html
