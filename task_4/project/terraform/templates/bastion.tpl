@@ -104,7 +104,7 @@ NGINX_KUBE_SITE_PATH="/etc/nginx/module-enabled/k3s.conf"
 cat <<EOF > $NGINX_KUBE_SITE_PATH
 stream {
     upstream api {
-        server ${{K3S_CONTROL_PLANE_PRIVATE_IP}}:6443;
+        server $K3S_CONTROL_PLANE_PRIVATE_IP:6443;
     }
     server {
         listen 6443; # this is the port exposed by nginx on reverse proxy server
@@ -123,7 +123,7 @@ fi
 NGINX_JENKINS_SITE_PATH="/etc/nginx/conf.d/jenkins.conf"
 cat <<EOF > $NGINX_JENKINS_SITE_PATH
 upstream jenkins {
-    server ${{K3S_CONTROL_PLANE_PRIVATE_IP}}:8080;
+    server $K3S_CONTROL_PLANE_PRIVATE_IP:8080;
 }
 
 server {
