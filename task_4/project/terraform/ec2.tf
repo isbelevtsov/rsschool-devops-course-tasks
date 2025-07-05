@@ -123,7 +123,7 @@ resource "aws_ssm_parameter" "nginx_jenkins_conf" {
 }
 
 resource "aws_ssm_document" "apply_nginx_conf" {
-  depends_on    = [null_resource.wait_for_health_check_bastion]
+  depends_on    = [null_resource.wait_for_health_check_bastion, aws_ssm_parameter.nginx_jenkins_conf, aws_ssm_parameter.nginx_k3s_conf]
   name          = "apply_nginx_conf_ssm"
   document_type = "Command"
   content = jsonencode({
@@ -137,7 +137,8 @@ resource "aws_ssm_document" "apply_nginx_conf" {
           runCommand = [
             "aws ssm get-parameter --name '/conf/nginx_k3s_conf' --query 'Parameter.Value' --output text > /etc/nginx/modules-enabled/k3s.conf",
             "aws ssm get-parameter --name '/conf/nginx_jenkins_conf' --query 'Parameter.Value' --output text > /etc/nginx/conf.d/jenkins.conf",
-            "sudo systemctl restart nginx && sudo systemctl enable nginx"
+            "sudo systemctl restart nginx && sudo systemctl enable nginx",
+            "echo \"ssm_document applied successfully\""
           ]
         }
       }
