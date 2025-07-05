@@ -85,10 +85,7 @@ jobs:
         with:
           version: v3.18.3
 
-      - name: Create Jenkins Admin Secret
-        env:
-          JENKINS_ADMIN_USER: ${{ env.JENKINS_ADMIN_USER }}
-          JENKINS_ADMIN_PASSWORD: ${{ env.JENKINS_ADMIN_PASSWORD }}
+      - name: Create Jenkins Namespace
         run: |
           if ! kubectl get namespace jenkins \
               --kubeconfig kubeconfig > /dev/null 2>&1; then
@@ -99,11 +96,14 @@ jobs:
           else
             echo "Namespace 'jenkins' already exists. Skipping creation."
           fi
+        working-directory: ${{ env.TASK_DIR }}
 
+      - name: Create Jenkins Admin Secret
+        run: |
           kubectl create secret generic jenkins-admin \
             --namespace jenkins \
-            --from-literal=jenkins-admin-user="$JENKINS_ADMIN_USER" \
-            --from-literal=jenkins-admin-password="$JENKINS_ADMIN_PASSWORD" \
+            --from-literal=jenkins-admin-user="${{ env.JENKINS_ADMIN_USER }}" \
+            --from-literal=jenkins-admin-password="${{ env.JENKINS_ADMIN_PASSWORD }}" \
             --kubeconfig kubeconfig \
             -o yaml | kubectl apply -f -
         working-directory: ${{ env.TASK_DIR }}/kubernetes
