@@ -91,21 +91,22 @@ jobs:
           JENKINS_ADMIN_PASSWORD: ${{ env.JENKINS_ADMIN_PASSWORD }}
         run: |
           kubectl create namespace jenkins \
+            --kubeconfig kubeconfig
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl create secret generic jenkins-admin \
             --namespace jenkins \
             --from-literal=jenkins-admin-user="$JENKINS_ADMIN_USER" \
             --from-literal=jenkins-admin-password="$JENKINS_ADMIN_PASSWORD" \
-            --validate=false \
+            --kubeconfig kubeconfig \
             --dry-run=client -o yaml | kubectl apply -f -
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Apply Persistent Storage Configuration (Optional)
         run: |
-          kubectl apply -f jenkins_storage_class.yaml -n jenkins
-          kubectl apply -f jenkins_pv.yaml -n jenkins
-          kubectl apply -f jenkins_pvc.yaml -n jenkins
+          kubectl apply -f jenkins_storage_class.yaml -n jenkins --kubeconfig kubeconfig
+          kubectl apply -f jenkins_pv.yaml -n jenkins --kubeconfig kubeconfig
+          kubectl apply -f jenkins_pvc.yaml -n jenkins --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Deploy Jenkins with Helm
@@ -115,23 +116,24 @@ jobs:
           helm upgrade --install my-jenkins jenkins/jenkins \
           --namespace jenkins \
           --values jenkins_values.yaml \
+          --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Apply Jenkins Ingress (Optional)
         run: |
-          kubectl apply -f jenkins_ingress.yaml -n jenkins
+          kubectl apply -f jenkins_ingress.yaml -n jenkins --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Collect Jenkins Deployment Info
         id: jenkins-info
         run: |
-          echo '::group::kubectl get svc -n jenkins'
-          kubectl get svc -n jenkins > svc.txt
+          echo '::group::kubectl get svc -n jenkins --kubeconfig kubeconfig'
+          kubectl get svc -n jenkins --kubeconfig kubeconfig > svc.txt
           cat svc.txt
           echo '::endgroup::'
 
-          echo '::group::helm status my-jenkins -n jenkins'
-          helm status my-jenkins -n jenkins > status.txt
+          echo '::group::helm status my-jenkins -n jenkins --kubeconfig kubeconfig'
+          helm status my-jenkins -n jenkins --kubeconfig kubeconfig > status.txt
           cat status.txt
           echo '::endgroup::'
 
