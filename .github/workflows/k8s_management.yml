@@ -64,14 +64,12 @@ jobs:
 
       - name: Set up Kubeconfig
         run: |
-          KUBECONFIG=$(aws ssm get-parameter --name ${{ env.KUBECONFIG_PARAM_PATH }} --with-decryption --query "Parameter.Value" --output text)
-          echo "$KUBECONFIG" > kubeconfig
-          chmod 600 kubeconfig
-          # Get Bastion public IP address
-          BASTION_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Role,Values=bastion" \
-            --query "Reservations[*].Instances[*].PublicIpAddress" \
-            --output text)
+          aws ssm get-parameter \
+            --name "${{ env.KUBECONFIG_PARAM_PATH }}" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text > kubeconfig
+                chmod 600 kubeconfig
           sed -i "s|^\( *server: https://\)[^:]*|\1k8s.elysium-space.com|" kubeconfig
           echo "KUBECONFIG=${{ env.TASK_DIR }}/kubernetes/kubeconfig" >> $GITHUB_ENV
         working-directory: ${{ env.TASK_DIR }}/kubernetes
