@@ -2,23 +2,18 @@ controller:
   image:
     tag: "lts"
 
-  namespace: jenkins
-
   existingSecret: jenkins-admin
   admin:
     userKey: jenkins-admin-user
     passwordKey: jenkins-admin-password
 
-  initContainerEnv:
-
-  containerEnv:
-    # Tell the plugin where to find its config.
-    - name: CASC_JENKINS_CONFIG
-      value: /var/jenkins_home/casc_configs/jenkins.yaml
+  # containerEnv:
+  #   # Tell the plugin where to find its config.
+  #   - name: CASC_JENKINS_CONFIG
+  #     value: /var/jenkins_home/casc_configs/jenkins.yaml
 
   serviceType: ClusterIP
   servicePort: 8080
-
 
   jenkinsHome: /var/jenkins_home
 
@@ -91,13 +86,3 @@ controller:
                   }
                 }
               }
-
-  # sidecars:
-  #   configAutoReload:
-  #     enabled: true
-  #     image: kiwigrid/k8s-sidecar:1.14.2
-  #     imagePullPolicy: IfNotPresent
-  #     resources: {}
-  #     reqRetryConnect: 10
-  #     sshTcpPort: 1044
-  #     folder: "/var/jenkins_home/casc_configs"
