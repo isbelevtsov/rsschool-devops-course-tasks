@@ -39,7 +39,7 @@ resource "aws_instance" "bastion" {
     instance_metadata_tags      = "enabled"
   }
 
-  user_data = filebase64("${path.module}/templates/bastion.tpl", {
+  user_data = templatefile("${path.module}/templates/bastion.sh", {
     PROJECT_NAME     = var.project_name
     ENVIRONMENT_NAME = var.environment_name
     CERT_PATH        = var.cert_path
@@ -181,7 +181,7 @@ resource "aws_instance" "k3s_control_plane" {
     instance_metadata_tags      = "enabled"
   }
 
-  user_data = filebase64("${path.module}/templates/controlplane.tpl", {
+  user_data = templatefile("${path.module}/templates/controlplane.sh", {
     PROJECT_NAME     = var.project_name
     ENVIRONMENT_NAME = var.environment_name
     CERT_PATH        = var.cert_path
@@ -257,7 +257,7 @@ resource "aws_instance" "k3s_worker" {
     instance_metadata_tags      = "enabled"
   }
 
-  user_data = filebase64("${path.module}/templates/worker.tpl", {
+  user_data = templatefile("${path.module}/templates/worker.sh", {
     PROJECT_NAME     = var.project_name
     ENVIRONMENT_NAME = var.environment_name
     CERT_PATH        = var.cert_path
