@@ -70,9 +70,10 @@ resource "null_resource" "provision_bastion" {
     inline = [
       "sudo apt-get update",
       "sudo apt-get install -y awscli",
-      "export AWS_DEFAULT_REGION=\"${var.aws_region}\"",
-      "aws ssm get-parameter --name \"${var.key_param_path}\" --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
-    "sudo chmod 600 ${local_file.ssh_key.filename}", ]
+      "export AWS_DEFAULT_REGION='${var.aws_region}'",
+      "aws ssm get-parameter --name '${var.key_param_path}' --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
+      "sudo chmod 600 ${local_file.ssh_key.filename}"
+    ]
   }
 }
 
@@ -216,12 +217,12 @@ resource "null_resource" "provision_k3s_control_plane" {
     inline = [
       "sudo apt-get update",
       "sudo apt-get install -y awscli",
-      "export AWS_DEFAULT_REGION=\"${var.aws_region}\"",
-      "aws ssm get-parameter --name \"${var.key_param_path}\" --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
+      "export AWS_DEFAULT_REGION='${var.aws_region}'",
+      "aws ssm get-parameter --name '${var.key_param_path}' --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "sudo chmod 600 ${local_file.ssh_key.filename}",
-      "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644' sh -",
-      # "sudo curl -s http://169.254.169.254/latest/meta-data/local-ipv4 > /var/lib/rancher/k3s/server/ip",
-      "aws ssm put-parameter --name \"${var.kubeconfig_param_path}\" --value file:///etc/rancher/k3s/k3s.yaml --type SecureString --overwrite",
+      "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644 --tls-san $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)' sh -",
+      "curl -s http://169.254.169.254/latest/meta-data/local-ipv4 | sudo tee /var/lib/rancher/k3s/server/ip",
+      "aws ssm put-parameter --name '${var.kubeconfig_param_path}' --value file:///etc/rancher/k3s/k3s.yaml --type SecureString --overwrite",
     ]
   }
 }
@@ -294,8 +295,8 @@ resource "null_resource" "provision_k3s_worker" {
     inline = [
       "sudo apt-get update",
       "sudo apt-get install -y awscli",
-      "export AWS_DEFAULT_REGION=\"${var.aws_region}\"",
-      "aws ssm get-parameter --name \"${var.key_param_path}\" --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
+      "export AWS_DEFAULT_REGION='${var.aws_region}'",
+      "aws ssm get-parameter --name '${var.key_param_path}' --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "sudo chmod 600 ${local_file.ssh_key.filename}",
       "export K3S_TOKEN=$(ssh -o StrictHostKeyChecking=no -i ${local_file.ssh_key.filename} ubuntu@${aws_instance.k3s_control_plane.private_ip} 'sudo cat /var/lib/rancher/k3s/server/node-token')",
       "export K3S_URL=https://${aws_instance.k3s_control_plane.private_ip}:6443",
