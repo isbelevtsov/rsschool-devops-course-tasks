@@ -74,6 +74,12 @@ jobs:
           echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
+      - name: Debug kubeconfig existence
+        run: |
+          ls -lah kubeconfig
+          cat kubeconfig | head -n 5
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
       - name: Install helm
         uses: azure/setup-helm@v4.3.0
         with:
