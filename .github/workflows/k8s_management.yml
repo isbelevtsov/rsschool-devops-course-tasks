@@ -85,10 +85,14 @@ jobs:
         env:
           JENKINS_ADMIN_USER: ${{ env.JENKINS_ADMIN_USER }}
           JENKINS_ADMIN_PASSWORD: ${{ env.JENKINS_ADMIN_PASSWORD }}
+          KUBECONFIG: ${{ env.KUBECONFIG }}
         run: |
-          kubectl create namespace jenkins --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace jenkins \
+            --kubeconfig=${{ env.KUBECONFIG }} \
+            --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl create secret generic jenkins-admin \
+            --kubeconfig=${{ env.KUBECONFIG }} \
             --namespace jenkins \
             --from-literal=jenkins-admin-user="$JENKINS_ADMIN_USER" \
             --from-literal=jenkins-admin-password="$JENKINS_ADMIN_PASSWORD" \
@@ -97,6 +101,8 @@ jobs:
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Apply Persistent Storage Configuration (Optional)
+        env:
+          KUBECONFIG: ${{ env.KUBECONFIG }}
         run: |
           kubectl apply -f jenkins_storage_class.yaml -n jenkins
           kubectl apply -f jenkins_pv.yaml -n jenkins
@@ -104,6 +110,8 @@ jobs:
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Deploy Jenkins with Helm
+        env:
+          KUBECONFIG: ${{ env.KUBECONFIG }}
         run: |
           helm repo add jenkins https://charts.jenkins.io
           helm repo update
@@ -113,12 +121,16 @@ jobs:
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Apply Jenkins Ingress (Optional)
+        env:
+          KUBECONFIG: ${{ env.KUBECONFIG }}
         run: |
           kubectl apply -f jenkins_ingress.yaml -n jenkins
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Collect Jenkins Deployment Info
         id: jenkins-info
+        env:
+          KUBECONFIG: ${{ env.KUBECONFIG }}
         run: |
           echo '::group::kubectl get svc -n jenkins'
           kubectl get svc -n jenkins > svc.txt
