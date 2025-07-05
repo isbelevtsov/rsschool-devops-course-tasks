@@ -26,10 +26,10 @@ provider "aws" {
   default_tags {
     tags = {
       "Course"    = "RSSchool DevOps Course"
-      "Task"      = "3. K8s Cluster Configuration and Creation"
+      "Task"      = "4. Jenkins Installation and Configuration"
       "ManagedBy" = "Terraform"
       "CI"        = "GitHub Actions"
-      "Date"      = "2025-06-25"
+      "Date"      = "2025-07-05"
     }
   }
 }
