@@ -90,9 +90,15 @@ jobs:
           JENKINS_ADMIN_USER: ${{ env.JENKINS_ADMIN_USER }}
           JENKINS_ADMIN_PASSWORD: ${{ env.JENKINS_ADMIN_PASSWORD }}
         run: |
-          kubectl create namespace jenkins \
-            --kubeconfig kubeconfig \
-            -o yaml | kubectl apply -f -
+          if ! kubectl get namespace jenkins \
+              --kubeconfig kubeconfig > /dev/null 2>&1; then
+            echo "Namespace 'jenkins' does not exist. Creating..."
+            kubectl create namespace jenkins \
+              --kubeconfig kubeconfig \
+              -o yaml | kubectl apply -f -
+          else
+            echo "Namespace 'jenkins' already exists. Skipping creation."
+          fi
 
           kubectl create secret generic jenkins-admin \
             --namespace jenkins \
