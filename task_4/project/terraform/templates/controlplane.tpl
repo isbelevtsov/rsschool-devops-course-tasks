@@ -57,7 +57,7 @@ else
 fi
 
 # Write it to file
-echo "$${CERT}" > "$${CERT_PATH}"
+echo "$${CERT}" > "${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Saved SSH certificate to file"
 else

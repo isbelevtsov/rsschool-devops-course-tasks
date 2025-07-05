@@ -1,5 +1,5 @@
 upstream jenkins {
-    server ${k3s_controlplane_private_ip}:8080;
+    server ${k3s_control_plane_private_ip}:8080;
 }
 
 server {
