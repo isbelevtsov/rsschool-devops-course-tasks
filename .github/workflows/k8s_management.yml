@@ -96,7 +96,7 @@ jobs:
           else
             echo "Namespace 'jenkins' already exists. Skipping creation."
           fi
-        working-directory: ${{ env.TASK_DIR }}
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Create Jenkins Admin Secret
         run: |
