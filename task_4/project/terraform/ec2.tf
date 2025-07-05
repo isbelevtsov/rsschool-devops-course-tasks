@@ -18,7 +18,7 @@ resource "aws_instance" "bastion" {
   key_name                    = var.key_pair
   associate_public_ip_address = true
   iam_instance_profile        = aws_iam_instance_profile.bastion_profile.name
-  user_data_replace_on_change = false
+  user_data_replace_on_change = true
 
   private_dns_name_options {
     enable_resource_name_dns_a_record    = true
@@ -39,7 +39,7 @@ resource "aws_instance" "bastion" {
     instance_metadata_tags      = "enabled"
   }
 
-  user_data = templatefile("${path.module}/templates/bastion.tpl", {
+  user_data = filebase64("${path.module}/templates/bastion.tpl", {
     PROJECT_NAME     = var.project_name
     ENVIRONMENT_NAME = var.environment_name
     CERT_PATH        = var.cert_path
@@ -160,7 +160,7 @@ resource "aws_instance" "k3s_control_plane" {
   key_name                    = var.key_pair
   associate_public_ip_address = false
   iam_instance_profile        = aws_iam_instance_profile.controlplane_profile.name
-  user_data_replace_on_change = false
+  user_data_replace_on_change = true
 
   private_dns_name_options {
     enable_resource_name_dns_a_record    = true
@@ -181,7 +181,7 @@ resource "aws_instance" "k3s_control_plane" {
     instance_metadata_tags      = "enabled"
   }
 
-  user_data = templatefile("${path.module}/templates/controlplane.tpl", {
+  user_data = filebase64("${path.module}/templates/controlplane.tpl", {
     PROJECT_NAME     = var.project_name
     ENVIRONMENT_NAME = var.environment_name
     CERT_PATH        = var.cert_path
@@ -236,7 +236,7 @@ resource "aws_instance" "k3s_worker" {
   key_name                    = var.key_pair
   associate_public_ip_address = false
   iam_instance_profile        = aws_iam_instance_profile.worker_profile.name
-  user_data_replace_on_change = false
+  user_data_replace_on_change = true
 
   private_dns_name_options {
     enable_resource_name_dns_a_record    = true
@@ -257,7 +257,7 @@ resource "aws_instance" "k3s_worker" {
     instance_metadata_tags      = "enabled"
   }
 
-  user_data = templatefile("${path.module}/templates/worker.tpl", {
+  user_data = filebase64("${path.module}/templates/worker.tpl", {
     PROJECT_NAME     = var.project_name
     ENVIRONMENT_NAME = var.environment_name
     CERT_PATH        = var.cert_path
