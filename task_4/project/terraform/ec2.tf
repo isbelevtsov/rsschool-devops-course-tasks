@@ -190,6 +190,8 @@ resource "null_resource" "provision_k3s_control_plane" {
     when = create
 
     inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y awscli",
       "export AWS_DEFAULT_REGION=\"${var.aws_region}\"",
       "aws ssm get-parameter --name \"${var.key_param_path}\" --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "sudo chmod 600 ${local_file.ssh_key.filename}",
@@ -267,6 +269,8 @@ resource "null_resource" "provision_k3s_worker" {
     when = create
 
     inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y awscli",
       "export AWS_DEFAULT_REGION=\"${var.aws_region}\"",
       "aws ssm get-parameter --name \"${var.key_param_path}\" --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "sudo chmod 600 ${local_file.ssh_key.filename}",
