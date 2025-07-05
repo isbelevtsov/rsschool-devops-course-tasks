@@ -55,6 +55,18 @@ resource "aws_iam_policy" "bastion_policy" {
           "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/conf/nginx_k3s_conf",
           "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/conf/nginx_jenkins_conf"
         ]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ssm:UpdateInstanceInformation",
+          "ssmmessages:*",
+          "ec2messages:*",
+          "cloudwatch:PutMetricData",
+          "ds:CreateComputer",
+          "ds:DescribeDirectories"
+        ],
+        Resource = "*"
       }
     ]
   })
