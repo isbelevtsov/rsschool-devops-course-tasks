@@ -151,4 +151,5 @@ terraform.rc
 .DS_Store
 blackbird.pem
 development/
-development/*
+**/kubeconfig
+**/test.sh
