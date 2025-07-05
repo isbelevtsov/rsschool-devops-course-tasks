@@ -52,6 +52,30 @@ resource "aws_instance" "bastion" {
   }
 }
 
+resource "null_resource" "provision_bastion" {
+  depends_on = [
+    local_file.ssh_key,
+    aws_instance.bastion,
+  ]
+
+  provisioner "remote-exec" {
+    connection {
+      type        = "ssh"
+      host        = aws_instance.bastion.public_ip
+      user        = "ubuntu"
+      private_key = file(local_file.ssh_key.filename)
+    }
+    when = create
+
+    inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y awscli",
+      "export AWS_DEFAULT_REGION=\"${var.aws_region}\"",
+      "aws ssm get-parameter --name \"${var.key_param_path}\" --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
+    "sudo chmod 600 ${local_file.ssh_key.filename}", ]
+  }
+}
+
 resource "null_resource" "wait_for_health_check_bastion" {
   depends_on = [aws_instance.bastion]
 
