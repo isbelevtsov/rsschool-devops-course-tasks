@@ -136,7 +136,7 @@ resource "aws_ssm_document" "apply_nginx_conf" {
           runCommand = [
             "aws ssm get-parameter --name '/conf/nginx_k3s_conf' --query 'Parameter.Value' --output text > /etc/nginx/modules-enabled/k3s.conf",
             "aws ssm get-parameter --name '/conf/nginx_jenkins_conf' --query 'Parameter.Value' --output text > /etc/nginx/conf.d/jenkins.conf",
-            "sudo systemctl restart nginx"
+            "sudo systemctl restart nginx && sudo systemctl enable nginx"
           ]
         }
       }
@@ -153,6 +153,7 @@ resource "aws_ssm_association" "apply_nginx_conf_association" {
 }
 
 resource "aws_instance" "k3s_control_plane" {
+  depends_on                  = [local_file.ssh_key, aws_instance.bastion, null_resource.provision_bastion]
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_cp
   subnet_id                   = aws_subnet.private[0].id
@@ -198,6 +199,7 @@ resource "null_resource" "provision_k3s_control_plane" {
   depends_on = [
     local_file.ssh_key,
     aws_instance.bastion,
+    null_resource.provision_bastion,
     aws_instance.k3s_control_plane,
     aws_nat_gateway.natgw
   ]
@@ -229,7 +231,7 @@ resource "null_resource" "provision_k3s_control_plane" {
 }
 
 resource "aws_instance" "k3s_worker" {
-  depends_on                  = [aws_instance.k3s_control_plane, null_resource.provision_k3s_control_plane]
+  depends_on                  = [local_file.ssh_key, aws_instance.k3s_control_plane, null_resource.provision_k3s_control_plane]
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_worker
   subnet_id                   = aws_subnet.private[1].id
