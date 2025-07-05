@@ -92,6 +92,7 @@ jobs:
             --namespace jenkins \
             --from-literal=jenkins-admin-user="$JENKINS_ADMIN_USER" \
             --from-literal=jenkins-admin-password="$JENKINS_ADMIN_PASSWORD" \
+            --validate=false \
             --dry-run=client -o yaml | kubectl apply -f -
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
