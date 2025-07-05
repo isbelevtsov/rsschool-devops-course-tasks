@@ -154,7 +154,7 @@ resource "aws_ssm_association" "apply_nginx_conf_association" {
 }
 
 resource "aws_instance" "k3s_control_plane" {
-  depends_on                  = [local_file.ssh_key, null_resource.wait_for_health_check_bastion]
+  depends_on                  = [local_file.ssh_key, null_resource.wait_for_health_check_bastion, aws_nat_gateway.natgw]
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_cp
   subnet_id                   = aws_subnet.private[0].id
@@ -248,7 +248,7 @@ resource "null_resource" "provision_k3s_control_plane" {
 }
 
 resource "aws_instance" "k3s_worker" {
-  depends_on                  = [local_file.ssh_key, null_resource.provision_k3s_control_plane]
+  depends_on                  = [local_file.ssh_key, null_resource.provision_k3s_control_plane, aws_nat_gateway.natgw]
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_worker
   subnet_id                   = aws_subnet.private[1].id
