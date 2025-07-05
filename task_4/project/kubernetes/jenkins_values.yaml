@@ -92,12 +92,12 @@ controller:
                 }
               }
 
-  sidecars:
-    configAutoReload:
-      enabled: true
-      image: kiwigrid/k8s-sidecar:1.14.2
-      imagePullPolicy: IfNotPresent
-      resources: {}
-      reqRetryConnect: 10
-      sshTcpPort: 1044
-      folder: "/var/jenkins_home/casc_configs"
+  # sidecars:
+  #   configAutoReload:
+  #     enabled: true
+  #     image: kiwigrid/k8s-sidecar:1.14.2
+  #     imagePullPolicy: IfNotPresent
+  #     resources: {}
+  #     reqRetryConnect: 10
+  #     sshTcpPort: 1044
+  #     folder: "/var/jenkins_home/casc_configs"
