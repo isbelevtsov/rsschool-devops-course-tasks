@@ -100,38 +100,38 @@ mv /etc/nginx/sites-enabled/default /etc/nginx/sites-enabled/default.bak 2>/dev/
 mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.bak 2>/dev/null || true
 
 # Create Nginx reverse proxy config for K3s kubernetes cluster API
-NGINX_KUBE_SITE_PATH="/etc/nginx/sites-available/k3s"
+NGINX_KUBE_SITE_PATH="/etc/nginx/module-enabled/k3s.conf"
 cat <<EOF > $NGINX_KUBE_SITE_PATH
-server {
-    listen 6443;
-    server_name k8s.elysium-space.com;
-
-    location / {
-        proxy_pass https://$K3S_CONTROL_PLANE_PRIVATE_IP:6443;
-        proxy_ssl_verify off;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+stream {
+    upstream api {
+        server ${{K3S_CONTROL_PLANE_PRIVATE_IP}}:6443;
+    }
+    server {
+        listen 6443; # this is the port exposed by nginx on reverse proxy server
+        proxy_pass api;
+        proxy_timeout 20s;
     }
 }
 EOF
 if [ -f $NGINX_KUBE_SITE_PATH ]; then
-    echo "====> Nginx config has been create succsessfully: $$NGINX_KUBE_SITE_PATH "
+    echo "====> Nginx config has been create successfully: $$NGINX_KUBE_SITE_PATH "
 else
     echo "====> Failed to create Nginx reverse proxy config"
     # exit 1
 fi
 
-NGINX_JENKINS_SITE_PATH="/etc/nginx/sites-available/jenkins"
+NGINX_JENKINS_SITE_PATH="/etc/nginx/conf.d/jenkins.conf"
 cat <<EOF > $NGINX_JENKINS_SITE_PATH
+upstream jenkins {
+    server ${{K3S_CONTROL_PLANE_PRIVATE_IP}}:8080;
+}
+
 server {
     listen 8080;
     server_name jenkins.elysium-space.com;
 
     location / {
-        proxy_pass https://$K3S_CONTROL_PLANE_PRIVATE_IP:8080;
-        proxy_ssl_verify off;
+        proxy_pass http://jenkins;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -140,7 +140,7 @@ server {
 }
 EOF
 if [ -f $NGINX_JENKINS_SITE_PATH ]; then
-    echo "====> Nginx config has been create succsessfully: $$NGINX_JENKINS_SITE_PATH "
+    echo "====> Nginx config has been create successfully: $$NGINX_JENKINS_SITE_PATH "
 else
     echo "====> Failed to create Nginx reverse proxy config"
     # exit 1
