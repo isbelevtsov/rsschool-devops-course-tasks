@@ -22,15 +22,15 @@ on:
   #     - '**/*.example'
   #     - '**/*.yml'
   #     - '**/*.yaml'
-  # pull_request:
-  #   branches:
-  #     - main
-  #   paths:
-  #     - '**/*.tpl'
-  #     - '**/*.tf'
-  #     - '**/*.example'
-  #     - '**/*.yml'
-  #     - '**/*.yaml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**/*.tpl'
+      - '**/*.tf'
+      - '**/*.example'
+      - '**/*.yml'
+      - '**/*.yaml'
 
 env:
   ALLOWED_SSH_CIDR: ${{ secrets.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
@@ -71,8 +71,7 @@ jobs:
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    if : github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'
-    # if: github.event_name == 'pull_request' || github.event_name == 'push'
+    if : github.event.inputs.action == 'plan' || github.event_name == 'pull_request' || github.event_name == 'push'
 
     defaults:
       run:
@@ -209,7 +208,7 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     needs: terraform-plan
-    if: github.event.inputs.action == 'apply'
+    if: github.event.inputs.action == 'apply' || github.event_name == 'pull_request' || github.event_name == 'push'
 
     defaults:
       run:
