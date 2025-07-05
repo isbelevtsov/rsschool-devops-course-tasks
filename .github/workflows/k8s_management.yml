@@ -2,12 +2,12 @@ name: "K8s Management"
 on:
   workflow_dispatch:
 
-  # workflow_run:
-  #   workflows: ["Infrastructure Deployment"]
-  #   types:
-  #     - completed
-  #   branches:
-  #     - task_4
+  workflow_run:
+    workflows: ["Infrastructure Deployment"]
+    types:
+      - completed
+    branches:
+      - task_4
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
