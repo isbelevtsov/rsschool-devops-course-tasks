@@ -89,6 +89,7 @@ resource "null_resource" "provision_bastion" {
     inline = [
       "sudo apt-get update",
       "sudo apt-get install -y awscli",
+      "sudo systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service && sudo systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service",
       "export AWS_DEFAULT_REGION='${var.aws_region}'",
       "aws ssm get-parameter --name '${var.key_param_path}' --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "sudo chmod 600 ${local_file.ssh_key.filename}"
@@ -189,7 +190,7 @@ resource "aws_ssm_parameter" "nginx_jenkins_conf" {
 }
 
 resource "aws_ssm_document" "apply_nginx_conf" {
-  depends_on    = [null_resource.wait_for_health_check_bastion, aws_ssm_parameter.nginx_jenkins_conf, aws_ssm_parameter.nginx_k3s_conf]
+  depends_on    = [null_resource.wait_for_health_check_bastion, null_resource.provision_bastion, aws_ssm_parameter.nginx_k3s_conf, aws_ssm_parameter.nginx_jenkins_conf]
   name          = "apply_nginx_conf_ssm"
   document_type = "Command"
   content = jsonencode({
