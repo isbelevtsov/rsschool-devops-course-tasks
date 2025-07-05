@@ -96,63 +96,6 @@ resource "null_resource" "provision_bastion" {
   }
 }
 
-data "template_file" "nginx_k3s_conf" {
-  template = file("./templates/nginx_k3s.tpl")
-  vars = {
-    k3s_control_plane_private_ip = aws_instance.k3s_control_plane.private_ip
-  }
-}
-
-resource "aws_ssm_parameter" "nginx_k3s_conf" {
-  name  = "/conf/nginx_k3s_conf"
-  type  = "String"
-  value = data.template_file.nginx_k3s_conf.rendered
-}
-
-data "template_file" "nginx_jenkins_conf" {
-  template = file("./templates/nginx_jenkins.tpl")
-  vars = {
-    k3s_control_plane_private_ip = aws_instance.k3s_control_plane.private_ip
-  }
-}
-
-resource "aws_ssm_parameter" "nginx_jenkins_conf" {
-  name  = "/conf/nginx_jenkins_conf"
-  type  = "String"
-  value = data.template_file.nginx_jenkins_conf.rendered
-}
-
-resource "aws_ssm_document" "apply_nginx_conf" {
-  depends_on    = [null_resource.wait_for_health_check_bastion, aws_ssm_parameter.nginx_jenkins_conf, aws_ssm_parameter.nginx_k3s_conf]
-  name          = "apply_nginx_conf_ssm"
-  document_type = "Command"
-  content = jsonencode({
-    schemaVersion = "2.2",
-    description   = "Apply nginx reverse proxy k3s config, copy extra files, restart service, and run post-restart command",
-    mainSteps = [
-      {
-        action = "aws:runShellScript",
-        name   = "applyConfigAndCopyFiles",
-        inputs = {
-          runCommand = [
-            "aws ssm get-parameter --name '/conf/nginx_k3s_conf' --query 'Parameter.Value' --output text > /etc/nginx/modules-enabled/k3s.conf",
-            "aws ssm get-parameter --name '/conf/nginx_jenkins_conf' --query 'Parameter.Value' --output text > /etc/nginx/conf.d/jenkins.conf",
-            "sudo systemctl restart nginx && sudo systemctl enable nginx",
-            "echo \"ssm_document applied successfully\""
-          ]
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_ssm_association" "apply_nginx_conf_association" {
-  name = aws_ssm_document.apply_nginx_conf.name
-  targets {
-    key    = "InstanceIds"
-    values = [aws_instance.bastion.id]
-  }
-}
 
 resource "aws_instance" "k3s_control_plane" {
   depends_on                  = [local_file.ssh_key, null_resource.wait_for_health_check_bastion, aws_nat_gateway.natgw]
@@ -212,6 +155,68 @@ resource "null_resource" "wait_for_health_check_k3s_control_plane" {
       done
       echo "Instance health check passed!"
     EOT
+  }
+}
+
+data "template_file" "nginx_k3s_conf" {
+  depends_on = [null_resource.wait_for_health_check_k3s_control_plane]
+  template   = file("./templates/nginx_k3s.tpl")
+  vars = {
+    k3s_control_plane_private_ip = aws_instance.k3s_control_plane.private_ip
+  }
+}
+
+resource "aws_ssm_parameter" "nginx_k3s_conf" {
+  depends_on = [data.template_file.nginx_k3s_conf]
+  name       = "/conf/nginx_k3s_conf"
+  type       = "String"
+  value      = data.template_file.nginx_k3s_conf.rendered
+}
+
+data "template_file" "nginx_jenkins_conf" {
+  depends_on = [null_resource.wait_for_health_check_k3s_control_plane]
+  template   = file("./templates/nginx_jenkins.tpl")
+  vars = {
+    k3s_control_plane_private_ip = aws_instance.k3s_control_plane.private_ip
+  }
+}
+
+resource "aws_ssm_parameter" "nginx_jenkins_conf" {
+  depends_on = [data.template_file.nginx_jenkins_conf]
+  name       = "/conf/nginx_jenkins_conf"
+  type       = "String"
+  value      = data.template_file.nginx_jenkins_conf.rendered
+}
+
+resource "aws_ssm_document" "apply_nginx_conf" {
+  depends_on    = [null_resource.wait_for_health_check_bastion, aws_ssm_parameter.nginx_jenkins_conf, aws_ssm_parameter.nginx_k3s_conf]
+  name          = "apply_nginx_conf_ssm"
+  document_type = "Command"
+  content = jsonencode({
+    schemaVersion = "2.2",
+    description   = "Apply nginx reverse proxy k3s config, copy extra files, restart service, and run post-restart command",
+    mainSteps = [
+      {
+        action = "aws:runShellScript",
+        name   = "applyConfigAndCopyFiles",
+        inputs = {
+          runCommand = [
+            "aws ssm get-parameter --name '/conf/nginx_k3s_conf' --query 'Parameter.Value' --output text > /etc/nginx/modules-enabled/k3s.conf",
+            "aws ssm get-parameter --name '/conf/nginx_jenkins_conf' --query 'Parameter.Value' --output text > /etc/nginx/conf.d/jenkins.conf",
+            "sudo systemctl restart nginx && sudo systemctl enable nginx",
+            "echo \"ssm_document applied successfully\""
+          ]
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_ssm_association" "apply_nginx_conf_association" {
+  name = aws_ssm_document.apply_nginx_conf.name
+  targets {
+    key    = "InstanceIds"
+    values = [aws_instance.bastion.id]
   }
 }
 
