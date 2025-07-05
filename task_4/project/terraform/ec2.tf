@@ -220,8 +220,9 @@ resource "null_resource" "provision_k3s_control_plane" {
       "export AWS_DEFAULT_REGION='${var.aws_region}'",
       "aws ssm get-parameter --name '${var.key_param_path}' --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "sudo chmod 600 ${local_file.ssh_key.filename}",
-      "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644 --tls-san $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)' sh -",
+      "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644 --tls-san k8s.elysium-space.com' sh -",
       "curl -s http://169.254.169.254/latest/meta-data/local-ipv4 | sudo tee /var/lib/rancher/k3s/server/ip",
+      "sudo sed -i \"s|https://127.0.0.1:6443|https://${aws_instance.k3s_control_plane.private_ip}:6443|\" /etc/rancher/k3s/k3s.yaml",
       "aws ssm put-parameter --name '${var.kubeconfig_param_path}' --value file:///etc/rancher/k3s/k3s.yaml --type SecureString --overwrite",
     ]
   }
@@ -277,6 +278,7 @@ resource "null_resource" "provision_k3s_worker" {
     aws_instance.bastion,
     aws_instance.k3s_control_plane,
     null_resource.provision_k3s_control_plane,
+    aws_instance.k3s_worker,
     aws_nat_gateway.natgw
   ]
 
