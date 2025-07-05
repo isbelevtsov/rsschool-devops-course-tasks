@@ -202,10 +202,17 @@ resource "aws_ssm_document" "apply_nginx_conf" {
         name   = "applyConfigAndCopyFiles",
         inputs = {
           runCommand = [
+            "echo 'Fetching /conf/nginx_k3s_conf...'",
             "aws ssm get-parameter --name '/conf/nginx_k3s_conf' --query 'Parameter.Value' --output text > /etc/nginx/modules-enabled/k3s.conf",
+            "if [ $? -ne 0 ]; then echo 'Failed to fetch /conf/nginx_k3s_conf'; exit 1; fi",
+
+            "echo 'Fetching /conf/nginx_jenkins_conf...'",
             "aws ssm get-parameter --name '/conf/nginx_jenkins_conf' --query 'Parameter.Value' --output text > /etc/nginx/conf.d/jenkins.conf",
+            "if [ $? -ne 0 ]; then echo 'Failed to fetch /conf/nginx_jenkins_conf'; exit 1; fi",
+
+            "echo 'Restarting nginx...'",
             "sudo systemctl restart nginx && sudo systemctl enable nginx",
-            "echo \"ssm_document applied successfully\""
+            "if [ $? -ne 0 ]; then echo 'Failed to restart nginx'; exit 1; fi"
           ]
         }
       }
