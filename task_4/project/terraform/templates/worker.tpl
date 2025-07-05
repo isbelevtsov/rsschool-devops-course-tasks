@@ -66,7 +66,7 @@ else
 fi
 
 # Set SSH certificate file permissions
-chmod 600 "$${CERT_PATH}"
+chmod 600 "${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Permissions was successfully set"
 else
@@ -75,45 +75,11 @@ else
 fi
 
 # Change certificate ownership
-chown ubuntu:ubuntu "$${CERT_PATH}"
+chown ubuntu:ubuntu "${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Certificate ownership changed successfully"
 else
     echo "====> Failed to changle certificate ownership"
-    # exit 1
-fi
-
-# Retrieve K3s worker node token from control plane
-K3S_TOKEN=$(aws ssm get-parameter --name "${NODE_TOKEN_PARAM_PATH}" --with-decryption --query "Parameter.Value" --output text)
-if [ ! -z $K3S_TOKEN ]; then
-    echo "====> Getting K3s worker node token form SSM Parameter Store"
-else
-    echo "====> Failed to fetch K3s worker node token"
-    # exit 1
-fi
-
-# Get K3s control plane private IP address
-K3S_CONTROL_PLANE_PRIVATE_IP=$(aws ec2 describe-instances \
-  --filters "Name=tag:k3s_role,Values=controlplane" \
-  --query "Reservations[*].Instances[*].PrivateIpAddress" \
-  --output text)
-if [ ! -z $K3S_CONTROL_PLANE_PRIVATE_IP ]; then
-    echo "====> Getting K3s control plane node private IP address $${K3S_CONTROL_PLANE_PRIVATE_IP}"
-else
-    echo "====> Failed to fetch K3s control plane node private IP address"
-    # exit 1
-fi
-
-# Set K3s control plane API server URL
-K3S_URL=https://$K3S_CONTROL_PLANE_PRIVATE_IP:6443
-echo "====> Setting K3s API server URL to $K3S_URL"
-
-# Install K3s as worker node
-curl -sfL https://get.k3s.io | sh -
-if [ $? -eq 0 ]; then
-    echo "====> K3s has been successfully installed as worker node"
-else
-    echo "====> Failed to install K3s"
     # exit 1
 fi
 

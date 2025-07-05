@@ -33,6 +33,6 @@ cert_path = "/home/ubuntu/cert.pem"
 key_param_path = "/app/cert.pem"
 
 kubeconfig_param_path = "/app/kubeconfig"
-node_toke_param_path = "/app/node-token"
+node_toke_param_path  = "/app/node-token"
 
 jenkins_data_dir = "/data/jenkins"

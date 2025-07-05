@@ -28,6 +28,14 @@ else
     # exit 1
 fi
 
+systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service && systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
+if [ $? -eq 0 ]; then
+    echo "====> Amazon SSM Agent service has been enabled and started"
+else
+    echo "====> Failed to enable and start Amazon SSM Agent service"
+    # exit 1
+fi
+
 # Creates token to authenticate and retrieve instance metadata
 TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
 if [ ! -z $TOKEN ]; then
@@ -66,7 +74,7 @@ else
 fi
 
 # Set SSH certificate file permissions
-chmod 600 "$${CERT_PATH}"
+chmod 600 "${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Permissions was successfully set"
 else
@@ -75,7 +83,7 @@ else
 fi
 
 # Change certificate ownership
-chown ubuntu:ubuntu "$${CERT_PATH}"
+chown ubuntu:ubuntu "${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Certificate ownership changed successfully"
 else
@@ -83,86 +91,9 @@ else
     # exit 1
 fi
 
-# Retrive control plane node private IP address
-K3S_CONTROL_PLANE_PRIVATE_IP=$(aws ec2 describe-instances \
-  --filters "Name=tag:k3s_role,Values=controlplane" \
-  --query "Reservations[*].Instances[*].PrivateIpAddress" \
-  --output text)
-if [ ! -z $K3S_CONTROL_PLANE_PRIVATE_IP ]; then
-    echo "====> Getting K3s control plane node private IP address $${K3S_CONTROL_PLANE_PRIVATE_IP}"
-else
-    echo "====> Failed to fetch K3s control plane node private IP address"
-    # exit 1
-fi
-
 # Backup existing default config
 mv /etc/nginx/sites-enabled/default /etc/nginx/sites-enabled/default.bak 2>/dev/null || true
 mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.bak 2>/dev/null || true
-
-# Create Nginx reverse proxy config for K3s kubernetes cluster API
-NGINX_KUBE_SITE_PATH="/etc/nginx/module-enabled/k3s.conf"
-cat <<EOF > $NGINX_KUBE_SITE_PATH
-stream {
-    upstream api {
-        server $K3S_CONTROL_PLANE_PRIVATE_IP:6443;
-    }
-    server {
-        listen 6443; # this is the port exposed by nginx on reverse proxy server
-        proxy_pass api;
-        proxy_timeout 20s;
-    }
-}
-EOF
-if [ -f $NGINX_KUBE_SITE_PATH ]; then
-    echo "====> Nginx config has been create successfully: $$NGINX_KUBE_SITE_PATH "
-else
-    echo "====> Failed to create Nginx reverse proxy config"
-    # exit 1
-fi
-
-NGINX_JENKINS_SITE_PATH="/etc/nginx/conf.d/jenkins.conf"
-cat <<EOF > $NGINX_JENKINS_SITE_PATH
-upstream jenkins {
-    server $K3S_CONTROL_PLANE_PRIVATE_IP:8080;
-}
-
-server {
-    listen 8080;
-    server_name jenkins.elysium-space.com;
-
-    location / {
-        proxy_pass http://jenkins;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOF
-if [ -f $NGINX_JENKINS_SITE_PATH ]; then
-    echo "====> Nginx config has been create successfully: $$NGINX_JENKINS_SITE_PATH "
-else
-    echo "====> Failed to create Nginx reverse proxy config"
-    # exit 1
-fi
-
-# Test Nginx configuration
-nginx -t
-if [ $? -eq 0 ]; then
-    echo "====> Nginx configuration test has been succsessfully passed"
-else
-    echo "====> Failed to test Nginx configuration"
-    # exit 1
-fi
-
-# Enable nginx sites
-ln -s /etc/nginx/sites-available/k3s /etc/nginx/sites-enabled/ && ln -s /etc/nginx/sites-available/jenkins /etc/nginx/sites-enabled/
-if [ $? -eq 0 ]; then
-    echo "====> Nginx sites has been succsessfully enabled"
-else
-    echo "====> Failed to enable Nginx site"
-    # exit 1
-fi
 
 # Restart and enable Nginx systemd service
 systemctl restart nginx && systemctl enable nginx

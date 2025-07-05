@@ -66,7 +66,7 @@ else
 fi
 
 # Set SSH certificate file permissions
-chmod 600 "$${CERT_PATH}"
+chmod 600 "${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Permissions was successfully set"
 else
@@ -75,45 +75,10 @@ else
 fi
 
 # Change certificate ownership
-chown ubuntu:ubuntu "$${CERT_PATH}"
+chown ubuntu:ubuntu "${CERT_PATH}"
 if [ $? -eq 0 ]; then
     echo "====> Certificate ownership changed successfully"
 else
     echo "====> Failed to changle certificate ownership"
-    # exit 1
-fi
-
-# Install K3s as control plane node
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--write-kubeconfig-mode 644' sh -
-if [ $? -eq 0 ]; then
-    echo "====> K3s has been successfully installed as control plane node"
-else
-    echo "====> Failed to install K3s"
-    # exit 1
-fi
-
-# Set K3s kubernetes cluster IP control plane IP address
-curl -s http://169.254.169.254/latest/meta-data/local-ipv4 > /var/lib/rancher/k3s/server/ip
-if [ $? -eq 0 ]; then
-    echo "====> Server IP allocated succsessfully"
-else
-    echo "====> Failed to set cluster IP address"
-fi
-
-# Export K3s kubernetes cluster kubeconfig to SSM Parameter Store
-aws ssm put-parameter --name "${KUBECONFIG_PARAM_PATH}" --value file:///etc/rancher/k3s/k3s.yaml --type SecureString --overwrite
-if [ $? -eq 0 ]; then
-    echo "====> Kubeconfig has been successfully exported to SSM Parameter Store"
-else
-    echo "====> Failed to upload kubeconfig"
-    # exit 1
-fi
-
-# Export K3s kubernetes cluster node token to SSM Parameter Store
-aws ssm put-parameter --name "${NODE_TOKEN_PARAM_PATH}" --value file:///var/lib/rancher/k3s/server/node-token --type SecureString --overwrite
-if [ $? -eq 0 ]; then
-    echo "====> Node token has been successfully exported to SSM Parameter Store"
-else
-    echo "====> Failed to upload node token"
     # exit 1
 fi
