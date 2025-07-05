@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
 
   # workflow_run:
-  #   workflows: ["Terraform Plan and Apply"]
+  #   workflows: ["Infrastructure Deployment"]
   #   types:
   #     - completed
   #   branches:
