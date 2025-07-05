@@ -52,10 +52,29 @@ resource "aws_instance" "bastion" {
   }
 }
 
+resource "null_resource" "wait_for_health_check_bastion" {
+  depends_on = [aws_instance.bastion]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      INSTANCE_ID="${aws_instance.bastion.id}"
+      STATUS=$(aws ec2 describe-instance-status --instance-ids $INSTANCE_ID --query "InstanceStatuses[0].InstanceStatus.Status" --output text)
+
+      while [ "$STATUS" != "ok" ]; do
+        echo "Waiting for instance health check to pass..."
+        sleep 10
+        STATUS=$(aws ec2 describe-instance-status --instance-ids $INSTANCE_ID --query "InstanceStatuses[0].InstanceStatus.Status" --output text)
+      done
+      echo "Instance health check passed!"
+    EOT
+  }
+}
+
 resource "null_resource" "provision_bastion" {
   depends_on = [
     local_file.ssh_key,
     aws_instance.bastion,
+    null_resource.wait_for_health_check_bastion
   ]
 
   provisioner "remote-exec" {
@@ -74,24 +93,6 @@ resource "null_resource" "provision_bastion" {
       "aws ssm get-parameter --name '${var.key_param_path}' --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "sudo chmod 600 ${local_file.ssh_key.filename}"
     ]
-  }
-}
-
-resource "null_resource" "wait_for_health_check_bastion" {
-  depends_on = [aws_instance.bastion]
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      INSTANCE_ID="${aws_instance.bastion.id}"
-      STATUS=$(aws ec2 describe-instance-status --instance-ids $INSTANCE_ID --query "InstanceStatuses[0].InstanceStatus.Status" --output text)
-
-      while [ "$STATUS" != "ok" ]; do
-        echo "Waiting for instance health check to pass..."
-        sleep 10
-        STATUS=$(aws ec2 describe-instance-status --instance-ids $INSTANCE_ID --query "InstanceStatuses[0].InstanceStatus.Status" --output text)
-      done
-      echo "Instance health check passed!"
-    EOT
   }
 }
 
@@ -153,7 +154,7 @@ resource "aws_ssm_association" "apply_nginx_conf_association" {
 }
 
 resource "aws_instance" "k3s_control_plane" {
-  depends_on                  = [local_file.ssh_key, aws_instance.bastion, null_resource.provision_bastion]
+  depends_on                  = [local_file.ssh_key, null_resource.wait_for_health_check_bastion]
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_cp
   subnet_id                   = aws_subnet.private[0].id
@@ -195,13 +196,29 @@ resource "aws_instance" "k3s_control_plane" {
   }
 }
 
+resource "null_resource" "wait_for_health_check_k3s_control_plane" {
+  depends_on = [aws_instance.k3s_control_plane]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      INSTANCE_ID="${aws_instance.k3s_control_plane.id}"
+      STATUS=$(aws ec2 describe-instance-status --instance-ids $INSTANCE_ID --query "InstanceStatuses[0].InstanceStatus.Status" --output text)
+
+      while [ "$STATUS" != "ok" ]; do
+        echo "Waiting for instance health check to pass..."
+        sleep 10
+        STATUS=$(aws ec2 describe-instance-status --instance-ids $INSTANCE_ID --query "InstanceStatuses[0].InstanceStatus.Status" --output text)
+      done
+      echo "Instance health check passed!"
+    EOT
+  }
+}
+
 resource "null_resource" "provision_k3s_control_plane" {
   depends_on = [
     local_file.ssh_key,
-    aws_instance.bastion,
-    null_resource.provision_bastion,
-    aws_instance.k3s_control_plane,
-    aws_nat_gateway.natgw
+    null_resource.wait_for_health_check_bastion,
+    null_resource.wait_for_health_check_k3s_control_plane
   ]
 
   provisioner "remote-exec" {
@@ -231,7 +248,7 @@ resource "null_resource" "provision_k3s_control_plane" {
 }
 
 resource "aws_instance" "k3s_worker" {
-  depends_on                  = [local_file.ssh_key, aws_instance.k3s_control_plane, null_resource.provision_k3s_control_plane]
+  depends_on                  = [local_file.ssh_key, null_resource.provision_k3s_control_plane]
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_worker
   subnet_id                   = aws_subnet.private[1].id
@@ -274,14 +291,30 @@ resource "aws_instance" "k3s_worker" {
   }
 }
 
+resource "null_resource" "wait_for_health_check_k3s_worker" {
+  depends_on = [aws_instance.k3s_worker]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      INSTANCE_ID="${aws_instance.k3s_worker.id}"
+      STATUS=$(aws ec2 describe-instance-status --instance-ids $INSTANCE_ID --query "InstanceStatuses[0].InstanceStatus.Status" --output text)
+
+      while [ "$STATUS" != "ok" ]; do
+        echo "Waiting for instance health check to pass..."
+        sleep 10
+        STATUS=$(aws ec2 describe-instance-status --instance-ids $INSTANCE_ID --query "InstanceStatuses[0].InstanceStatus.Status" --output text)
+      done
+      echo "Instance health check passed!"
+    EOT
+  }
+}
+
 resource "null_resource" "provision_k3s_worker" {
   depends_on = [
     local_file.ssh_key,
-    aws_instance.bastion,
-    aws_instance.k3s_control_plane,
-    null_resource.provision_k3s_control_plane,
-    aws_instance.k3s_worker,
-    aws_nat_gateway.natgw
+    null_resource.wait_for_health_check_bastion,
+    null_resource.wait_for_health_check_k3s_control_plane,
+    null_resource.wait_for_health_check_k3s_worker
   ]
 
   provisioner "remote-exec" {
