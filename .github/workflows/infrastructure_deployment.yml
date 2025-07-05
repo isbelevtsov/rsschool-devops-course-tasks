@@ -11,7 +11,8 @@ on:
           - plan
           - apply
           - destroy
-          - update-dns
+          - configure-dns
+          - remove-dns
   # push:
   #   branches:
   #     - main
@@ -271,8 +272,7 @@ jobs:
   configure-dns:
     name: Configure DNS Records
     runs-on: ubuntu-latest
-    # needs: terraform-apply
-    if: github.event.inputs.action == 'apply' || github.event.inputs.action == 'update-dns'
+    if: github.event.inputs.action == 'configure-dns'
 
     defaults:
       run:
@@ -368,6 +368,68 @@ jobs:
               -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
               -H "Content-Type: application/json" \
               --data "{\"type\":\"A\",\"name\":\"${{ env.JENKINS_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          fi
+
+  remove-dns:
+    name: Remove DNS Records
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'remove-dns'
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-dns-removal
+
+      - name: Remove Bastion A record from Cloudflare
+        run: |
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.BASTION_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          if [ "$RECORD_ID" != "null" ]; then
+            echo "Deleting Bastion DNS A record..."
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json"
+          else
+            echo "No Bastion DNS record found to delete."
+          fi
+
+      - name: Remove K8s A record from Cloudflare
+        run: |
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.K8S_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          if [ "$RECORD_ID" != "null" ]; then
+            echo "Deleting K8s DNS A record..."
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json"
+          else
+            echo "No K8s DNS record found to delete."
+          fi
+
+      - name: Remove Jenkins A record from Cloudflare
+        run: |
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.JENKINS_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          if [ "$RECORD_ID" != "null" ]; then
+            echo "Deleting Jenkins DNS A record..."
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json"
+          else
+            echo "No Jenkins DNS record found to delete."
           fi
 
   terraform-destroy:
