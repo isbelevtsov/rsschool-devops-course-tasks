@@ -1,0 +1,89 @@
+controller:
+  image:
+    tag: "lts"
+
+  admin:
+    userKey: jenkins-admin-user
+    passwordKey: jenkins-admin-password
+    createSecret: false
+    existingSecret: jenkins-admin
+
+  # containerEnv:
+  #   # Tell the plugin where to find its config.
+  #   - name: CASC_JENKINS_CONFIG
+  #     value: /var/jenkins_home/casc_configs/jenkins.yaml
+
+  serviceType: ClusterIP
+  servicePort: 8080
+
+  jenkinsHome: /var/jenkins_home
+
+  installPlugins:
+    - kubernetes:latest
+    - kubernetes-credentials:latest
+    - git:latest
+    - configuration-as-code:latest
+    - workflow-aggregator:latest
+    - workflow-job:latest
+    - job-dsl:latest
+
+  persistence:
+    enabled: true
+    existingClaim: jenkins-pvc
+    storageClass: jenkins-pv
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 3000
+
+  containerSecurityContext:
+    runAsUser: 1000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+  JCasC:
+    defaultConfig: true
+    configScripts:
+     welcome-message: |
+       jenkins:
+         systemMessage: Welcome to our RS School DevOps 2025 Q2 course CI\CD server.  This Jenkins is configured and managed 'as code'.
+       jobs:
+          - script: >
+              pipelineJob('test-job') {
+                definition {
+                  cps {
+                    script('''
+                      pipeline {
+                              agent any
+                              stages {
+                                  stage('Stage 1') {
+                                      steps {
+                                          echo 'Hello World!'
+                                      }
+                                  }
+                                  stage('Stage 2') {
+                                      steps {
+                                          echo 'Is it me your looking for'
+                                      }
+                                  }
+                              }
+
+                      }
+                    '''.stripIndent())
+                    sandbox()
+                  }
+                }
+              }
