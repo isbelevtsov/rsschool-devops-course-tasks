@@ -1,6 +1,14 @@
 name: "K8s Management"
 on:
   workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action'
+        required: true
+        type: choice
+        options:
+          - deploy Jenkins
+          - destroy Jenkins
 
   workflow_run:
     workflows: ["Infrastructure Deployment"]
@@ -24,7 +32,7 @@ permissions:
 
 jobs:
   deploy_jenkins:
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy Jenkins' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -106,13 +114,19 @@ jobs:
 
       - name: Create Jenkins Admin Secret
         run: |
-          kubectl create secret generic jenkins-admin \
-            --namespace jenkins \
-            --from-literal=jenkins-admin-user="${{ env.JENKINS_ADMIN_USER }}" \
-            --from-literal=jenkins-admin-password="${{ env.JENKINS_ADMIN_PASSWORD }}" \
-            --dry-run=client -o yaml \
-            --kubeconfig kubeconfig | \
-          kubectl apply -f - --kubeconfig kubeconfig
+          if ! kubectl get secret jenkins-admin jenkins \
+              --kubeconfig kubeconfig > /dev/null 2>&1; then
+            echo "Secret 'jenkins-admin' does not exist. Creating..."
+            kubectl create secret generic jenkins-admin \
+              --namespace jenkins \
+              --from-literal=jenkins-admin-user="${{ env.JENKINS_ADMIN_USER }}" \
+              --from-literal=jenkins-admin-password="${{ env.JENKINS_ADMIN_PASSWORD }}" \
+              --dry-run=client -o yaml \
+              --kubeconfig kubeconfig | \
+            kubectl apply -f - --kubeconfig kubeconfig
+          else
+            echo "Secret 'jenkins-admin' already exists. Skipping creation."
+          fi
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Apply Persistent Storage Configuration (Optional)
@@ -220,3 +234,89 @@ jobs:
                 body
               });
             }
+
+  destroy_jenkins:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy Jenkins' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-k8s-management
+
+      - name: Get GitHub Runner IP
+        id: runner_ip
+        run: |
+          echo "RUNNER_IP=$(curl -s https://checkip.amazonaws.com)/32" >> $GITHUB_ENV
+
+      - name: Save Bastion SG ID
+        run: |
+          echo "BASTION_SG_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=*bastion*" --query "SecurityGroups[*].GroupId" --output text)" >> $GITHUB_ENV
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Add GitHub Runner IP to Security Group
+        env:
+          RUNNER_IP: ${{ env.RUNNER_IP }}
+          BASTION_SG_ID: ${{ env.BASTION_SG_ID }}
+        run: |
+          echo "Adding $RUNNER_IP to Security Group ${{ env.BASTION_SG_ID }}"
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ env.BASTION_SG_ID }} \
+            --protocol tcp \
+            --port 6443 \
+            --cidr $RUNNER_IP
+
+      - name: Set up Kubeconfig
+        run: |
+          aws ssm get-parameter \
+            --name "${{ env.KUBECONFIG_PARAM_PATH }}" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text > kubeconfig
+                chmod 600 kubeconfig
+          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.elysium-space.com|" kubeconfig
+          echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Debug kubeconfig existence
+        run: |
+          ls -lah kubeconfig
+          cat kubeconfig | head -n 5
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Uninstall Jenkins with Helm
+        run: |
+          helm uninstall my-jenkins --namespace jenkins --kubeconfig kubeconfig || echo "Jenkins already uninstalled."
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Delete Kubernetes Resources
+        run: |
+          kubectl delete -f jenkins_ingress.yaml --kubeconfig kubeconfig --ignore-not-found
+          kubectl delete -f jenkins_pvc.yaml --kubeconfig kubeconfig --ignore-not-found
+          kubectl delete -f jenkins_pv.yaml --kubeconfig kubeconfig --ignore-not-found
+          kubectl delete -f jenkins_storage_class.yaml --kubeconfig kubeconfig --ignore-not-found
+          kubectl delete secret jenkins-admin --namespace jenkins --kubeconfig kubeconfig --ignore-not-found
+          kubectl delete -f jenkins_sa.yaml --namespace jenkins --kubeconfig kubeconfig --ignore-not-found
+          kubectl delete namespace jenkins --kubeconfig kubeconfig --ignore-not-found
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Remove IP from Security Group
+        if: success()
+        env:
+          RUNNER_IP: ${{ env.RUNNER_IP }}
+          BASTION_SG_ID: ${{ env.BASTION_SG_ID }}
+        run: |
+          echo "Removing $RUNNER_IP from Security Group ${{ env.BASTION_SG_ID }}"
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ env.BASTION_SG_ID }} \
+            --protocol tcp \
+            --port 6443 \
+            --cidr $RUNNER_IP
