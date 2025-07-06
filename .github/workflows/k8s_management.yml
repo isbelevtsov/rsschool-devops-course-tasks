@@ -10,12 +10,12 @@ on:
           - deploy Jenkins
           - destroy Jenkins
 
-  workflow_run:
-    workflows: ["Infrastructure Deployment"]
-    types:
-      - completed
-    branches:
-      - task_4
+  # workflow_run:
+  #   workflows: ["Infrastructure Deployment"]
+  #   types:
+  #     - completed
+  #   branches:
+  #     - task_4
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
@@ -32,7 +32,8 @@ permissions:
 
 jobs:
   deploy_jenkins:
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy Jenkins' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy Jenkins' }}
+    # if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy Jenkins' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -236,7 +237,7 @@ jobs:
             }
 
   destroy_jenkins:
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy Jenkins' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy Jenkins' }}
     runs-on: ubuntu-latest
     defaults:
       run:
