@@ -71,7 +71,8 @@ jobs:
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    if : ${{ github.event.inputs.action == 'plan' || github.event_name == 'pull_request' }}
+    if : ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'plan' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' }}
+    # if : ${{ github.event.inputs.action == 'plan' || github.event_name == 'pull_request' }}
 
     defaults:
       run:
@@ -207,7 +208,8 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     needs: terraform-plan
-    if: ${{ github.event.inputs.action == 'apply' || github.event_name == 'pull_request' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' }}
+    # if: ${{ github.event.inputs.action == 'apply' || github.event_name == 'pull_request' }}
 
     defaults:
       run:
@@ -270,7 +272,7 @@ jobs:
   configure-dns:
     name: Configure DNS Records
     runs-on: ubuntu-latest
-    if: github.event.inputs.action == 'configure-dns'
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'configure-dns' }}
 
     defaults:
       run:
@@ -372,7 +374,7 @@ jobs:
     name: Terraform Destroy
     runs-on: ubuntu-latest
     # needs: terraform-apply
-    if: github.event.inputs.action == 'destroy'
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' }}
 
     defaults:
       run:
@@ -428,7 +430,7 @@ jobs:
   remove-dns:
     name: Remove DNS Records
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.action == 'remove-dns' || github.event.inputs.action == 'destroy' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'remove-dns' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' }}
 
     defaults:
       run:
