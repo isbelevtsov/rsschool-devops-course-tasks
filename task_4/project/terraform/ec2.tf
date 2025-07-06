@@ -327,6 +327,9 @@ resource "null_resource" "apply_nginx_config" {
     }
 
     inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y awscli",
+      "export AWS_DEFAULT_REGION='${var.aws_region}'",
       "for param in nginx_k3s_conf nginx_jenkins_conf; do",
       "  for i in {1..5}; do",
       "    VALUE=$(aws ssm get-parameter --name \"/conf/$param\" --query \"Parameter.Value\" --output text 2>/dev/null)",
