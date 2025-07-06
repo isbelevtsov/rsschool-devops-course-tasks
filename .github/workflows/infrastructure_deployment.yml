@@ -71,7 +71,8 @@ jobs:
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    if : github.event.inputs.action == 'plan' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if : ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'plan' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' }}
+    # if : ${{ github.event.inputs.action == 'plan' || github.event_name == 'pull_request' }}
 
     defaults:
       run:
@@ -203,12 +204,12 @@ jobs:
               })
             }
 
-
   terraform-apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
     needs: terraform-plan
-    if: github.event.inputs.action == 'apply' || github.event_name == 'pull_request' || github.event_name == 'push'
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' }}
+    # if: ${{ github.event.inputs.action == 'apply' || github.event_name == 'pull_request' }}
 
     defaults:
       run:
@@ -271,7 +272,7 @@ jobs:
   configure-dns:
     name: Configure DNS Records
     runs-on: ubuntu-latest
-    if: github.event.inputs.action == 'configure-dns'
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'configure-dns' }}
 
     defaults:
       run:
@@ -369,10 +370,67 @@ jobs:
               --data "{\"type\":\"A\",\"name\":\"${{ env.JENKINS_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
           fi
 
+  terraform-destroy:
+    name: Terraform Destroy
+    runs-on: ubuntu-latest
+    # needs: terraform-apply
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-terraform-destroy
+
+      - name: Generate terraform.auto.tfvars
+        run: |
+          cat <<EOF > terraform.auto.tfvars
+          aws_region            = "${{ env.AWS_REGION }}"
+          aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
+          vpc_cidr              = "${{ env.VPC_CIDR }}"
+          azs                   = ${{ env.AZS }}
+          public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
+          private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
+          allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
+          key_pair              = "${{ env.KEY_PAIR }}"
+          instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
+          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
+          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
+          cert_path             = "${{ env.CERT_PATH }}"
+          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
+          kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
+          node_token_param_path = "${{ env.NODE_TOKEN_PARAM_PATH }}"
+          jenkins_data_dir      = "${{ env.JENKINS_DATA_DIR }}"
+
+          EOF
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
+        working-directory: ${{ env.TASK_DIR }}
+
   remove-dns:
     name: Remove DNS Records
     runs-on: ubuntu-latest
-    if: github.event.inputs.action == 'remove-dns'
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'remove-dns' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' }}
 
     defaults:
       run:
@@ -430,60 +488,3 @@ jobs:
           else
             echo "No Jenkins DNS record found to delete."
           fi
-
-  terraform-destroy:
-    name: Terraform Destroy
-    runs-on: ubuntu-latest
-    # needs: terraform-apply
-    if: github.event.inputs.action == 'destroy'
-
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: gha-terraform-destroy
-
-      - name: Generate terraform.auto.tfvars
-        run: |
-          cat <<EOF > terraform.auto.tfvars
-          aws_region            = "${{ env.AWS_REGION }}"
-          aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
-          vpc_cidr              = "${{ env.VPC_CIDR }}"
-          azs                   = ${{ env.AZS }}
-          public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
-          private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
-          allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
-          key_pair              = "${{ env.KEY_PAIR }}"
-          instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
-          instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
-          instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
-          cert_path             = "${{ env.CERT_PATH }}"
-          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
-          kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
-          node_token_param_path = "${{ env.NODE_TOKEN_PARAM_PATH }}"
-          jenkins_data_dir      = "${{ env.JENKINS_DATA_DIR }}"
-
-          EOF
-        working-directory: ${{ env.TASK_DIR }}
-
-      - name: Terraform Init
-        run: terraform init
-        working-directory: ${{ env.TASK_DIR }}
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve
-        working-directory: ${{ env.TASK_DIR }}
