@@ -8,7 +8,7 @@ ______________________________________________________________________
 
 📌
 
-This project will bootstrap a basic AWS infrastructure with bastion host at front and K8s Cluster using K3s that allocated behind in private subnet. When cluster will be ready you can deploy a simple web application to it using provided manifest.
+This project will bootstrap a basic AWS infrastructure with bastion host at front and K8s Cluster using K3s that allocated behind in private subnet. When cluster will be ready you can deploy a Jenkins CI/CD tool with GHA that can be runned manually after bootstrap.
 
 ______________________________________________________________________
 
@@ -26,6 +26,7 @@ ______________________________________________________________________
 - [Terraform Version](#terraform-version)
 - [Script](#script)
 - [How to manage kubernetes cluster](#how-to-manage-kubernetes-cluster)
+- [GitHub Actions Workflow: K8s Management](#github-actions-workflow-k8s-management)
 - [Notes](#notes)
 - [Usability confirmation](#usability-confirmation)
 
@@ -66,11 +67,13 @@ ______________________________________________________________________
 - EC2 instance profiles for each of deployed host with specific SSM Parameter Store access
 - Bastion EC2 instance in the public subnet with predefined SSH key
 - Private EC2 instances in private subnets with bootstraped K3s cluster that has two nodes: 1 control plane and 1 worker
+- Remote provisioners for each EC2 instances for prerequisites configuration
 - Security Groups with descriptions and rule auditing
 - Network Access Lists for better subnet traffic control
 - CloudWatch log group for VPC flow logs
 - Tags including GitHub Actions metadata
 - GitHub Actions pipeline for Terraform Plan, Apply & Destroy using OIDC
+- GitHub Actions pipiline for Jenkins CI/CD deployment into K3s kubernetes cluster
 
 ______________________________________________________________________
 
@@ -81,40 +84,50 @@ ______________________________________________________________________
 ```
 .
 ├── .github
-│   ├── actions
-│   │   └── action.yml.off                   # Github Actions workflow separate action that can be reused in the pipeline
 │   └── workflows
-│       └── terraform.yml                    # Github Actions workflow pipeline configuration
-├── task_3
+│       ├── infrastructure_deployment.yml         # Github Actions workflow pipeline configuration that will bootstrap prerequisites infrastructure
+│       └── k8s_management.yml                    # Github Actions workflow pipeline configuration that will deploy k8s resources inside the cluster
+├── task_4
 │   ├── project
-│   │    ├── kubernetes                      # Kubernetes manifests location for deploying a simple web server
-│   │    │    ├── configmap.yaml             # Kubernetes configmap manifest
-│   │    │    ├── deployment.yaml            # Kubernetes deployment manifest
-│   │    │    ├── namespace.yaml             # Kubernetes namespace manifest
-│   │    │    └── service.yaml               # Kubernetes service manifest
+│   │    ├── kubernetes                           # Kubernetes manifests location for deploying into cluster
+│   │    │    ├── app_configmap.yaml              # Web App configmap manifest
+│   │    │    ├── app_deployment.yaml             # Web App deployment manifest
+│   │    │    ├── app_namespace.yaml              # Web App namespace manifest
+│   │    │    ├── app_service.yaml                # Web App service manifest
+│   │    │    ├── ebs_storage_class.yaml          # EBS storage class for PV/PVC manifest
+│   │    │    ├── jenkins_ingress.yaml            # Jenkins ingress manifest
+│   │    │    ├── jenkins_pv.yaml                 # Jenkins persistent volume manifest
+│   │    │    ├── jenkins_pvc.yaml                # Jenkins persistent volume claims manifest
+│   │    │    ├── jenkins_sa.yaml                 # Jenkins service account manifest
+│   │    │    ├── jenkins_storage_class.yaml      # Jenkins local path storage class manifest
+│   │    │    └── jenkins_values.yaml             # Jenkins values for Helm chart deployment manifest
 │   │    ├── scripts
-│   │    │    └── get_kubeconfig.sh          # Scripts that will get kubeconfig from AWS SSM Parameter Store and save it to you system
-│   │    ├── templates
-│   │    │    └── user_data.tpl              # Terraform user data template for AWS EC2 instance bootstrap
-│   │    ├── .env.example                    # Example file contains variables for Makefile
-│   │    ├── ami.tf                          # AWS AMI configuration for future EC2 instaces deployment
-│   │    ├── backend.tf                      # Terraform backend condiguration
-│   │    ├── ec2.tf                          # AWS EC2 instances configuration
-│   │    ├── iam.tf                          # AWS IAM configuration
-│   │    ├── logs.tf                         # AWS S3 bucket logging for security purpose and KMS key configuration for data encryption
-│   │    ├── Makefile                        # Makefile for better project and data magement
-│   │    ├── networking.tf                   # AWS subnets and routing configuration alongside with network access lists configuration
-│   │    ├── outputs.tf                      # Terraform outputs data
-│   │    ├── providers.tf                    # Terraform providers configuration
-│   │    ├── sg.tf                           # AWS security groups configuration for network traffic control
-│   │    ├── terraform.auto.tfvars.example   # Example file contains test variables or placeholders for Terraform (only for
-│   │    │                                   # local usage, Github Actions workflow will generate it in process)
-│   │    ├── user_data.tpl                   # User data script template for AWS bastion EC2 instance
-│   │    ├── variables.tf                    # Terraform variables configuration
-│   │    └── vpc.tf                          # AWS VPC configuration
-│   ├── screenshots                          # Screenshots location that mentioned in PR
+│   │    │    └── get_kubeconfig.sh               # Scripts that will get kubeconfig from AWS SSM Parameter Store and save it to you system
+│   │    ├── terraform
+│   │    │    ├── templates
+│   │    │    │    ├── bastion.sh                 # Terraform user data template for AWS EC2 instance bootstrap
+│   │    │    │    ├── controlplane.sh            # Terraform user data template for AWS EC2 instance bootstrap
+│   │    │    │    ├── nginx_jenkins.tpl          # Nginx reverse proxy configuration template for Jenkins
+│   │    │    │    ├── nginx_k3s.tpl              # Nginx reverse proxy configuration template for K3s cluster API server
+│   │    │    │    └── worker.sh                  # Terraform user data template for AWS EC2 instance bootstrap
+│   │    │    ├── .env.example                    # Example file contains variables for Makefile
+│   │    │    ├── ami.tf                          # AWS AMI configuration for future EC2 instaces deployment
+│   │    │    ├── backend.tf                      # Terraform backend condiguration
+│   │    │    ├── ec2.tf                          # AWS EC2 instances configuration
+│   │    │    ├── iam.tf                          # AWS IAM configuration
+│   │    │    ├── logs.tf                         # AWS S3 bucket logging for security purpose and KMS key configuration for data encryption
+│   │    │    ├── Makefile                        # Makefile for better project and data magement
+│   │    │    ├── networking.tf                   # AWS subnets and routing configuration alongside with network access lists configuration
+│   │    │    ├── outputs.tf                      # Terraform outputs data
+│   │    │    ├── providers.tf                    # Terraform providers configuration
+│   │    │    ├── sg.tf                           # AWS security groups configuration for network traffic control
+│   │    │    ├── terraform.auto.tfvars.example   # Example file contains test variables or placeholders for Terraform (only for
+│   │    │    │                                   # local usage, Github Actions workflow will generate it in process)
+│   │    │    ├── variables.tf                    # Terraform variables configuration
+│   │    │    └── vpc.tf                          # AWS VPC configuration
+│   ├── screenshots                               # Screenshots location that mentioned in PR
 │   │    └── ...
-│   └── README.md                            # This file
+│   └── README.md                                 # This file
 ```
 
 ______________________________________________________________________
@@ -123,13 +136,21 @@ ______________________________________________________________________
 
 🔍
 
-The `terraform.yml` workflow performs:
+The `infrastructure_deployment.yml` workflow performs:
 
 - Code checkout
 - Terraform setup
 - AWS credentials via OIDC
 - `terraform init`, `validate`, `plan`, `apply`, `destroy`
+- `update dns`, `remove dns`
 - PR comment with `terraform plan` output
+
+The `k8s_management.yml` workflow performs:
+
+- Code checkout
+- Helm setup
+- Deploy Jenkins Helm chart to K3s cluster with all prerequisites
+- PR comment with Jenkins Helm chart deployment info
 
 ______________________________________________________________________
 
@@ -143,11 +164,17 @@ ______________________________________________________________________
 | `AWS_ACCOUNT_ID`         | AWS account ID                     |
 | `AWS_REGION`             | AWS region                         |
 | `AZS`                    | Comma-separated AZ list            |
+| `BASTION_CF_RECORD_NAME` | Bastion DNS A-record hostname      |
 | `CERT_PATH`              | SSH key file full path             |
+| `CF_API_TOKEN`           | CloudFlare API token               |
+| `CF_ZONE_ID`             | CloudFlare Zone ID                 |
 | `GH_TOKEN`               | Github token for commenting PR     |
+| `JENKINS_CF_RECORD_NAME` | Jenkins DNS A-record hostname      |
 | `KEY_PAIR`               | EC2 key pair name                  |
 | `KEY_PARAM_PATH`         | SSM Parameter Store key path       |
 | `KUBECONFIG_PARAM_PATH`  | SSM Parameter Store key path       |
+| `K8S_CF_RECORD_NAME`     | K3s cluster DNS A-record hostname  |
+| `NODE_TOKEN_PARAM_PATH`  | SSM Parameter Store key path       |
 | `PRIVATE_SUBNET_CIDRS`   | Comma-separated CIDRs for private  |
 | `PUBLIC_SUBNET_CIDRS`    | Comma-separated CIDRs for public   |
 | `TF_VERSION`             | Terraform version                  |
@@ -162,6 +189,8 @@ ______________________________________________________________________
 | `INSTANCE_TYPE_BASTION`  | EC2 Instance type for bastion host (min.req."t3.nano")                        |
 | `INSTANCE_TYPE_CP`       | EC2 Instance type for kubernetes controlplane node host (min.req."t3.medium") |
 | `INSTANCE_TYPE_WORKER`   | EC2 Instance type for kubernetes worker node host (min.req."t3.small")        |
+| `JENKINS_DATA_DIR`       | Jenkins persistent data mounting point path                                   |
+| `TASK_DIR`               | Current task working directory path                                           |
 
 ______________________________________________________________________
 
@@ -276,6 +305,8 @@ ______________________________________________________________________
 
 ## How to manage kubernetes cluster
 
+### Solution 1:
+
 🔧
 
 1. You will need to get output from you Github Action pipeline that contains `bastion_public_ip`, `k3s_control_plane_private_ip` or check it from your AWS Web Console/CLI.
@@ -293,7 +324,7 @@ Tunnel will be exist till your ssh remote session lives.
 
 ______________________________________________________________________
 
-In this path `task_3/project/kubernetes` you can find kubernetes manifests that can be deployed to our kubernetes cluster to achieve next goals:
+In this path `task_4/project/kubernetes` you can find kubernetes manifests that can be deployed to our kubernetes cluster to achieve next goals:
 
 - Create `Namespace` with name **Web**.
 - Create `ConfigMap` with simple one page **Hello World** site.
@@ -311,11 +342,126 @@ to establish one more SSH tunnel to cluster and then
 *Dont forget to change `/ssh/key/path` with your actual SSH key that used to access your EC2 instances,  `k3s_control_plane_private_ip` and `bastion_public_ip` with your actual IP addresses.*
 
 ```bash
-cd ./task_3/project/kubernetes/
+cd ./task_4/project/kubernetes/
 KUBECONFIG=kubeconfig kubectl apply -f .
 ```
 
 After that you can test that all work by open [locahost:31000](http://localhost:31000/) in your web browser or by running `curl http://localhost:31000/` command from your terminal.
+
+### Solution 2:
+
+You can use predefined Nginx reverse proxy server that traslates connections to both K8s API server and Jenkins deployment from the next GHA workflow mentioned below.
+
+To achive that you can store you external DNS record in any DNS registrar e.g. CloudFlare, Amazon Route53, etc.
+
+## GitHub Actions Workflow: K8s Management
+
+This workflow automates the deployment of Jenkins to a self-hosted AWS K3s Kubernetes cluster using Helm, and is triggered either manually or after a successful infrastructure deployment workflow.
+
+______________________________________________________________________
+
+### 🔧 Trigger Conditions
+
+- `workflow_dispatch`: Manual trigger
+- `workflow_run`: Triggered when the **Infrastructure Deployment** workflow completes on the `task_4` branch
+
+______________________________________________________________________
+
+### 🔐 Required Secrets
+
+| Secret Name              | Description                                 |
+|--------------------------|---------------------------------------------|
+| `AWS_REGION`             | AWS region                                  |
+| `AWS_ACCOUNT_ID`         | AWS account ID                              |
+| `JENKINS_ADMIN_USER`     | Jenkins admin username                      |
+| `JENKINS_ADMIN_PASSWORD` | Jenkins admin password                      |
+| `KUBECONFIG_PARAM_PATH`  | SSM path to the kubeconfig for the cluster  |
+
+______________________________________________________________________
+
+### 📦 Job: `deploy_jenkins`
+
+#### Environment Variables
+
+All tasks assume the project path is located under `task_4/project`.
+
+#### Main Steps
+
+1. **Checkout Code**
+
+   - Clones the repository for use in this job.
+
+1. **Configure AWS Credentials**
+
+   - Uses OIDC to assume the configured IAM role and authenticate with AWS.
+
+1. **Get GitHub Runner IP**
+
+   - Captures the runner's public IP to allow temporary access to the cluster.
+
+1. **Get Bastion Security Group ID**
+
+   - Dynamically retrieves the SG ID using the `Name=*bastion*` filter.
+
+1. **Add GitHub Runner IP to SG**
+
+   - Adds an ingress rule to allow kubectl access to the cluster.
+
+1. **Set Up Kubeconfig**
+
+   - Downloads the kubeconfig from AWS SSM and rewrites the server hostname for public access.
+
+1. **Debug Kubeconfig**
+
+   - Lists and previews the kubeconfig file to confirm setup.
+
+1. **Install Helm**
+
+   - Installs Helm CLI v3.18.3 using `azure/setup-helm`.
+
+1. **Create Jenkins Namespace**
+
+   - Idempotent namespace creation using dry-run logic.
+
+1. **Create Jenkins service account**
+
+   - Create a Kubernetes service account for Jenkins resource management.
+
+1. **Create Jenkins Admin Secret**
+
+   - Creates a Kubernetes secret from GitHub secrets for Jenkins admin login.
+
+1. **Apply Persistent Storage (Optional)**
+
+   - Applies preconfigured storage class, persistent volume, and PVC manifests.
+
+1. **Deploy Jenkins via Helm**
+
+   - Deploys Jenkins with the official Helm chart and a `jenkins_values.yaml` file.
+
+1. **Apply Ingress (Optional)**
+
+   - Applies ingress configuration to expose Jenkins via hostname.
+
+1. **Collect Jenkins Info**
+
+   - Captures `kubectl get svc` and `helm status` output for PR reporting.
+
+1. **Remove Runner IP from SG**
+
+   - Cleans up ingress rule added earlier to restrict cluster access.
+
+1. **Comment Deployment Info on PR**
+
+   - Posts Jenkins deployment status back to the pull request.
+
+______________________________________________________________________
+
+### 📝 Notes
+
+- This workflow supports secure dynamic access by modifying security groups temporarily.
+- It ensures the kubeconfig is valid and readable before executing any Helm or kubectl commands.
+- PR comments allow easy visibility into deployment status without leaving GitHub.
 
 ## Notes
 
@@ -349,24 +495,16 @@ ______________________________________________________________________
 
 ![Kubernetes cluster overview from Lens](screenshots/scr_4.png)<br>
 
-### Kubernetes cluster Nodes overview<br>
+### Kubernetes cluster overview from command line<br>
 
-![Kubernetes cluster Nodes overview](screenshots/scr_5.png)<br>
-
-### Kubernetes cluster Deployments overview<br>
-
-![Kubernetes cluster Deployments overview](screenshots/scr_6.png)<br>
-
-### Kubernetes cluster ConfigMaps overview<br>
-
-![Kubernetes cluster ConfigMaps overview](screenshots/scr_7.png)<br>
-
-### Kubernetes cluster Services overview<br>
-
-![Kubernetes cluster Services overview](screenshots/scr_8.png)<br>
+![Kubernetes cluster overview from command line](screenshots/scr_5.png)<br>
 
 ### Web browser connectivity test<br>
 
-![Web browser connectivity test](screenshots/scr_9.png)<br>
+![Web browser connectivity test](screenshots/scr_6.png)<br>
+
+### Jenkins freestyle job output
+
+![Jenkins freestyle job output](screenshots/scr_7.png)<br>
 
 </details>
