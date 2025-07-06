@@ -28,13 +28,13 @@ else
     # exit 1
 fi
 
-systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service && systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
-if [ $? -eq 0 ]; then
-    echo "====> Amazon SSM Agent service has been enabled and started"
-else
-    echo "====> Failed to enable and start Amazon SSM Agent service"
-    # exit 1
-fi
+# systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service && systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
+# if [ $? -eq 0 ]; then
+#     echo "====> Amazon SSM Agent service has been enabled and started"
+# else
+#     echo "====> Failed to enable and start Amazon SSM Agent service"
+#     # exit 1
+# fi
 
 # Creates token to authenticate and retrieve instance metadata
 TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")

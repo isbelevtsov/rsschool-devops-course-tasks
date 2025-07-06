@@ -71,11 +71,7 @@ resource "null_resource" "wait_for_health_check_bastion" {
 }
 
 resource "null_resource" "provision_bastion" {
-  depends_on = [
-    local_file.ssh_key,
-    aws_instance.bastion,
-    null_resource.wait_for_health_check_bastion
-  ]
+  depends_on = [null_resource.wait_for_health_check_bastion]
 
   provisioner "remote-exec" {
     connection {
@@ -89,7 +85,7 @@ resource "null_resource" "provision_bastion" {
     inline = [
       "sudo apt-get update",
       "sudo apt-get install -y awscli",
-      "sudo systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service && sudo systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service",
+      # "sudo systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service && sudo systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service",
       "export AWS_DEFAULT_REGION='${var.aws_region}'",
       "aws ssm get-parameter --name '${var.key_param_path}' --with-decryption --query \"Parameter.Value\" --output text > ${local_file.ssh_key.filename}",
       "sudo chmod 600 ${local_file.ssh_key.filename}"
@@ -97,9 +93,12 @@ resource "null_resource" "provision_bastion" {
   }
 }
 
-
 resource "aws_instance" "k3s_control_plane" {
-  depends_on                  = [local_file.ssh_key, null_resource.wait_for_health_check_bastion, aws_nat_gateway.natgw]
+  depends_on = [
+    local_file.ssh_key,
+    null_resource.provision_bastion,
+    aws_nat_gateway.natgw
+  ]
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_cp
   subnet_id                   = aws_subnet.private[0].id
@@ -159,121 +158,8 @@ resource "null_resource" "wait_for_health_check_k3s_control_plane" {
   }
 }
 
-data "template_file" "nginx_k3s_conf" {
-  depends_on = [null_resource.wait_for_health_check_k3s_control_plane]
-  template   = file("./templates/nginx_k3s.tpl")
-  vars = {
-    k3s_control_plane_private_ip = aws_instance.k3s_control_plane.private_ip
-  }
-}
-
-resource "aws_ssm_parameter" "nginx_k3s_conf" {
-  depends_on = [data.template_file.nginx_k3s_conf]
-  name       = "/conf/nginx_k3s_conf"
-  type       = "String"
-  value      = data.template_file.nginx_k3s_conf.rendered
-}
-
-data "template_file" "nginx_jenkins_conf" {
-  depends_on = [null_resource.wait_for_health_check_k3s_control_plane]
-  template   = file("./templates/nginx_jenkins.tpl")
-  vars = {
-    k3s_control_plane_private_ip = aws_instance.k3s_control_plane.private_ip
-  }
-}
-
-resource "aws_ssm_parameter" "nginx_jenkins_conf" {
-  depends_on = [data.template_file.nginx_jenkins_conf]
-  name       = "/conf/nginx_jenkins_conf"
-  type       = "String"
-  value      = data.template_file.nginx_jenkins_conf.rendered
-}
-
-# resource "aws_ssm_document" "apply_nginx_conf" {
-#   depends_on    = [null_resource.wait_for_health_check_bastion, null_resource.provision_bastion, aws_ssm_parameter.nginx_k3s_conf, aws_ssm_parameter.nginx_jenkins_conf]
-#   name          = "apply_nginx_conf_ssm"
-#   document_type = "Command"
-#   content = jsonencode({
-#     schemaVersion = "2.2",
-#     description   = "Apply nginx reverse proxy k3s config, copy extra files, restart service, and run post-restart command",
-#     mainSteps = [
-#       {
-#         action = "aws:runShellScript",
-#         name   = "applyConfigAndCopyFiles",
-#         inputs = {
-#           runCommand = [
-#             "for param in nginx_k3s_conf nginx_jenkins_conf; do",
-#             "  for i in {1..5}; do",
-#             "    VALUE=$(aws ssm get-parameter --name \"/conf/$param\" --query \"Parameter.Value\" --output text 2>/dev/null)",
-#             "    if [ -n \"$VALUE\" ] && [[ \"$VALUE\" != *'ParameterNotFound'* ]]; then",
-#             "      if [ \"$param\" = 'nginx_k3s_conf' ]; then",
-#             "        echo \"$VALUE\" > /etc/nginx/modules-enabled/k3s.conf",
-#             "      else",
-#             "        echo \"$VALUE\" > /etc/nginx/conf.d/jenkins.conf",
-#             "      fi",
-#             "      break",
-#             "    fi",
-#             "    echo \"Retrying $param...\"; sleep 5",
-#             "  done",
-#             "done",
-#             "sudo nginx -t || { echo 'NGINX config test failed'; exit 1; }",
-#             "sudo systemctl restart nginx && sudo systemctl enable nginx"
-#           ]
-#         }
-#       }
-#     ]
-#   })
-# }
-
-# resource "aws_ssm_association" "apply_nginx_conf_association" {
-#   name = aws_ssm_document.apply_nginx_conf.name
-#   targets {
-#     key    = "InstanceIds"
-#     values = [aws_instance.bastion.id]
-#   }
-# }
-
-resource "null_resource" "apply_nginx_config" {
-  depends_on = [
-    null_resource.provision_bastion,
-    aws_ssm_parameter.nginx_k3s_conf,
-    aws_ssm_parameter.nginx_jenkins_conf
-  ]
-
-  provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      host        = aws_instance.bastion.public_ip
-      user        = "ubuntu"
-      private_key = file(local_file.ssh_key.filename)
-    }
-
-    inline = [
-      "for param in nginx_k3s_conf nginx_jenkins_conf; do",
-      "  for i in {1..5}; do",
-      "    VALUE=$(aws ssm get-parameter --name \"/conf/$param\" --query \"Parameter.Value\" --output text 2>/dev/null)",
-      "    if [ -n \"$VALUE\" ]; then",
-      "      if [ \"$param\" = 'nginx_k3s_conf' ]; then",
-      "        echo \"$VALUE\" | sudo tee /etc/nginx/modules-enabled/k3s.conf > /dev/null",
-      "      else",
-      "        echo \"$VALUE\" | sudo tee /etc/nginx/conf.d/jenkins.conf > /dev/null",
-      "      fi",
-      "      break",
-      "    fi",
-      "    sleep 5",
-      "  done",
-      "done",
-      "sudo nginx -t && sudo systemctl restart nginx"
-    ]
-  }
-}
-
 resource "null_resource" "provision_k3s_control_plane" {
-  depends_on = [
-    local_file.ssh_key,
-    null_resource.wait_for_health_check_bastion,
-    null_resource.wait_for_health_check_k3s_control_plane
-  ]
+  depends_on = [null_resource.wait_for_health_check_k3s_control_plane]
 
   provisioner "remote-exec" {
     connection {
@@ -302,7 +188,11 @@ resource "null_resource" "provision_k3s_control_plane" {
 }
 
 resource "aws_instance" "k3s_worker" {
-  depends_on                  = [local_file.ssh_key, null_resource.provision_k3s_control_plane, aws_nat_gateway.natgw]
+  depends_on = [
+    local_file.ssh_key,
+    null_resource.provision_k3s_control_plane,
+    aws_nat_gateway.natgw
+  ]
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_worker
   subnet_id                   = aws_subnet.private[1].id
@@ -364,12 +254,7 @@ resource "null_resource" "wait_for_health_check_k3s_worker" {
 }
 
 resource "null_resource" "provision_k3s_worker" {
-  depends_on = [
-    local_file.ssh_key,
-    null_resource.wait_for_health_check_bastion,
-    null_resource.wait_for_health_check_k3s_control_plane,
-    null_resource.wait_for_health_check_k3s_worker
-  ]
+  depends_on = [null_resource.wait_for_health_check_k3s_worker]
 
   provisioner "remote-exec" {
     connection {
@@ -395,3 +280,112 @@ resource "null_resource" "provision_k3s_worker" {
     ]
   }
 }
+
+data "template_file" "nginx_k3s_conf" {
+  depends_on = [null_resource.provision_k3s_worker]
+  template   = file("./templates/nginx_k3s.tpl")
+  vars = {
+    k3s_control_plane_private_ip = aws_instance.k3s_control_plane.private_ip
+  }
+}
+
+resource "aws_ssm_parameter" "nginx_k3s_conf" {
+  depends_on = [data.template_file.nginx_k3s_conf]
+  name       = "/conf/nginx_k3s_conf"
+  type       = "String"
+  value      = data.template_file.nginx_k3s_conf.rendered
+}
+
+data "template_file" "nginx_jenkins_conf" {
+  depends_on = [null_resource.provision_k3s_worker]
+  template   = file("./templates/nginx_jenkins.tpl")
+  vars = {
+    k3s_control_plane_private_ip = aws_instance.k3s_control_plane.private_ip
+  }
+}
+
+resource "aws_ssm_parameter" "nginx_jenkins_conf" {
+  depends_on = [data.template_file.nginx_jenkins_conf]
+  name       = "/conf/nginx_jenkins_conf"
+  type       = "String"
+  value      = data.template_file.nginx_jenkins_conf.rendered
+}
+
+resource "null_resource" "apply_nginx_config" {
+  depends_on = [
+    null_resource.provision_k3s_worker,
+    aws_ssm_parameter.nginx_k3s_conf,
+    aws_ssm_parameter.nginx_jenkins_conf
+  ]
+
+  provisioner "remote-exec" {
+    connection {
+      type        = "ssh"
+      host        = aws_instance.bastion.public_ip
+      user        = "ubuntu"
+      private_key = file(local_file.ssh_key.filename)
+    }
+
+    inline = [
+      "for param in nginx_k3s_conf nginx_jenkins_conf; do",
+      "  for i in {1..5}; do",
+      "    VALUE=$(aws ssm get-parameter --name \"/conf/$param\" --query \"Parameter.Value\" --output text 2>/dev/null)",
+      "    if [ -n \"$VALUE\" ]; then",
+      "      if [ \"$param\" = 'nginx_k3s_conf' ]; then",
+      "        echo \"$VALUE\" | sudo tee /etc/nginx/modules-enabled/k3s.conf > /dev/null",
+      "      else",
+      "        echo \"$VALUE\" | sudo tee /etc/nginx/conf.d/jenkins.conf > /dev/null",
+      "      fi",
+      "      break",
+      "    fi",
+      "    sleep 5",
+      "  done",
+      "done",
+      "sudo nginx -t && sudo systemctl restart nginx"
+    ]
+  }
+}
+
+# resource "aws_ssm_document" "apply_nginx_conf" {
+#   depends_on    = [null_resource.wait_for_health_check_bastion, null_resource.provision_bastion, aws_ssm_parameter.nginx_k3s_conf, aws_ssm_parameter.nginx_jenkins_conf]
+#   name          = "apply_nginx_conf_ssm"
+#   document_type = "Command"
+#   content = jsonencode({
+#     schemaVersion = "2.2",
+#     description   = "Apply nginx reverse proxy k3s config, copy extra files, restart service, and run post-restart command",
+#     mainSteps = [
+#       {
+#         action = "aws:runShellScript",
+#         name   = "applyConfigAndCopyFiles",
+#         inputs = {
+#           runCommand = [
+#             "for param in nginx_k3s_conf nginx_jenkins_conf; do",
+#             "  for i in {1..5}; do",
+#             "    VALUE=$(aws ssm get-parameter --name \"/conf/$param\" --query \"Parameter.Value\" --output text 2>/dev/null)",
+#             "    if [ -n \"$VALUE\" ] && [[ \"$VALUE\" != *'ParameterNotFound'* ]]; then",
+#             "      if [ \"$param\" = 'nginx_k3s_conf' ]; then",
+#             "        echo \"$VALUE\" > /etc/nginx/modules-enabled/k3s.conf",
+#             "      else",
+#             "        echo \"$VALUE\" > /etc/nginx/conf.d/jenkins.conf",
+#             "      fi",
+#             "      break",
+#             "    fi",
+#             "    echo \"Retrying $param...\"; sleep 5",
+#             "  done",
+#             "done",
+#             "sudo nginx -t || { echo 'NGINX config test failed'; exit 1; }",
+#             "sudo systemctl restart nginx && sudo systemctl enable nginx"
+#           ]
+#         }
+#       }
+#     ]
+#   })
+# }
+
+# resource "aws_ssm_association" "apply_nginx_conf_association" {
+#   name = aws_ssm_document.apply_nginx_conf.name
+#   targets {
+#     key    = "InstanceIds"
+#     values = [aws_instance.bastion.id]
+#   }
+# }
