@@ -110,7 +110,7 @@ jobs:
 
       - name: Create Jenkins service account
         run: |
-          kubectl apply -f jenkins_sa.yaml -n jenkins -kubeconfig kubeconfig
+          kubectl apply -f jenkins_sa.yaml -n jenkins --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Create Jenkins Admin Secret

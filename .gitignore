@@ -153,3 +153,4 @@ blackbird.pem
 development/
 **/kubeconfig
 **/test.sh
+**/*.bak
