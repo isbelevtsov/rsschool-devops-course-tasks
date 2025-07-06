@@ -337,7 +337,7 @@ resource "null_resource" "apply_nginx_config" {
       "      if [ \"$param\" = 'nginx_k3s_conf' ]; then",
       "        echo \"$VALUE\" | sudo tee /etc/nginx/modules-enabled/k3s.conf > /dev/null",
       "      else",
-      "        echo \"$VALUE\" | sudo tee /etc/nginx/conf.d/jenkins.conf > /dev/null",
+      "        echo \"$VALUE\" | sudo tee /etc/nginx/sites-enabled/jenkins.conf > /dev/null",
       "      fi",
       "      break",
       "    fi",
