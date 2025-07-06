@@ -196,15 +196,20 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            // 1. Retrieve existing bot comments for the PR
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            })
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('Jenkins Deployment Status')
+            })
+
             const { svc_output, helm_output } = process.env;
 
-            if (!context.issue.number) {
-              console.log("No issue/PR number available in this context. Skipping comment.");
-              return;
-            }
-
-            const body = `
-            ### 🚀 Jenkins Deployment Status
+            // 2. Prepare format of the comment
+            const output = `### 🚀 Jenkins Deployment Status`
 
             #### 🧭 Helm Status:
             \`\`\`
@@ -216,30 +221,23 @@ jobs:
             ${svc_output}
             \`\`\`
 
-            _Workflow: `${context.workflow}`, Commit: \`${context.sha.slice(0, 7)}\`_`;
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TASK_DIR }}\`, Workflow: \`${{ github.workflow }}\`*`;
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const botComment = comments.find(c => c.user.type === "Bot" && c.body.includes("Jenkins Deployment Status"));
-
+            // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {
-              await github.rest.issues.updateComment({
+              github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: botComment.id,
-                body
-              });
+                body: output
+              })
             } else {
-              await github.rest.issues.createComment({
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body
-              });
+                body: output
+              })
             }
 
   destroy_jenkins:
