@@ -12,17 +12,25 @@ resource "aws_security_group" "bastion_sg" {
   }
 
   ingress {
-    description = "Allow kubernetes API from trusted CIDR"
-    from_port   = 6443
-    to_port     = 6443
+    description = "Allow HTTP from trusted CIDR"
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = [var.allowed_ssh_cidr]
   }
 
   ingress {
-    description = "Allow Jenkins from trusted CIDR"
-    from_port   = 8080
-    to_port     = 8080
+    description = "Allow HTTPS from trusted CIDR"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ssh_cidr]
+  }
+
+  ingress {
+    description = "Allow kubernetes API from trusted CIDR"
+    from_port   = 6443
+    to_port     = 6443
     protocol    = "tcp"
     cidr_blocks = [var.allowed_ssh_cidr]
   }

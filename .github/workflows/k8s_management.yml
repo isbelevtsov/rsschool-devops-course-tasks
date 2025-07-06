@@ -113,23 +113,6 @@ jobs:
           kubectl apply -f jenkins_sa.yaml -n jenkins --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
-      - name: Create Jenkins Admin Secret
-        run: |
-          if ! kubectl get secret jenkins-admin jenkins \
-              --kubeconfig kubeconfig > /dev/null 2>&1; then
-            echo "Secret 'jenkins-admin' does not exist. Creating..."
-            kubectl create secret generic jenkins-admin \
-              --namespace jenkins \
-              --from-literal=jenkins-admin-user="${{ env.JENKINS_ADMIN_USER }}" \
-              --from-literal=jenkins-admin-password="${{ env.JENKINS_ADMIN_PASSWORD }}" \
-              --dry-run=client -o yaml \
-              --kubeconfig kubeconfig | \
-            kubectl apply -f - --kubeconfig kubeconfig
-          else
-            echo "Secret 'jenkins-admin' already exists. Skipping creation."
-          fi
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
-
       - name: Apply Persistent Storage Configuration (Optional)
         run: |
           kubectl apply -f jenkins_storage_class.yaml -n jenkins --kubeconfig kubeconfig
@@ -147,9 +130,9 @@ jobs:
           --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
-      - name: Apply Jenkins Ingress (Optional)
+      - name: Apply Jenkins Ingress Route (Optional)
         run: |
-          kubectl apply -f jenkins_ingress.yaml -n jenkins --kubeconfig kubeconfig
+          kubectl apply -f jenkins_ingress_route.yaml -n jenkins --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Collect Jenkins Deployment Info

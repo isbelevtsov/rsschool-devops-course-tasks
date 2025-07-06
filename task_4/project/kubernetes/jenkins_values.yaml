@@ -3,10 +3,8 @@ controller:
     tag: "lts"
 
   admin:
-    userKey: jenkins-admin-user
-    passwordKey: jenkins-admin-password
-    createSecret: false
-    existingSecret: jenkins-admin
+    username: "odmin"
+    createSecret: true
 
   # containerEnv:
   #   # Tell the plugin where to find its config.
@@ -56,8 +54,22 @@ controller:
 
   JCasC:
     defaultConfig: true
+    securityRealm: |-
+      local:
+        allowsSignup: false
+        enableCaptcha: false
+        users:
+        - id: "${chart-admin-username}"
+          name: "Jenkins Admin"
+          password: "${chart-admin-password}"
+        - id: "rsschool"
+          name: "RS School"
+          password: "rs-school"
+    authorizationStrategy: |-
+      loggedInUsersCanDoAnything:
+        allowAnonymousRead: false
     configScripts:
-     welcome-message: |
+     welcome-message: |-
        jenkins:
          systemMessage: Welcome to our RS School DevOps 2025 Q2 course CI\CD server.  This Jenkins is configured and managed 'as code'.
        jobs:
