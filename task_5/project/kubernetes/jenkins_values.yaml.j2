@@ -90,35 +90,17 @@ controller:
           scmCheckoutRetryCount: 2
           disableRememberMe: false
           authorizationStrategy:
-            globalMatrix:
-              permissions:
-                - "Overall/Read:authenticated"
-                - "Overall/Administer:chart-admin"
-                - "Job/Read:authenticated"
-                - "Job/Create:chart-admin"
-                - "Job/Build:authenticated"
-                - "Job/Workspace:authenticated"
-                - "Job/Cancel:authenticated"
-                - "Job/Delete:chart-admin"
-                - "Job/Configure:chart-admin"
-                - "View/Read:authenticated"
-              users:
-                {{ JENKINS_ADMIN_USERNAME }}:
-                  permissions:
-                    - "Overall/Administer"
-                    - "Job/Create"
-                    - "Job/Delete"
-                    - "Job/Configure"
-                    - "View/Create"
-                    - "View/Delete"
-                    - "View/Configure"
-                {{ JENKINS_USER_LOGIN }}:
-                  permissions:
-                    - "Overall/Read"
-                    - "Job/Read"
-                    - "Job/Build"
-                    - "Job/Workspace"
-                    - "Job/Cancel"
+            projectMatrix:
+              entries:
+                - user:
+                    name: {{ JENKINS_ADMIN_USERNAME }}
+                    permissions:
+                      - Overall/Administer
+                - user:
+                    name: {{ JENKINS_USER_LOGIN }}
+                    permissions:
+                      - Overall/Read
+                      - Job/Build
         credentials:
           system:
             domainCredentials:
