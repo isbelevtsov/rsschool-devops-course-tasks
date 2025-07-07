@@ -93,12 +93,6 @@ jobs:
           echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
-      - name: Debug kubeconfig existence
-        run: |
-          ls -lah kubeconfig
-          cat kubeconfig | head -n 5
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
-
       - name: Install helm
         uses: azure/setup-helm@v4.3.0
         with:
@@ -162,15 +156,15 @@ jobs:
           strict: true
           data_format: yaml
           variables: |
-            jenkins_admin_username: ${{ env.JENKINS_ADMIN_USERNAME }}
-            jenkins_admin_password: ${{ env.JENKINS_ADMIN_PASSWORD }}
-            jenkins_user_login: ${{ env.JENKINS_USER_LOGIN }}
-            jenkins_user_display_name: ${{ env.JENKINS_USER_DISPLAY_NAME }}
-            jenkins_user_password: ${{ env.JENKINS_USER_PASSWORD }}
-            jenkins_user_email: ${{ env.JENKINS_USER_EMAIL }}
-            jenkins_url: ${{ env.JENKINS_URL }}
-            gh_jenkins_token: ${{ env.GH_JENKINS_TOKEN }}
-            gh_jenkins_ssh_key: ${{ env.GH_JENKINS_SSH_KEY }}
+            jenkins_admin_username=${{ env.JENKINS_ADMIN_USERNAME }}
+            jenkins_admin_password=${{ env.JENKINS_ADMIN_PASSWORD }}
+            jenkins_user_login=${{ env.JENKINS_USER_LOGIN }}
+            jenkins_user_display_name=${{ env.JENKINS_USER_DISPLAY_NAME }}
+            jenkins_user_password=${{ env.JENKINS_USER_PASSWORD }}
+            jenkins_user_email=${{ env.JENKINS_USER_EMAIL }}
+            jenkins_url=${{ env.JENKINS_URL }}
+            gh_jenkins_token=${{ env.GH_JENKINS_TOKEN }}
+            gh_jenkins_ssh_key=${{ env.GH_JENKINS_SSH_KEY }}
 
       - name: Deploy Jenkins with Helm
         run: |
@@ -327,12 +321,6 @@ jobs:
                 chmod 600 kubeconfig
           sed -i "s|^\( *server: https://\)[^:]*|\1k8s.elysium-space.com|" kubeconfig
           echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
-
-      - name: Debug kubeconfig existence
-        run: |
-          ls -lah kubeconfig
-          cat kubeconfig | head -n 5
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Uninstall Jenkins with Helm
