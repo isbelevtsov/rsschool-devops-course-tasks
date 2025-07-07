@@ -3,8 +3,8 @@ controller:
     tag: "lts"
 
   admin:
-    username: "{{ env['jenkins_admin_username'] }}"
-    password: "{{ env['jenkins_admin_password'] }}"
+    username: "{{ env['JENKINS_ADMIN_USERNAME'] }}"
+    password: "{{ env['JENKINS_ADMIN_PASSWORD'] }}"
     createSecret: true
 
   # containerEnv:
@@ -64,13 +64,13 @@ controller:
         - id: "${chart-admin-username}"
           name: "Jenkins Admin"
           password: "${chart-admin-password}"
-        - id: "{{ env['jenkins_user_login'] }}"
-          name: "{{ env['jenkins_user_display_name'] }}"
-          password: "{{ env['jenkins_user_password'] }}"
+        - id: "{{ env['JENKINS_USER_LOGIN'] }}"
+          name: "{{ env['JENKINS_USER_DISPLAY_NAME'] }}"
+          password: "{{ env['JENKINS_USER_PASSWORD'] }}"
           description: "RS School DevOps 2025 Q2 course student"
           properties:
             - mailer:
-                emailAddress: "{{ env['jenkins_user_email'] }}"
+                emailAddress: "{{ env['JENKINS_USER_EMAIL'] }}"
             - preferredProvider:
                 providerId: "default"
             - timezone:
@@ -98,7 +98,7 @@ controller:
               - "View/Create"
               - "View/Delete"
               - "View/Configure"
-          {{ env['jenkins_user_login'] }}:
+          {{ env['JENKINS_USER_LOGIN'] }}:
             permissions:
               - "Overall/Read"
               - "Job/Read"
@@ -126,7 +126,7 @@ controller:
               - "View/Create"
               - "View/Delete"
               - "View/Configure"
-          {{ env['jenkins_user_login'] }}:
+          {{ env['JENKINS_USER_LOGIN'] }}:
             permissions:
               - "Overall/Read"
               - "Job/Read"
@@ -137,7 +137,7 @@ controller:
      welcome-message: |-
       jenkins:
         systemMessage: Welcome to our RS School DevOps 2025 Q2 course CI\CD server.  This Jenkins is configured and managed 'as code'.
-        jenkinsUrl: "https://{{ env['jenkins_url'] }}"
+        jenkinsUrl: "https://{{ env['JENKINS_URL'] }}"
       credentials:
         system:
           domainCredentials:
@@ -146,13 +146,13 @@ controller:
                 description: "GH_JENKINS_TOKEN"
                 id: "GH_JENKINS_TOKEN"
                 scope: GLOBAL
-                secret: "{{ env['gh_jenkins_token'] }}"
+                secret: "{{ env['GH_JENKINS_TOKEN'] }}"
             - basicSSHUserPrivateKey:
                 description: "GH_JENKINS_SSH_KEY"
                 id: "GH_JENKINS_SSH_KEY"
                 privateKeySource:
                   directEntry:
-                    privateKey: "{{ env['gh_jenkins_ssh_key'] }}"
+                    privateKey: "{{ env['GH_JENKINS_SSH_KEY'] }}"
                 scope: GLOBAL
                 username: "git"
                 usernameSecret: true
@@ -161,10 +161,10 @@ controller:
           configs:
           - credentialsId: "GH_JENKINS_TOKEN"
             name: "Default"
-          hookUrl: "http://{{ env['jenkins_url'] }}/github-webhook/"
+          hookUrl: "http://{{ env['JENKINS_URL'] }}/github-webhook/"
         location:
-          adminAddress: "{{ env['jenkins_user_email'] }}"
-          url: "http://{{ env['jenkins_url'] }}/"
+          adminAddress: "{{ env['JENKINS_USER_EMAIL'] }}"
+          url: "http://{{ env['JENKINS_URL'] }}/"
         scmGit:
           hideCredentials: true
       jobs:
