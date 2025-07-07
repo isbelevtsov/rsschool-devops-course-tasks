@@ -142,15 +142,15 @@ jobs:
       - name: Render Jenkins values manifest for Helm from J2 template
         run: |
           jinja2 jenkins_values.yaml.j2 \
-            -D jenkins_admin_username="${{ env.JENKINS_ADMIN_USERNAME }}" \
-            -D jenkins_admin_password="${{ env.JENKINS_ADMIN_PASSWORD }}" \
-            -D jenkins_user_login="${{ env.JENKINS_USER_LOGIN }}" \
-            -D jenkins_user_display_name="${{ env.JENKINS_USER_DISPLAY_NAME }}" \
-            -D jenkins_user_password="${{ env.JENKINS_USER_PASSWORD }}" \
-            -D jenkins_user_email="${{ env.JENKINS_USER_EMAIL }}" \
-            -D jenkins_url="${{ env.JENKINS_URL }}" \
-            -D gh_jenkins_token="${{ env.GH_JENKINS_TOKEN }}" \
-            -D gh_jenkins_ssh_key="${{ env.GH_JENKINS_SSH_KEY }}" \
+            -D jenkins_admin_username='${{ env.JENKINS_ADMIN_USERNAME }}' \
+            -D jenkins_admin_password='${{ env.JENKINS_ADMIN_PASSWORD }}' \
+            -D jenkins_user_login='${{ env.JENKINS_USER_LOGIN }}' \
+            -D jenkins_user_display_name='${{ env.JENKINS_USER_DISPLAY_NAME }}' \
+            -D jenkins_user_password='${{ env.JENKINS_USER_PASSWORD }}' \
+            -D jenkins_user_email='${{ env.JENKINS_USER_EMAIL }}' \
+            -D jenkins_url='${{ env.JENKINS_URL }}' \
+            -D gh_jenkins_token='${{ env.GH_JENKINS_TOKEN }}' \
+            -D gh_jenkins_ssh_key='${{ env.GH_JENKINS_SSH_KEY }}' \
             > jenkins_values.yaml
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
