@@ -22,15 +22,6 @@ env:
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
   KUBECONFIG_PARAM_PATH: ${{ secrets.KUBECONFIG_PARAM_PATH }} # Set this in GitHub Secrets
   TASK_DIR: task_5/project
-  JENKINS_ADMIN_USERNAME: ${{ secrets.JENKINS_ADMIN_USERNAME }} # Set this in GitHub Secrets
-  JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }} # Set this in GitHub Secrets
-  JENKINS_USER_LOGIN: ${{ secrets.JENKINS_USER_LOGIN }} # Set this in GitHub Secrets
-  JENKINS_USER_DISPLAY_NAME: ${{ secrets.JENKINS_USER_DISPLAY_NAME }} # Set this in GitHub Secrets
-  JENKINS_USER_PASSWORD: ${{ secrets.JENKINS_USER_PASSWORD }} # Set this in GitHub Secrets
-  JENKINS_USER_EMAIL: ${{ secrets.JENKINS_USER_EMAIL }} # Set this in GitHub Secrets
-  JENKINS_URL: ${{ secrets.JENKINS_URL }} # Set this in GitHub Secrets
-  GH_JENKINS_TOKEN: ${{ secrets.GH_JENKINS_TOKEN }} # Set this in GitHub Secrets
-  GH_JENKINS_SSH_KEY: ${{ secrets.GH_JENKINS_SSH_KEY }} # Set this in GitHub Secrets
 
 permissions:
   id-token: write  # Required for OIDC token exchange
@@ -153,8 +144,17 @@ jobs:
         with:
           template: task_5/project/kubernetes/jenkins_values.yaml.j2
           output_file: task_5/project/kubernetes/jenkins_values.yaml
-          strict: true
           data_format: yaml
+        env:
+          JENKINS_ADMIN_USERNAME: ${{ secrets.JENKINS_ADMIN_USERNAME }} # Set this in GitHub Secrets
+          JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }} # Set this in GitHub Secrets
+          JENKINS_USER_LOGIN: ${{ secrets.JENKINS_USER_LOGIN }} # Set this in GitHub Secrets
+          JENKINS_USER_DISPLAY_NAME: ${{ secrets.JENKINS_USER_DISPLAY_NAME }} # Set this in GitHub Secrets
+          JENKINS_USER_PASSWORD: ${{ secrets.JENKINS_USER_PASSWORD }} # Set this in GitHub Secrets
+          JENKINS_USER_EMAIL: ${{ secrets.JENKINS_USER_EMAIL }} # Set this in GitHub Secrets
+          JENKINS_URL: ${{ secrets.JENKINS_URL }} # Set this in GitHub Secrets
+          GH_JENKINS_TOKEN: ${{ secrets.GH_JENKINS_TOKEN }} # Set this in GitHub Secrets
+          GH_JENKINS_SSH_KEY: ${{ secrets.GH_JENKINS_SSH_KEY }} # Set this in GitHub Secrets
 
       - name: Deploy Jenkins with Helm
         run: |
