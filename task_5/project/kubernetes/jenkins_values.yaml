@@ -1,0 +1,195 @@
+controller:
+  image:
+    tag: "lts"
+
+  admin:
+    username: "odmin"
+    createSecret: true
+
+  # containerEnv:
+  #   # Tell the plugin where to find its config.
+  #   - name: CASC_JENKINS_CONFIG
+  #     value: /var/jenkins_home/casc_configs/jenkins.yaml
+
+  serviceType: ClusterIP
+  servicePort: 8080
+
+  jenkinsHome: /var/jenkins_home
+
+  installPlugins:
+    - kubernetes:latest
+    - kubernetes-credentials:latest
+    - git:latest
+    - configuration-as-code:latest
+    - workflow-aggregator:latest
+    - workflow-job:latest
+    - job-dsl:latest
+    - github:latest
+
+  persistence:
+    enabled: true
+    existingClaim: jenkins-pvc
+    storageClass: jenkins-pv
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 3000
+
+  containerSecurityContext:
+    runAsUser: 1000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+  JCasC:
+    defaultConfig: true
+    securityRealm: |-
+      local:
+        allowsSignup: false
+        enableCaptcha: false
+        users:
+        - id: "${chart-admin-username}"
+          name: "Jenkins Admin"
+          password: "${chart-admin-password}"
+        - id: "rsschool"
+          name: "RS School"
+          password: "rs-school"
+          description: "RS School DevOps 2025 Q2 course student"
+          properties:
+            - mailer:
+                emailAddress: "rs@devops.com"
+            - preferredProvider:
+                providerId: "default"
+            - timezone:
+                timeZoneName: "Europe/Kyiv"
+    authorizationStrategy: |-
+      globalMatrix:
+        permissions:
+          - "Overall/Read:authenticated"
+          - "Overall/Administer:chart-admin"
+          - "Job/Read:authenticated"
+          - "Job/Create:chart-admin"
+          - "Job/Build:authenticated"
+          - "Job/Workspace:authenticated"
+          - "Job/Cancel:authenticated"
+          - "Job/Delete:chart-admin"
+          - "Job/Configure:chart-admin"
+          - "View/Read:authenticated"
+        users:
+          chart-admin:
+            permissions:
+              - "Overall/Administer"
+              - "Job/Create"
+              - "Job/Delete"
+              - "Job/Configure"
+              - "View/Create"
+              - "View/Delete"
+              - "View/Configure"
+          rsschool:
+            permissions:
+              - "Overall/Read"
+              - "Job/Read"
+              - "Job/Build"
+              - "Job/Workspace"
+              - "Job/Cancel"
+      projectMatrix:
+        permissions:
+          - "Overall/Read:authenticated"
+          - "Job/Read:authenticated"
+          - "Job/Build:authenticated"
+          - "Job/Workspace:authenticated"
+          - "Job/Cancel:authenticated"
+          - "Job/Create:authenticated"
+          - "Job/Delete:authenticated"
+          - "Job/Configure:authenticated"
+          - "View/Read:authenticated"
+        users:
+          chart-admin:
+            permissions:
+              - "Overall/Administer"
+              - "Job/Create"
+              - "Job/Delete"
+              - "Job/Configure"
+              - "View/Create"
+              - "View/Delete"
+              - "View/Configure"
+          rsschool:
+            permissions:
+              - "Overall/Read"
+              - "Job/Read"
+              - "Job/Build"
+              - "Job/Workspace"
+              - "Job/Cancel"
+    configScripts:
+     welcome-message: |-
+      jenkins:
+        systemMessage: Welcome to our RS School DevOps 2025 Q2 course CI\CD server.  This Jenkins is configured and managed 'as code'.
+        jenkinsUrl: "https://jenkins.elysium-space.com"
+      credentials:
+        system:
+          domainCredentials:
+          - credentials:
+            - string:
+                description: "GH_JENKINS_TOKEN"
+                id: "GH_JENKINS_TOKEN"
+                scope: GLOBAL
+                secret: "{AQAAABAAAAAwtef/GwdiuivpcygYK4z9yzGj+uu2tqimVNcig4Adci6jjZYI6d2KvbePBgwOtQH97ATHVqHfQ8GyhLJvilZSRA==}"
+            - basicSSHUserPrivateKey:
+                description: "GH_JENKINS_SSH_KEY"
+                id: "GH_JENKINS_SSH_KEY"
+                privateKeySource:
+                  directEntry:
+                    privateKey: "{AQAAABAAAAIQlidNDnsLL5+hm0cTe63zsZC7MAt/CNDPgJ/p2oZcg9QT572hIfo+IfHz1nWyNBSiX7aYkREyVvVgo5YmPlFyWdf0evXvk1XPGFX4f/lTqPjLyUPo+oP5a5qRKAlACL4IWp8s6pKMyePPppmmZJSWJ1jkRj+ziq5vS/CGi1A6iIff/ipgqES3G5ok4x6O26pRb9AZt+lniaDoQgrXboO+VxId5ksmUROsMqY/7M8sCwfoEaVmZz48DlXkXuIpaiX3OeTTpIK2O2vL5XFdCi77AUIp+uLkpPe4MFUPCLDpob0y6YUcG2BTMg9iBaVgFj50iWU1u51JCZwJQ1Dw9jgDF954ajslW7lkpLhFNkjv55tTrQXRl6/m8khLEygGs44HSu/eaCfYYUioeZHgKTmLHtbpn0Ni7mabfVyqLIczsJ0QKkNFYuuCjr4OxIqq8Wj3tdV0HTVllYmfjNQ5gYBLI9Cguozvj0FkevNV0MePszwd15ZsT70/RhPrKv6GA3dOX0ylunOBJ83VG3Jlrzyuwn9i5z2soZnuZT+jgouZQ64XEp8rv/5muiZ2Hs5Ec1T7XnUys83SluVzviCu9UK75LqKaZ7oEFeQf4imNYiOf0pg/02KHz4+OY7AcixQLGiDDNLOiw9+nzSEhHpczRPgEptBV6sQj91CzVIw1MjVfQD6HruqeDgy53xO5iFXrQzXHm2gUrch5ElZiM3g1HdZQA==}"
+                scope: GLOBAL
+                username: "git"
+                usernameSecret: true
+      unclassified:
+        gitHubPluginConfig:
+          configs:
+          - credentialsId: "GH_JENKINS_TOKEN"
+            name: "Default"
+          hookUrl: "http://jenkins.elysium-space.com/github-webhook/"
+        location:
+          adminAddress: "rs@devops.com"
+          url: "http://jenkins.elysium-space.com/"
+        scmGit:
+          hideCredentials: true
+      jobs:
+        - script: >
+          pipelineJob('test-job') {
+            definition {
+              cps {
+                script('''
+                  pipeline {
+                          agent any
+                          stages {
+                              stage('Stage 1') {
+                                  steps {
+                                      echo 'Hello World!'
+                                  }
+                              }
+                              stage('Stage 2') {
+                                  steps {
+                                      echo 'Is it me your looking for'
+                                  }
+                              }
+                          }
+
+                  }
+                '''.stripIndent())
+                sandbox()
+              }
+            }
+          }

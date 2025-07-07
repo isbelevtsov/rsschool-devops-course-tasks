@@ -1,0 +1,35 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = ">= 2.0.0"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = ">= 3.0.0"
+    }
+    template = {
+      source  = "hashicorp/template"
+      version = "~> 2.2.0"
+    }
+  }
+
+  required_version = ">= 1.3.0"
+}
+
+provider "aws" {
+  region = var.aws_region
+  default_tags {
+    tags = {
+      "Course"    = "RSSchool DevOps Course"
+      "Task"      = "4. Jenkins Installation and Configuration"
+      "ManagedBy" = "Terraform"
+      "CI"        = "GitHub Actions"
+      "Date"      = "2025-07-05"
+    }
+  }
+}

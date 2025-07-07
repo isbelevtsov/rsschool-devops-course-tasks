@@ -1,0 +1,196 @@
+controller:
+  image:
+    tag: "lts"
+
+  admin:
+    username: "{{ jenkins-admin-username }}"
+    password: "{{ jenkins-admin-password }}"
+    createSecret: true
+
+  # containerEnv:
+  #   # Tell the plugin where to find its config.
+  #   - name: CASC_JENKINS_CONFIG
+  #     value: /var/jenkins_home/casc_configs/jenkins.yaml
+
+  serviceType: ClusterIP
+  servicePort: 8080
+
+  jenkinsHome: /var/jenkins_home
+
+  installPlugins:
+    - kubernetes:latest
+    - kubernetes-credentials:latest
+    - git:latest
+    - configuration-as-code:latest
+    - workflow-aggregator:latest
+    - workflow-job:latest
+    - job-dsl:latest
+    - github:latest
+
+  persistence:
+    enabled: true
+    existingClaim: jenkins-pvc
+    storageClass: jenkins-pv
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 3000
+
+  containerSecurityContext:
+    runAsUser: 1000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+  JCasC:
+    defaultConfig: true
+    securityRealm: |-
+      local:
+        allowsSignup: false
+        enableCaptcha: false
+        users:
+        - id: "${chart-admin-username}"
+          name: "Jenkins Admin"
+          password: "${chart-admin-password}"
+        - id: "{{ jenkins-user-login }}"
+          name: "{{ jenkins-user-display-name }}"
+          password: "{{ jenkins-user-password }}"
+          description: "RS School DevOps 2025 Q2 course student"
+          properties:
+            - mailer:
+                emailAddress: "{{ jenkins-user-email }}"
+            - preferredProvider:
+                providerId: "default"
+            - timezone:
+                timeZoneName: "Europe/Kyiv"
+    authorizationStrategy: |-
+      globalMatrix:
+        permissions:
+          - "Overall/Read:authenticated"
+          - "Overall/Administer:chart-admin"
+          - "Job/Read:authenticated"
+          - "Job/Create:chart-admin"
+          - "Job/Build:authenticated"
+          - "Job/Workspace:authenticated"
+          - "Job/Cancel:authenticated"
+          - "Job/Delete:chart-admin"
+          - "Job/Configure:chart-admin"
+          - "View/Read:authenticated"
+        users:
+          chart-admin:
+            permissions:
+              - "Overall/Administer"
+              - "Job/Create"
+              - "Job/Delete"
+              - "Job/Configure"
+              - "View/Create"
+              - "View/Delete"
+              - "View/Configure"
+          {{ jenkins-user-login }}:
+            permissions:
+              - "Overall/Read"
+              - "Job/Read"
+              - "Job/Build"
+              - "Job/Workspace"
+              - "Job/Cancel"
+      projectMatrix:
+        permissions:
+          - "Overall/Read:authenticated"
+          - "Job/Read:authenticated"
+          - "Job/Build:authenticated"
+          - "Job/Workspace:authenticated"
+          - "Job/Cancel:authenticated"
+          - "Job/Create:authenticated"
+          - "Job/Delete:authenticated"
+          - "Job/Configure:authenticated"
+          - "View/Read:authenticated"
+        users:
+          chart-admin:
+            permissions:
+              - "Overall/Administer"
+              - "Job/Create"
+              - "Job/Delete"
+              - "Job/Configure"
+              - "View/Create"
+              - "View/Delete"
+              - "View/Configure"
+          {{ jenkins-user-login }}:
+            permissions:
+              - "Overall/Read"
+              - "Job/Read"
+              - "Job/Build"
+              - "Job/Workspace"
+              - "Job/Cancel"
+    configScripts:
+     welcome-message: |-
+      jenkins:
+        systemMessage: Welcome to our RS School DevOps 2025 Q2 course CI\CD server.  This Jenkins is configured and managed 'as code'.
+        jenkinsUrl: "https://{{ jenkins-url }}"
+      credentials:
+        system:
+          domainCredentials:
+          - credentials:
+            - string:
+                description: "GH_JENKINS_TOKEN"
+                id: "GH_JENKINS_TOKEN"
+                scope: GLOBAL
+                secret: "{{ gh-jenkins-token }}"
+            - basicSSHUserPrivateKey:
+                description: "GH_JENKINS_SSH_KEY"
+                id: "GH_JENKINS_SSH_KEY"
+                privateKeySource:
+                  directEntry:
+                    privateKey: "{{ gh-jenkins-ssh-key }}"
+                scope: GLOBAL
+                username: "git"
+                usernameSecret: true
+      unclassified:
+        gitHubPluginConfig:
+          configs:
+          - credentialsId: "GH_JENKINS_TOKEN"
+            name: "Default"
+          hookUrl: "http://{{ jenkins-url }}/github-webhook/"
+        location:
+          adminAddress: "{{ jenkins-user-email }}"
+          url: "http://{{ jenkins-url }}/"
+        scmGit:
+          hideCredentials: true
+      jobs:
+        - script: >
+          pipelineJob('test-job') {
+            definition {
+              cps {
+                script('''
+                  pipeline {
+                          agent any
+                          stages {
+                              stage('Stage 1') {
+                                  steps {
+                                      echo 'Hello World!'
+                                  }
+                              }
+                              stage('Stage 2') {
+                                  steps {
+                                      echo 'Is it me your looking for'
+                                  }
+                              }
+                          }
+
+                  }
+                '''.stripIndent())
+                sandbox()
+              }
+            }
+          }

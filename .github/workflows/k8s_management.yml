@@ -21,9 +21,17 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
   JENKINS_ADMIN_USER: ${{ secrets.JENKINS_ADMIN_USER }}
-  JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }}
   KUBECONFIG_PARAM_PATH: ${{ secrets.KUBECONFIG_PARAM_PATH }} # Set this in GitHub Secrets
   TASK_DIR: task_4/project
+  JENKINS_ADMIN_USERNAME: ${{ secrets.JENKINS_ADMIN_USERNAME }} # Set this in GitHub Secrets
+  JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }} # Set this in GitHub Secrets
+  JENKINS_USER_LOGIN: ${{ secrets.JENKINS_USER_LOGIN }} # Set this in GitHub Secrets
+  JENKINS_USER_DISPLAY_NAME: ${{ secrets.JENKINS_USER_DISPLAY_NAME }} # Set this in GitHub Secrets
+  JENKINS_USER_PASSWORD: ${{ secrets.JENKINS_USER_PASSWORD }} # Set this in GitHub Secrets
+  JENKINS_USER_EMAIL: ${{ secrets.JENKINS_USER_EMAIL }} # Set this in GitHub Secrets
+  JENKINS_URL: ${{ vars.JENKINS_URL }} # Set this in GitHub Secrets
+  GH_JENKINS_TOKEN: ${{ secrets.GH_JENKINS_TOKEN }} # Set this in GitHub Secrets
+  GH_JENKINS_SSH_KEY: ${{ secrets.GH_JENKINS_SSH_KEY }} # Set this in GitHub Secrets
 
 permissions:
   id-token: write  # Required for OIDC token exchange
@@ -56,7 +64,10 @@ jobs:
 
       - name: Save Bastion SG ID
         run: |
-          echo "BASTION_SG_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=*bastion*" --query "SecurityGroups[*].GroupId" --output text)" >> $GITHUB_ENV
+          echo "BASTION_SG_ID=$(aws ec2 describe-security-groups \
+            --filters "Name=tag:Name,Values=*bastion*" \
+            --query "SecurityGroups[*].GroupId" \
+            --output text)" >> $GITHUB_ENV
         working-directory: ${{ env.TASK_DIR }}
 
       - name: Add GitHub Runner IP to Security Group
@@ -113,28 +124,35 @@ jobs:
           kubectl apply -f jenkins_sa.yaml -n jenkins --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
-      - name: Create Jenkins Admin Secret
-        run: |
-          if ! kubectl get secret jenkins-admin jenkins \
-              --kubeconfig kubeconfig > /dev/null 2>&1; then
-            echo "Secret 'jenkins-admin' does not exist. Creating..."
-            kubectl create secret generic jenkins-admin \
-              --namespace jenkins \
-              --from-literal=jenkins-admin-user="${{ env.JENKINS_ADMIN_USER }}" \
-              --from-literal=jenkins-admin-password="${{ env.JENKINS_ADMIN_PASSWORD }}" \
-              --dry-run=client -o yaml \
-              --kubeconfig kubeconfig | \
-            kubectl apply -f - --kubeconfig kubeconfig
-          else
-            echo "Secret 'jenkins-admin' already exists. Skipping creation."
-          fi
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
-
       - name: Apply Persistent Storage Configuration (Optional)
         run: |
           kubectl apply -f jenkins_storage_class.yaml -n jenkins --kubeconfig kubeconfig
           kubectl apply -f jenkins_pv.yaml -n jenkins --kubeconfig kubeconfig
           kubectl apply -f jenkins_pvc.yaml -n jenkins --kubeconfig kubeconfig
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Jinja2 CLI
+        run: |
+          pip install jinja2-cli
+
+      - name: Render Jenkins values manifest for Helm from J2 template
+        run: |
+          jinja2 jenkins_values.yaml.j2 \
+            -D jenkins_admin_username="${{ env.JENKINS_ADMIN_USERNAME }}" \
+            -D jenkins_admin_password="${{ env.JENKINS_ADMIN_PASSWORD }}" \
+            -D jenkins_user_login="${{ env.JENKINS_USER_LOGIN }}" \
+            -D jenkins_user_display_name="${{ env.JENKINS_USER_DISPLAY_NAME }}" \
+            -D jenkins_user_password="${{ env.JENKINS_USER_PASSWORD }}" \
+            -D jenkins_user_email="${{ env.JENKINS_USER_EMAIL }}" \
+            -D jenkins_url="${{ env.JENKINS_URL }}" \
+            -D gh_jenkins_token="${{ env.GH_JENKINS_TOKEN }}" \
+            -D gh_jenkins_ssh_key="${{ env.GH_JENKINS_SSH_KEY }}" \
+            > jenkins_values.yaml
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Deploy Jenkins with Helm
@@ -147,9 +165,9 @@ jobs:
           --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
-      - name: Apply Jenkins Ingress (Optional)
+      - name: Apply Jenkins Ingress Route (Optional)
         run: |
-          kubectl apply -f jenkins_ingress.yaml -n jenkins --kubeconfig kubeconfig
+          kubectl apply -f jenkins_ingress_route.yaml -n jenkins --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Collect Jenkins Deployment Info
@@ -188,7 +206,7 @@ jobs:
             --cidr $RUNNER_IP
 
       - name: Comment Jenkins Deployment Info on PR
-        if: success()
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           svc_output: ${{ steps.jenkins-info.outputs.svc_output }}
@@ -196,9 +214,20 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            // 1. Retrieve existing bot comments for the PR
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            })
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('Jenkins Deployment Status')
+            })
+
             const { svc_output, helm_output } = process.env;
-            const body = `
-            ### 🚀 Jenkins Deployment Status
+
+            // 2. Prepare format of the comment
+            const output = `### 🚀 Jenkins Deployment Status`
 
             #### 🧭 Helm Status:
             \`\`\`
@@ -210,30 +239,23 @@ jobs:
             ${svc_output}
             \`\`\`
 
-            _Workflow: \`${{ github.workflow }}\`, Commit: \`${context.sha.slice(0, 7)}\`_`;
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TASK_DIR }}\`, Workflow: \`${{ github.workflow }}\`*`;
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const botComment = comments.find(c => c.user.type === "Bot" && c.body.includes("Jenkins Deployment Status"));
-
+            // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {
-              await github.rest.issues.updateComment({
+              github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: botComment.id,
-                body
-              });
+                body: output
+              })
             } else {
-              await github.rest.issues.createComment({
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body
-              });
+                body: output
+              })
             }
 
   destroy_jenkins:
@@ -260,7 +282,10 @@ jobs:
 
       - name: Save Bastion SG ID
         run: |
-          echo "BASTION_SG_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=*bastion*" --query "SecurityGroups[*].GroupId" --output text)" >> $GITHUB_ENV
+          echo "BASTION_SG_ID=$(aws ec2 describe-security-groups \
+            --filters "Name=tag:Name,Values=*bastion*" \
+            --query "SecurityGroups[*].GroupId" \
+            --output text)" >> $GITHUB_ENV
         working-directory: ${{ env.TASK_DIR }}
 
       - name: Add GitHub Runner IP to Security Group
@@ -300,12 +325,12 @@ jobs:
 
       - name: Delete Kubernetes Resources
         run: |
-          kubectl delete -f jenkins_ingress.yaml --kubeconfig kubeconfig --ignore-not-found
-          kubectl delete -f jenkins_pvc.yaml --kubeconfig kubeconfig --ignore-not-found
+          kubectl delete -f jenkins_ingress_route.yaml --kubeconfig kubeconfig --ignore-not-found
           kubectl delete -f jenkins_pv.yaml --kubeconfig kubeconfig --ignore-not-found
+          kubectl delete -f jenkins_pvc.yaml --kubeconfig kubeconfig --ignore-not-found
+          kubectl delete -f jenkins_sa.yaml --namespace jenkins --kubeconfig kubeconfig --ignore-not-found
           kubectl delete -f jenkins_storage_class.yaml --kubeconfig kubeconfig --ignore-not-found
           kubectl delete secret jenkins-admin --namespace jenkins --kubeconfig kubeconfig --ignore-not-found
-          kubectl delete -f jenkins_sa.yaml --namespace jenkins --kubeconfig kubeconfig --ignore-not-found
           kubectl delete namespace jenkins --kubeconfig kubeconfig --ignore-not-found
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
