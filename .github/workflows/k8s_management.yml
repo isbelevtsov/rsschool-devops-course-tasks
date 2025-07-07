@@ -20,16 +20,15 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
-  JENKINS_ADMIN_USER: ${{ secrets.JENKINS_ADMIN_USER }}
   KUBECONFIG_PARAM_PATH: ${{ secrets.KUBECONFIG_PARAM_PATH }} # Set this in GitHub Secrets
-  TASK_DIR: task_4/project
+  TASK_DIR: task_5/project
   JENKINS_ADMIN_USERNAME: ${{ secrets.JENKINS_ADMIN_USERNAME }} # Set this in GitHub Secrets
   JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }} # Set this in GitHub Secrets
   JENKINS_USER_LOGIN: ${{ secrets.JENKINS_USER_LOGIN }} # Set this in GitHub Secrets
   JENKINS_USER_DISPLAY_NAME: ${{ secrets.JENKINS_USER_DISPLAY_NAME }} # Set this in GitHub Secrets
   JENKINS_USER_PASSWORD: ${{ secrets.JENKINS_USER_PASSWORD }} # Set this in GitHub Secrets
   JENKINS_USER_EMAIL: ${{ secrets.JENKINS_USER_EMAIL }} # Set this in GitHub Secrets
-  JENKINS_URL: ${{ vars.JENKINS_URL }} # Set this in GitHub Secrets
+  JENKINS_URL: ${{ secrets.JENKINS_URL }} # Set this in GitHub Secrets
   GH_JENKINS_TOKEN: ${{ secrets.GH_JENKINS_TOKEN }} # Set this in GitHub Secrets
   GH_JENKINS_SSH_KEY: ${{ secrets.GH_JENKINS_SSH_KEY }} # Set this in GitHub Secrets
 
