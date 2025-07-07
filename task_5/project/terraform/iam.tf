@@ -53,7 +53,8 @@ resource "aws_iam_policy" "bastion_policy" {
         Resource = [
           "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.key_param_path}",
           "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/conf/nginx_k3s_conf",
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/conf/nginx_jenkins_conf"
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/conf/nginx_jenkins_conf",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/conf/nginx_flask_conf"
         ]
       },
       {

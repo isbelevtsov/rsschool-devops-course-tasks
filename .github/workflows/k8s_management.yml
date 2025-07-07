@@ -8,7 +8,9 @@ on:
         type: choice
         options:
           - deploy Jenkins
+          - deploy Flask
           - destroy Jenkins
+          - destroy Flask
 
   # workflow_run:
   #   workflows: ["Infrastructure Deployment"]
@@ -136,25 +138,10 @@ jobs:
             -D JENKINS_URL='${{ secrets.JENKINS_URL }}' \
             -D GH_JENKINS_TOKEN='${{ secrets.GH_JENKINS_TOKEN }}' \
             -D GH_JENKINS_SSH_KEY='${{ secrets.GH_JENKINS_SSH_KEY }}' \
+            -D DOCKER_HUB_USERNAME='${{ secrets.DOCKER_HUB_USERNAME }}' \
+            -D DOCKER_HUB_PASSWORD='${{ secrets.DOCKER_HUB_PASSWORD }}' \
             > jenkins_values.yaml
         working-directory: ${{ env.TASK_DIR }}/kubernetes
-
-      # - name: Render Jenkins values manifest for Helm from J2 template
-      #   uses: cuchi/jinja2-action@v1.3.0
-      #   with:
-      #     template: task_5/project/kubernetes/jenkins_values.yaml.j2
-      #     output_file: task_5/project/kubernetes/jenkins_values.yaml
-      #     data_format: yaml
-      #   env:
-      #     JENKINS_ADMIN_USERNAME: ${{ secrets.JENKINS_ADMIN_USERNAME }} # Set this in GitHub Secrets
-      #     JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }} # Set this in GitHub Secrets
-      #     JENKINS_USER_LOGIN: ${{ secrets.JENKINS_USER_LOGIN }} # Set this in GitHub Secrets
-      #     JENKINS_USER_DISPLAY_NAME: ${{ secrets.JENKINS_USER_DISPLAY_NAME }} # Set this in GitHub Secrets
-      #     JENKINS_USER_PASSWORD: ${{ secrets.JENKINS_USER_PASSWORD }} # Set this in GitHub Secrets
-      #     JENKINS_USER_EMAIL: ${{ secrets.JENKINS_USER_EMAIL }} # Set this in GitHub Secrets
-      #     JENKINS_URL: ${{ secrets.JENKINS_URL }} # Set this in GitHub Secrets
-      #     GH_JENKINS_TOKEN: ${{ secrets.GH_JENKINS_TOKEN }} # Set this in GitHub Secrets
-      #     GH_JENKINS_SSH_KEY: ${{ secrets.GH_JENKINS_SSH_KEY }} # Set this in GitHub Secrets
 
       - name: Deploy Jenkins with Helm
         run: |
@@ -259,6 +246,100 @@ jobs:
               })
             }
 
+  deploy_flask:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy Flask' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-k8s-management
+
+      - name: Get GitHub Runner IP
+        id: runner_ip
+        run: |
+          echo "RUNNER_IP=$(curl -s https://checkip.amazonaws.com)/32" >> $GITHUB_ENV
+
+      - name: Save Bastion SG ID
+        run: |
+          echo "BASTION_SG_ID=$(aws ec2 describe-security-groups \
+            --filters "Name=tag:Name,Values=*bastion*" \
+            --query "SecurityGroups[*].GroupId" \
+            --output text)" >> $GITHUB_ENV
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Add GitHub Runner IP to Security Group
+        env:
+          RUNNER_IP: ${{ env.RUNNER_IP }}
+          BASTION_SG_ID: ${{ env.BASTION_SG_ID }}
+        run: |
+          echo "Adding $RUNNER_IP to Security Group ${{ env.BASTION_SG_ID }}"
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ env.BASTION_SG_ID }} \
+            --protocol tcp \
+            --port 6443 \
+            --cidr $RUNNER_IP
+
+      - name: Set up Kubeconfig
+        run: |
+          aws ssm get-parameter \
+            --name "${{ env.KUBECONFIG_PARAM_PATH }}" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text > kubeconfig
+                chmod 600 kubeconfig
+          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.elysium-space.com|" kubeconfig
+          echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Install helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: v3.18.3
+
+      - name: Create Flask-App Namespace
+        run: |
+          if ! kubectl get namespace flask-app \
+              --kubeconfig kubeconfig > /dev/null 2>&1; then
+            echo "Namespace 'flask-app' does not exist. Creating..."
+            kubectl create namespace flask-app \
+              --dry-run=client -o yaml \
+              --kubeconfig kubeconfig | \
+            kubectl apply -f - --kubeconfig kubeconfig
+          else
+            echo "Namespace 'flask-app' already exists. Skipping creation."
+          fi
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Deploy Flask with Helm
+        run: |
+          helm upgrade --install flask-app . \
+          --namespace flask-app \
+          --values values.yaml \
+          --kubeconfig ../../kubernetes/kubeconfig
+        working-directory: ${{ env.TASK_DIR }}/helm/flask-app
+
+      - name: Remove IP from Security Group
+        if: success()
+        env:
+          RUNNER_IP: ${{ env.RUNNER_IP }}
+          BASTION_SG_ID: ${{ env.BASTION_SG_ID }}
+        run: |
+          echo "Removing $RUNNER_IP from Security Group ${{ env.BASTION_SG_ID }}"
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ env.BASTION_SG_ID }} \
+            --protocol tcp \
+            --port 6443 \
+            --cidr $RUNNER_IP
+
   destroy_jenkins:
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy Jenkins' }}
     runs-on: ubuntu-latest
@@ -327,6 +408,82 @@ jobs:
           kubectl delete -f jenkins_storage_class.yaml --kubeconfig kubeconfig --ignore-not-found
           kubectl delete secret jenkins-admin --namespace jenkins --kubeconfig kubeconfig --ignore-not-found
           kubectl delete namespace jenkins --kubeconfig kubeconfig --ignore-not-found
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Remove IP from Security Group
+        if: success()
+        env:
+          RUNNER_IP: ${{ env.RUNNER_IP }}
+          BASTION_SG_ID: ${{ env.BASTION_SG_ID }}
+        run: |
+          echo "Removing $RUNNER_IP from Security Group ${{ env.BASTION_SG_ID }}"
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ env.BASTION_SG_ID }} \
+            --protocol tcp \
+            --port 6443 \
+            --cidr $RUNNER_IP
+  destroy_flask:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy Flask' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-k8s-management
+
+      - name: Get GitHub Runner IP
+        id: runner_ip
+        run: |
+          echo "RUNNER_IP=$(curl -s https://checkip.amazonaws.com)/32" >> $GITHUB_ENV
+
+      - name: Save Bastion SG ID
+        run: |
+          echo "BASTION_SG_ID=$(aws ec2 describe-security-groups \
+            --filters "Name=tag:Name,Values=*bastion*" \
+            --query "SecurityGroups[*].GroupId" \
+            --output text)" >> $GITHUB_ENV
+        working-directory: ${{ env.TASK_DIR }}
+
+      - name: Add GitHub Runner IP to Security Group
+        env:
+          RUNNER_IP: ${{ env.RUNNER_IP }}
+          BASTION_SG_ID: ${{ env.BASTION_SG_ID }}
+        run: |
+          echo "Adding $RUNNER_IP to Security Group ${{ env.BASTION_SG_ID }}"
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ env.BASTION_SG_ID }} \
+            --protocol tcp \
+            --port 6443 \
+            --cidr $RUNNER_IP
+
+      - name: Set up Kubeconfig
+        run: |
+          aws ssm get-parameter \
+            --name "${{ env.KUBECONFIG_PARAM_PATH }}" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text > kubeconfig
+                chmod 600 kubeconfig
+          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.elysium-space.com|" kubeconfig
+          echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Uninstall Flask with Helm
+        run: |
+          helm uninstall flask-app --namespace flask-app --kubeconfig kubeconfig || echo "Flask already uninstalled."
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      - name: Delete Kubernetes Resources
+        run: |
+          kubectl delete namespace flask-app --kubeconfig kubeconfig --ignore-not-found
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Remove IP from Security Group

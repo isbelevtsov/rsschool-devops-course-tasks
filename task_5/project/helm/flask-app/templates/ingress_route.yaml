@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flask-app-ingress-route
+  namespace: flask-app  # Replace with your Flask app namespace
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`flask.elysium-space.com`)  # Replace with your domain
+      kind: Rule
+      services:
+        - name: flask-app  # Replace with your Flask service name
+          port: 80

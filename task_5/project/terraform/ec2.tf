@@ -311,6 +311,21 @@ resource "aws_ssm_parameter" "nginx_jenkins_conf" {
   value      = data.template_file.nginx_jenkins_conf.rendered
 }
 
+data "template_file" "nginx_flask_conf" {
+  depends_on = [null_resource.provision_k3s_worker]
+  template   = file("./templates/nginx_flask.tpl")
+  vars = {
+    k3s_control_plane_private_ip = aws_instance.k3s_control_plane.private_ip
+  }
+}
+
+resource "aws_ssm_parameter" "nginx_flask_conf" {
+  depends_on = [data.template_file.nginx_flask_conf]
+  name       = "/conf/nginx_flask_conf"
+  type       = "String"
+  value      = data.template_file.nginx_flask_conf.rendered
+}
+
 resource "null_resource" "apply_nginx_config" {
   depends_on = [
     null_resource.provision_k3s_worker,
@@ -330,14 +345,16 @@ resource "null_resource" "apply_nginx_config" {
       "sudo apt-get update",
       "sudo apt-get install -y awscli",
       "export AWS_DEFAULT_REGION='${var.aws_region}'",
-      "for param in nginx_k3s_conf nginx_jenkins_conf; do",
+      "for param in nginx_k3s_conf nginx_jenkins_conf nginx_flask_conf; do",
       "  for i in {1..5}; do",
       "    VALUE=$(aws ssm get-parameter --name \"/conf/$param\" --query \"Parameter.Value\" --output text 2>/dev/null)",
       "    if [ -n \"$VALUE\" ]; then",
       "      if [ \"$param\" = 'nginx_k3s_conf' ]; then",
       "        echo \"$VALUE\" | sudo tee /etc/nginx/modules-enabled/k3s.conf > /dev/null",
-      "      else",
+      "      elif [ \"$param\" = 'nginx_jenkins_conf' ]; then",
       "        echo \"$VALUE\" | sudo tee /etc/nginx/sites-enabled/jenkins.conf > /dev/null",
+      "      elif [ \"$param\" = 'nginx_flask_conf' ]; then",
+      "        echo \"$VALUE\" | sudo tee /etc/nginx/sites-enabled/flask.conf > /dev/null",
       "      fi",
       "      break",
       "    fi",

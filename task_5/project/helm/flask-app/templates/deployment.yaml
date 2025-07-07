@@ -21,6 +21,14 @@ spec:
           ports:
             - containerPort: {{ .Values.service.targetPort }}
           env:
-          {{ toYaml .Values.env | indent 12 }}
+            - name: FLASK_APP
+              value: "app.py"
+            - name: FLASK_ENV
+              value: "production"
           resources:
-          {{ toYaml .Values.resources | indent 12 }}
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
