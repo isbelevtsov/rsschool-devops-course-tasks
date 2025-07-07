@@ -115,46 +115,46 @@ jobs:
           kubectl apply -f jenkins_pvc.yaml -n jenkins --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
-      # - name: Set up Python
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: '3.13'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
 
-      # - name: Install Jinja2 CLI
-      #   run: |
-      #     pip install jinja2-cli
-
-      # - name: Render Jenkins values manifest for Helm from J2 template
-      #   run: |
-      #     jinja2 jenkins_values.yaml.j2 \
-      #       -D jenkins_admin_username='${{ env.JENKINS_ADMIN_USERNAME }}' \
-      #       -D jenkins_admin_password='${{ env.JENKINS_ADMIN_PASSWORD }}' \
-      #       -D jenkins_user_login='${{ env.JENKINS_USER_LOGIN }}' \
-      #       -D jenkins_user_display_name='${{ env.JENKINS_USER_DISPLAY_NAME }}' \
-      #       -D jenkins_user_password='${{ env.JENKINS_USER_PASSWORD }}' \
-      #       -D jenkins_user_email='${{ env.JENKINS_USER_EMAIL }}' \
-      #       -D jenkins_url='${{ env.JENKINS_URL }}' \
-      #       -D gh_jenkins_token='${{ env.GH_JENKINS_TOKEN }}' \
-      #       -D gh_jenkins_ssh_key='${{ env.GH_JENKINS_SSH_KEY }}' \
-      #       > jenkins_values.yaml
-      #   working-directory: ${{ env.TASK_DIR }}/kubernetes
+      - name: Install Jinja2 CLI
+        run: |
+          pip install jinja2-cli
 
       - name: Render Jenkins values manifest for Helm from J2 template
-        uses: cuchi/jinja2-action@v1.3.0
-        with:
-          template: task_5/project/kubernetes/jenkins_values.yaml.j2
-          output_file: task_5/project/kubernetes/jenkins_values.yaml
-          data_format: yaml
-        env:
-          JENKINS_ADMIN_USERNAME: ${{ secrets.JENKINS_ADMIN_USERNAME }} # Set this in GitHub Secrets
-          JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }} # Set this in GitHub Secrets
-          JENKINS_USER_LOGIN: ${{ secrets.JENKINS_USER_LOGIN }} # Set this in GitHub Secrets
-          JENKINS_USER_DISPLAY_NAME: ${{ secrets.JENKINS_USER_DISPLAY_NAME }} # Set this in GitHub Secrets
-          JENKINS_USER_PASSWORD: ${{ secrets.JENKINS_USER_PASSWORD }} # Set this in GitHub Secrets
-          JENKINS_USER_EMAIL: ${{ secrets.JENKINS_USER_EMAIL }} # Set this in GitHub Secrets
-          JENKINS_URL: ${{ secrets.JENKINS_URL }} # Set this in GitHub Secrets
-          GH_JENKINS_TOKEN: ${{ secrets.GH_JENKINS_TOKEN }} # Set this in GitHub Secrets
-          GH_JENKINS_SSH_KEY: ${{ secrets.GH_JENKINS_SSH_KEY }} # Set this in GitHub Secrets
+        run: |
+          jinja2 jenkins_values.yaml.j2 \
+            -D JENKINS_ADMIN_USERNAME='${{ secrets.JENKINS_ADMIN_USERNAME }}' \
+            -D JENKINS_ADMIN_PASSWORD='${{ secrets.JENKINS_ADMIN_PASSWORD }}' \
+            -D JENKINS_USER_LOGIN='${{ secrets.JENKINS_USER_LOGIN }}' \
+            -D JENKINS_USER_DISPLAY_NAME='${{ secrets.JENKINS_USER_DISPLAY_NAME }}' \
+            -D JENKINS_USER_PASSWORD='${{ secrets.JENKINS_USER_PASSWORD }}' \
+            -D JENKINS_USER_EMAIL='${{ secrets.JENKINS_USER_EMAIL }}' \
+            -D JENKINS_URL='${{ secrets.JENKINS_URL }}' \
+            -D GH_JENKINS_TOKEN='${{ secrets.GH_JENKINS_TOKEN }}' \
+            -D GH_JENKINS_SSH_KEY='${{ secrets.GH_JENKINS_SSH_KEY }}' \
+            > jenkins_values.yaml
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      # - name: Render Jenkins values manifest for Helm from J2 template
+      #   uses: cuchi/jinja2-action@v1.3.0
+      #   with:
+      #     template: task_5/project/kubernetes/jenkins_values.yaml.j2
+      #     output_file: task_5/project/kubernetes/jenkins_values.yaml
+      #     data_format: yaml
+      #   env:
+      #     JENKINS_ADMIN_USERNAME: ${{ secrets.JENKINS_ADMIN_USERNAME }} # Set this in GitHub Secrets
+      #     JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }} # Set this in GitHub Secrets
+      #     JENKINS_USER_LOGIN: ${{ secrets.JENKINS_USER_LOGIN }} # Set this in GitHub Secrets
+      #     JENKINS_USER_DISPLAY_NAME: ${{ secrets.JENKINS_USER_DISPLAY_NAME }} # Set this in GitHub Secrets
+      #     JENKINS_USER_PASSWORD: ${{ secrets.JENKINS_USER_PASSWORD }} # Set this in GitHub Secrets
+      #     JENKINS_USER_EMAIL: ${{ secrets.JENKINS_USER_EMAIL }} # Set this in GitHub Secrets
+      #     JENKINS_URL: ${{ secrets.JENKINS_URL }} # Set this in GitHub Secrets
+      #     GH_JENKINS_TOKEN: ${{ secrets.GH_JENKINS_TOKEN }} # Set this in GitHub Secrets
+      #     GH_JENKINS_SSH_KEY: ${{ secrets.GH_JENKINS_SSH_KEY }} # Set this in GitHub Secrets
 
       - name: Deploy Jenkins with Helm
         run: |
