@@ -55,61 +55,69 @@ controller:
         - ALL
 
   JCasC:
-    defaultConfig: true
-    securityRealm: |-
-      local:
-        allowsSignup: false
-        enableCaptcha: false
-        users:
-        - id: "{{ JENKINS_ADMIN_USERNAME }}"
-          name: "Jenkins Admin"
-          password: "${{ JENKINS_ADMIN_PASSWORD }}"
-        - id: "{{ JENKINS_USER_LOGIN }}"
-          name: "{{ JENKINS_USER_DISPLAY_NAME }}"
-          password: "{{ JENKINS_USER_PASSWORD }}"
-          description: "RS School DevOps 2025 Q2 course student"
-          properties:
-            - mailer:
-                emailAddress: "{{ JENKINS_USER_EMAIL }}"
-            - preferredProvider:
-                providerId: "default"
-            - timezone:
-                timeZoneName: "Europe/Kyiv"
-    authorizationStrategy: |-
-      globalMatrix:
-        permissions:
-          - "Overall/Read:authenticated"
-          - "Overall/Administer:chart-admin"
-          - "Job/Read:authenticated"
-          - "Job/Create:chart-admin"
-          - "Job/Build:authenticated"
-          - "Job/Workspace:authenticated"
-          - "Job/Cancel:authenticated"
-          - "Job/Delete:chart-admin"
-          - "Job/Configure:chart-admin"
-          - "View/Read:authenticated"
-        users:
-          {{ JENKINS_ADMIN_USERNAME }}:
-            permissions:
-              - "Overall/Administer"
-              - "Job/Create"
-              - "Job/Delete"
-              - "Job/Configure"
-              - "View/Create"
-              - "View/Delete"
-              - "View/Configure"
-          {{ JENKINS_USER_LOGIN }}:
-            permissions:
-              - "Overall/Read"
-              - "Job/Read"
-              - "Job/Build"
-              - "Job/Workspace"
-              - "Job/Cancel"
+    enabled: true
+    defaultConfig: false
     configScripts:
-      welcome-message: |-
+      jenkins-casc-config: |
         jenkins:
           systemMessage: Welcome to our RS School DevOps 2025 Q2 course CI\CD server.  This Jenkins is configured and managed 'as code'.
           jenkinsUrl: "https://{{ JENKINS_URL }}"
+          securityRealm:
+            local:
+              allowsSignup: false
+              enableCaptcha: false
+              users:
+              - id: "{{ JENKINS_ADMIN_USERNAME }}"
+                name: "Jenkins Admin"
+                password: "${{ JENKINS_ADMIN_PASSWORD }}"
+              - id: "{{ JENKINS_USER_LOGIN }}"
+                name: "{{ JENKINS_USER_DISPLAY_NAME }}"
+                password: "{{ JENKINS_USER_PASSWORD }}"
+                description: "RS School DevOps 2025 Q2 course student"
+                properties:
+                  - mailer:
+                      emailAddress: "{{ JENKINS_USER_EMAIL }}"
+                  - preferredProvider:
+                      providerId: "default"
+                  - timezone:
+                      timeZoneName: "Europe/Kyiv"
+          remotingSecurity:
+            enabled: true
+          numExecutors: 2
+          labelString: "master"
+          mode: NORMAL
+          scmCheckoutRetryCount: 2
+          disableRememberMe: false
+          authorizationStrategy:
+            globalMatrix:
+              permissions:
+                - "Overall/Read:authenticated"
+                - "Overall/Administer:chart-admin"
+                - "Job/Read:authenticated"
+                - "Job/Create:chart-admin"
+                - "Job/Build:authenticated"
+                - "Job/Workspace:authenticated"
+                - "Job/Cancel:authenticated"
+                - "Job/Delete:chart-admin"
+                - "Job/Configure:chart-admin"
+                - "View/Read:authenticated"
+              users:
+                {{ JENKINS_ADMIN_USERNAME }}:
+                  permissions:
+                    - "Overall/Administer"
+                    - "Job/Create"
+                    - "Job/Delete"
+                    - "Job/Configure"
+                    - "View/Create"
+                    - "View/Delete"
+                    - "View/Configure"
+                {{ JENKINS_USER_LOGIN }}:
+                  permissions:
+                    - "Overall/Read"
+                    - "Job/Read"
+                    - "Job/Build"
+                    - "Job/Workspace"
+                    - "Job/Cancel"
         credentials:
           system:
             domainCredentials:
