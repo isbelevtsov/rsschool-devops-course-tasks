@@ -106,63 +106,63 @@ controller:
               - "Job/Workspace"
               - "Job/Cancel"
     configScripts:
-     welcome-message: |-
-      jenkins:
-        systemMessage: Welcome to our RS School DevOps 2025 Q2 course CI\CD server.  This Jenkins is configured and managed 'as code'.
-        jenkinsUrl: "https://{{ JENKINS_URL }}"
-      credentials:
-        system:
-          domainCredentials:
-          - credentials:
-            - string:
-                description: "GH_JENKINS_TOKEN"
-                id: "GH_JENKINS_TOKEN"
-                scope: GLOBAL
-                secret: "{{ GH_JENKINS_TOKEN }}"
-            - basicSSHUserPrivateKey:
-                description: "GH_JENKINS_SSH_KEY"
-                id: "GH_JENKINS_SSH_KEY"
-                privateKeySource:
-                  directEntry:
-                    privateKey: "{{ GH_JENKINS_SSH_KEY }}"
-                scope: GLOBAL
-                username: "git"
-                usernameSecret: true
-      unclassified:
-        gitHubPluginConfig:
-          configs:
-          - credentialsId: "GH_JENKINS_TOKEN"
-            name: "Default"
-          hookUrl: "http://{{ JENKINS_URL }}/github-webhook/"
-        location:
-          adminAddress: "{{ JENKINS_USER_EMAIL }}"
-          url: "http://{{ JENKINS_URL }}/"
-        scmGit:
-          hideCredentials: true
-      jobs:
-        - script: >
-          pipelineJob('test-job') {
-            definition {
-              cps {
-                script('''
-                  pipeline {
-                          agent any
-                          stages {
-                              stage('Stage 1') {
-                                  steps {
-                                      echo 'Hello World!'
-                                  }
-                              }
-                              stage('Stage 2') {
-                                  steps {
-                                      echo 'Is it me your looking for'
-                                  }
-                              }
-                          }
+      welcome-message: |-
+        jenkins:
+          systemMessage: Welcome to our RS School DevOps 2025 Q2 course CI\CD server.  This Jenkins is configured and managed 'as code'.
+          jenkinsUrl: "https://{{ JENKINS_URL }}"
+        credentials:
+          system:
+            domainCredentials:
+            - credentials:
+              - string:
+                  description: "GH_JENKINS_TOKEN"
+                  id: "GH_JENKINS_TOKEN"
+                  scope: GLOBAL
+                  secret: "{{ GH_JENKINS_TOKEN }}"
+              - basicSSHUserPrivateKey:
+                  description: "GH_JENKINS_SSH_KEY"
+                  id: "GH_JENKINS_SSH_KEY"
+                  privateKeySource:
+                    directEntry:
+                      privateKey: "{{ GH_JENKINS_SSH_KEY }}"
+                  scope: GLOBAL
+                  username: "git"
+                  usernameSecret: true
+        unclassified:
+          gitHubPluginConfig:
+            configs:
+            - credentialsId: "GH_JENKINS_TOKEN"
+              name: "Default"
+            hookUrl: "http://{{ JENKINS_URL }}/github-webhook/"
+          location:
+            adminAddress: "{{ JENKINS_USER_EMAIL }}"
+            url: "http://{{ JENKINS_URL }}/"
+          scmGit:
+            hideCredentials: true
+        jobs:
+          - script: >
+            pipelineJob('test-job') {
+              definition {
+                cps {
+                  script('''
+                    pipeline {
+                            agent any
+                            stages {
+                                stage('Stage 1') {
+                                    steps {
+                                        echo 'Hello World!'
+                                    }
+                                }
+                                stage('Stage 2') {
+                                    steps {
+                                        echo 'Is it me your looking for'
+                                    }
+                                }
+                            }
 
-                  }
-                '''.stripIndent())
-                sandbox()
+                    }
+                  '''.stripIndent())
+                  sandbox()
+                }
               }
             }
-          }
