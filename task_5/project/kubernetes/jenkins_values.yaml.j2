@@ -61,9 +61,9 @@ controller:
         allowsSignup: false
         enableCaptcha: false
         users:
-        - id: "${chart-admin-username}"
+        - id: "{{ env['JENKINS_ADMIN_USERNAME'] }}"
           name: "Jenkins Admin"
-          password: "${chart-admin-password}"
+          password: "${{ env['JENKINS_ADMIN_PASSWORD'] }}"
         - id: "{{ env['JENKINS_USER_LOGIN'] }}"
           name: "{{ env['JENKINS_USER_DISPLAY_NAME'] }}"
           password: "{{ env['JENKINS_USER_PASSWORD'] }}"
@@ -89,35 +89,7 @@ controller:
           - "Job/Configure:chart-admin"
           - "View/Read:authenticated"
         users:
-          chart-admin:
-            permissions:
-              - "Overall/Administer"
-              - "Job/Create"
-              - "Job/Delete"
-              - "Job/Configure"
-              - "View/Create"
-              - "View/Delete"
-              - "View/Configure"
-          {{ env['JENKINS_USER_LOGIN'] }}:
-            permissions:
-              - "Overall/Read"
-              - "Job/Read"
-              - "Job/Build"
-              - "Job/Workspace"
-              - "Job/Cancel"
-      projectMatrix:
-        permissions:
-          - "Overall/Read:authenticated"
-          - "Job/Read:authenticated"
-          - "Job/Build:authenticated"
-          - "Job/Workspace:authenticated"
-          - "Job/Cancel:authenticated"
-          - "Job/Create:authenticated"
-          - "Job/Delete:authenticated"
-          - "Job/Configure:authenticated"
-          - "View/Read:authenticated"
-        users:
-          chart-admin:
+          {{ env['JENKINS_ADMIN_USERNAME'] }}:
             permissions:
               - "Overall/Administer"
               - "Job/Create"
@@ -169,7 +141,7 @@ controller:
           hideCredentials: true
       jobs:
         - name: "test-job"
-        - script: >
+          script: >
           pipelineJob('test-job') {
             definition {
               cps {
