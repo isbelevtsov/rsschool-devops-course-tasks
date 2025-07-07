@@ -38,6 +38,7 @@ env:
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
   AZS: ${{ secrets.AZS }} # Set this in GitHub Secrets
   BASTION_CF_RECORD_NAME: ${{ secrets.BASTION_CF_RECORD_NAME }}
+  FLASK_CF_RECORD_NAME: ${{ secrets.FLASK_CF_RECORD_NAME }} # Set this in GitHub Secrets
   CERT_PATH: ${{ secrets.CERT_PATH }} # Path to the certificate file, if needed
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
   CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
@@ -370,6 +371,34 @@ jobs:
               --data "{\"type\":\"A\",\"name\":\"${{ env.JENKINS_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
           fi
 
+      - name: Update Flask A record on Cloudflare
+        run: |
+          # Get Bastion public IP address
+          BASTION_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Role,Values=bastion" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
+
+          # Get existing record ID
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.FLASK_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          # Set or update existing bastion host DNS A record
+          if [ "$RECORD_ID" = "null" ]; then
+            echo "Creating new A record..."
+            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.FLASK_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          else
+            echo "Updating existing A record..."
+            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.FLASK_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          fi
+
   terraform-destroy:
     name: Terraform Destroy
     runs-on: ubuntu-latest
@@ -487,4 +516,19 @@ jobs:
               -H "Content-Type: application/json"
           else
             echo "No Jenkins DNS record found to delete."
+          fi
+
+      - name: Remove Flask A record from Cloudflare
+        run: |
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.FLASK_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          if [ "$RECORD_ID" != "null" ]; then
+            echo "Deleting DNS A record..."
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json"
+          else
+            echo "No Flask DNS record found to delete."
           fi
