@@ -148,28 +148,28 @@ controller:
           scmGit:
             hideCredentials: true
         jobs:
-          - script: >
-            pipelineJob('test-job') {
-              definition {
-                cps {
-                  script('''
-                    pipeline {
-                            agent any
-                            stages {
-                                stage('Stage 1') {
-                                    steps {
-                                        echo 'Hello World!'
-                                    }
-                                }
-                                stage('Stage 2') {
-                                    steps {
-                                        echo 'Is it me your looking for'
-                                    }
-                                }
-                            }
-                    }
-                  '''.stripIndent())
-                  sandbox()
+          - script: |
+              pipelineJob('test-job') {
+                definition {
+                  cps {
+                    script('''
+                      pipeline {
+                              agent any
+                              stages {
+                                  stage('Stage 1') {
+                                      steps {
+                                          echo 'Hello World!'
+                                      }
+                                  }
+                                  stage('Stage 2') {
+                                      steps {
+                                          echo 'Is it me your looking for'
+                                      }
+                                  }
+                              }
+                      }
+                    '''.stripIndent())
+                    sandbox()
+                  }
                 }
               }
-            }
