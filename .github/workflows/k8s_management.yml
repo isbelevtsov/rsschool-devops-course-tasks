@@ -124,47 +124,47 @@ jobs:
           kubectl apply -f jenkins_pvc.yaml -n jenkins --kubeconfig kubeconfig
         working-directory: ${{ env.TASK_DIR }}/kubernetes
 
-      # - name: Set up Python
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: '3.13'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
 
-      # - name: Install Jinja2 CLI
-      #   run: |
-      #     pip install jinja2-cli
-
-      # - name: Render Jenkins values manifest for Helm from J2 template
-      #   run: |
-      #     jinja2 jenkins_values.yaml.j2 \
-      #       -D jenkins_admin_username='${{ env.JENKINS_ADMIN_USERNAME }}' \
-      #       -D jenkins_admin_password='${{ env.JENKINS_ADMIN_PASSWORD }}' \
-      #       -D jenkins_user_login='${{ env.JENKINS_USER_LOGIN }}' \
-      #       -D jenkins_user_display_name='${{ env.JENKINS_USER_DISPLAY_NAME }}' \
-      #       -D jenkins_user_password='${{ env.JENKINS_USER_PASSWORD }}' \
-      #       -D jenkins_user_email='${{ env.JENKINS_USER_EMAIL }}' \
-      #       -D jenkins_url='${{ env.JENKINS_URL }}' \
-      #       -D gh_jenkins_token='${{ env.GH_JENKINS_TOKEN }}' \
-      #       -D gh_jenkins_ssh_key='${{ env.GH_JENKINS_SSH_KEY }}' \
-      #       > jenkins_values.yaml
-      #   working-directory: ${{ env.TASK_DIR }}/kubernetes
+      - name: Install Jinja2 CLI
+        run: |
+          pip install jinja2-cli
 
       - name: Render Jenkins values manifest for Helm from J2 template
-        uses: cuchi/jinja2-action@v1.3.0
-        with:
-          template: task_5/project/kubernetes/jenkins_values.yaml.j2
-          output_file: task_5/project/kubernetes/jenkins_values.yaml
-          strict: true
-          data_format: yaml
-          variables: |
-            jenkins_admin_username=${{ env.JENKINS_ADMIN_USERNAME }}
-            jenkins_admin_password=${{ env.JENKINS_ADMIN_PASSWORD }}
-            jenkins_user_login=${{ env.JENKINS_USER_LOGIN }}
-            jenkins_user_display_name=${{ env.JENKINS_USER_DISPLAY_NAME }}
-            jenkins_user_password=${{ env.JENKINS_USER_PASSWORD }}
-            jenkins_user_email=${{ env.JENKINS_USER_EMAIL }}
-            jenkins_url=${{ env.JENKINS_URL }}
-            gh_jenkins_token=${{ env.GH_JENKINS_TOKEN }}
-            gh_jenkins_ssh_key=${{ env.GH_JENKINS_SSH_KEY }}
+        run: |
+          jinja2 jenkins_values.yaml.j2 \
+            -D jenkins_admin_username='${{ env.JENKINS_ADMIN_USERNAME }}' \
+            -D jenkins_admin_password='${{ env.JENKINS_ADMIN_PASSWORD }}' \
+            -D jenkins_user_login='${{ env.JENKINS_USER_LOGIN }}' \
+            -D jenkins_user_display_name='${{ env.JENKINS_USER_DISPLAY_NAME }}' \
+            -D jenkins_user_password='${{ env.JENKINS_USER_PASSWORD }}' \
+            -D jenkins_user_email='${{ env.JENKINS_USER_EMAIL }}' \
+            -D jenkins_url='${{ env.JENKINS_URL }}' \
+            -D gh_jenkins_token='${{ env.GH_JENKINS_TOKEN }}' \
+            -D gh_jenkins_ssh_key='${{ env.GH_JENKINS_SSH_KEY }}' \
+            > jenkins_values.yaml
+        working-directory: ${{ env.TASK_DIR }}/kubernetes
+
+      # - name: Render Jenkins values manifest for Helm from J2 template
+      #   uses: cuchi/jinja2-action@v1.3.0
+      #   with:
+      #     template: task_5/project/kubernetes/jenkins_values.yaml.j2
+      #     output_file: task_5/project/kubernetes/jenkins_values.yaml
+      #     strict: true
+      #     data_format: yaml
+      #     variables: |
+      #       jenkins_admin_username=${{ env.JENKINS_ADMIN_USERNAME }}
+      #       jenkins_admin_password=${{ env.JENKINS_ADMIN_PASSWORD }}
+      #       jenkins_user_login=${{ env.JENKINS_USER_LOGIN }}
+      #       jenkins_user_display_name=${{ env.JENKINS_USER_DISPLAY_NAME }}
+      #       jenkins_user_password=${{ env.JENKINS_USER_PASSWORD }}
+      #       jenkins_user_email=${{ env.JENKINS_USER_EMAIL }}
+      #       jenkins_url=${{ env.JENKINS_URL }}
+      #       gh_jenkins_token=${{ env.GH_JENKINS_TOKEN }}
+      #       gh_jenkins_ssh_key=${{ env.GH_JENKINS_SSH_KEY }}
 
       - name: Deploy Jenkins with Helm
         run: |
