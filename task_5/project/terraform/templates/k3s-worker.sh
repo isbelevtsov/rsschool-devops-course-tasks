@@ -110,7 +110,14 @@ echo "SSH_KEY_FILE=$KEY_FILE" >> /etc/environment
 echo "====> SSH certificate saved to $KEY_FILE"
 
 # Prepare directory for Jenkins persistent data
-JENKINS_DATA_DIR="/data/jenkins"
+JENKINS_DATA_DIR=$(aws ssm get-parameter \
+    --name "/$PROJECT_NAME/$ENVIRONMENT_NAME/kube/jenkins_data_dir" \
+    --query "Parameter.Value" \
+    --output text)
+if [[ -z "$JENKINS_DATA_DIR" ]]; then
+    echo "====> Failed to retrieve Jenkins data directory from SSM."
+    exit 1
+fi
 echo "====> Preparing Jenkins data directory at ${JENKINS_DATA_DIR}..."
 sudo mkdir -p ${JENKINS_DATA_DIR} && sudo chown ubuntu:ubuntu ${JENKINS_DATA_DIR}
 if [ $? -eq 0 ]; then

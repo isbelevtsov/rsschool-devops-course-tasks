@@ -74,3 +74,9 @@ variable "route53_domain" {
   type        = string
   default     = "aws.elysium-space.com"
 }
+
+variable "jenkins_data_dir" {
+  description = "Persistent data directory for Jenkins"
+  type        = string
+  default     = "/data/jenkins"
+}

@@ -23,6 +23,8 @@ instance_type_bastion = "t3.nano"
 instance_type_cp      = "t3.medium"
 instance_type_worker  = "t3.small"
 
-jenkins_data_dir = "/data/jenkins"
-
+# Domain name for Route 53 DNS records
 route53_domain = "aws.example.com"
+
+# Jenkins Persistent Data Directory
+jenkins_data_dir = "/data/jenkins"

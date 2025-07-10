@@ -118,7 +118,8 @@ resource "aws_iam_policy" "controlplane_policy" {
         Action = "ssm:GetParameter",
         Resource = [
           "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/common/*",
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/kube/*"
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/kube/*",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/${local.control_plane_role}/*"
         ]
 
       },
@@ -177,7 +178,8 @@ resource "aws_iam_policy" "worker_policy" {
         Action = "ssm:GetParameter",
         Resource = [
           "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/common/*",
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/kube/*"
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/kube/*",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/${local.worker_role}/*"
         ]
       },
       {

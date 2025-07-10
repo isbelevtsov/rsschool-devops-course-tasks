@@ -52,7 +52,7 @@ resource "aws_ssm_parameter" "ssh_private_key" {
 }
 
 resource "aws_ssm_parameter" "ssh_public_key" {
-  name        = "/${var.project_name}/${var.environment_name}/common/ssh_key"
+  name        = "/${var.project_name}/${var.environment_name}/common/ssh_key_public"
   description = "Public SSH key for EC2 key pair"
   type        = "String"
   value       = tls_private_key.ssh.public_key_openssh
@@ -69,6 +69,14 @@ resource "aws_ssm_parameter" "route53_domain" {
   description = "Route53 domain name"
   type        = "String"
   value       = var.route53_domain
+  overwrite   = true
+}
+
+resource "aws_ssm_parameter" "jenkins_data_dir" {
+  name        = "/${var.project_name}/${var.environment_name}/kube/jenkins_data_dir"
+  description = "Jenkins persistent data directory"
+  type        = "String"
+  value       = var.jenkins_data_dir
   overwrite   = true
 }
 
@@ -242,7 +250,7 @@ resource "null_resource" "wait_for_health_check_k3s_worker" {
 
 data "template_file" "nginx_confs" {
   for_each   = local.nginx_configs
-  depends_on = [null_resource.wait_for_health_check_k3s_worker]
+  depends_on = [null_resource.wait_for_health_check_k3s_control_plane]
   template   = file(each.value.template)
   vars = {
     k3s_control_plane_private_ip = aws_instance.k3s_control_plane.private_ip

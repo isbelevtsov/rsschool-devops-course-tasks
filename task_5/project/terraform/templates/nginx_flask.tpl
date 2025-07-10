@@ -1,6 +1,6 @@
 upstream flask {
   keepalive 32;
-  server ${k3s_control_plane_private_ip}:80;  # IP and exposed ClusterIP of Flask
+  server ${k3s_control_plane_private_ip}:80;
 }
 
 server {
