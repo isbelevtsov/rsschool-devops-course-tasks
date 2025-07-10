@@ -252,7 +252,7 @@ data "template_file" "nginx_confs" {
 
 resource "aws_ssm_parameter" "nginx_confs" {
   for_each   = data.template_file.nginx_confs
-  depends_on = [each.value]
+  depends_on = [data.template_file.nginx_confs]
   name       = "/${var.project_name}/${var.environment_name}/${local.bastion_role}/${each.key}"
   type       = "String"
   value      = each.value.rendered
