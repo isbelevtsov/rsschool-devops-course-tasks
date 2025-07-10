@@ -109,6 +109,18 @@ chown ubuntu:ubuntu "$KEY_FILE"
 echo "SSH_KEY_FILE=$KEY_FILE" >> /etc/environment
 echo "====> SSH certificate saved to $KEY_FILE"
 
+# Retrieve domain from SSM
+ROUTE53_DOMAIN=$(aws ssm get-parameter \
+    --name "/$PROJECT_NAME/$ENVIRONMENT_NAME/common/route53_domain" \
+    --with-decryption \
+    --query "Parameter.Value" \
+    --output text)
+
+if [[ -z "$ROUTE53_DOMAIN" ]]; then
+    echo "====> Failed to retrieve domain from SSM."
+    exit 1
+fi
+
 # Get public and private IPs
 CONTROL_PRIVATE_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
   http://169.254.169.254/latest/meta-data/local-ipv4)
@@ -118,10 +130,10 @@ echo "====> Installing k3s control plane..."
 
 curl -sfL https://get.k3s.io | \
   INSTALL_K3S_EXEC="--write-kubeconfig-mode 644 \
-  --tls-san k8s.aws.elysium-space.com \
+  --tls-san k8s.${ROUTE53_DOMAIN} \
   --tls-san ${CONTROL_PRIVATE_IP} \
   --kube-apiserver-arg bind-address=0.0.0.0" \
-  sh -
+  sh -s -
 
 echo "====> Waiting for k3s to become active..."
 until systemctl is-active --quiet k3s; do

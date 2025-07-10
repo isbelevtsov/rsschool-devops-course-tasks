@@ -64,6 +64,14 @@ resource "aws_key_pair" "generated" {
   public_key = tls_private_key.ssh.public_key_openssh
 }
 
+resource "aws_ssm_parameter" "route53_domain" {
+  name        = "/${var.project_name}/${var.environment_name}/common/route53_domain"
+  description = "Route53 domain name"
+  type        = "String"
+  value       = var.route53_domain
+  overwrite   = true
+}
+
 resource "aws_instance" "bastion" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_bastion
