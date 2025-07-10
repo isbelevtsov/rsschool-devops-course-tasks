@@ -12,8 +12,8 @@ apt-get update -y
 echo "====> System updated."
 
 # Install required packages
-echo "====> Installing packages: awscli, jq, nginx"
-apt-get install -y awscli jq nginx
+echo "====> Installing packages: awscli, jq, nginx, iptables-services, iptables-persistent"
+apt-get install -y awscli jq nginx iptables-persistent iptables-services
 echo "====> Packages installed."
 
 # Retrieve instance metadata token
@@ -111,7 +111,9 @@ if [[ -z "$CERT" ]]; then
     exit 1
 fi
 
-KEY_FILE="$PROJECT_NAME-$ENVIRONMENT_NAME-ssh-key.pem"
+KEY_FILE="/home/ubuntu/$PROJECT_NAME-$ENVIRONMENT_NAME-ssh-key.pem"
+echo "====> Saving SSH certificate to $KEY_FILE"
+echo "$CERT"
 echo "$CERT" > "$KEY_FILE"
 chmod 600 "$KEY_FILE"
 chown ubuntu:ubuntu "$KEY_FILE"
@@ -148,6 +150,9 @@ fi
 
 # Enable IP forwarding for routing
 echo "====> Enabling IP forwarding..."
+systemctl enable iptables && systemctl start iptables
+touch /etc/sysctl.d/custom-ip-forwarding.conf
+chmod 666 /etc/sysctl.d/custom-ip-forwarding.conf
 echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.d/custom-ip-forwarding.conf
 sysctl -p /etc/sysctl.d/custom-ip-forwarding.conf
 echo "====> IP forwarding enabled"
@@ -158,9 +163,9 @@ if ! command -v iptables >/dev/null 2>&1; then
     echo "====> iptables is not installed. Please install it to proceed."
     exit 1
 fi
-iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE
+iptables -t nat -A POSTROUTING -o ens5 -s 0.0.0.0/0 -j MASQUERADE
 iptables -F FORWARD
-iptables-save > /etc/iptables/rules.v4
+iptables-save -c > /etc/iptables/rules.v4
 echo "====> NAT setup completed"
 
 echo "====> Firewall rules applied"
