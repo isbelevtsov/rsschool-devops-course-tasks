@@ -20,25 +20,46 @@ on:
   #     - task_4
 
 env:
-  AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
-  KUBECONFIG_PARAM_PATH: ${{ secrets.KUBECONFIG_PARAM_PATH }} # Set this in GitHub Secrets
-  TASK_DIR: task_5/project
+  AWS_REGION: ${{ vars.AWS_REGION }}                # AWS default region. Set this in GitHub Variables
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}     # AWS account ID. Set this in GitHub Secrets
+  ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME }}    # Environment name. Set this in GitHub Variables
+  PROJECT_NAME: ${{ vars.PROJECT_NAME }}            # Project name. Set this in GitHub Variables
+  ROUTE53_DOMAIN: ${{ vars.ROUTE53_DOMAIN }}        # AWS Route53 domain. Set this in GitHub Variables
+  WORKING_DIR_MAIN: ${{ vars.WORKING_DIR_MAIN }}    # Main working directory. Set this in GitHub Variables
 
 permissions:
-  id-token: write  # Required for OIDC token exchange
-  contents: read   # Required to checkout the repo
+  id-token: write       # Required for OIDC token exchange
+  contents: read        # Required to checkout the repo
   pull-requests: write  # Required to comment on PRs
-  actions: read   # Required to upload artifacts
-  issues: write   # Required to comment on issues
-  checks: write   # Required to update checks on PRs
-  statuses: write # Required to update commit statuses
+  actions: read         # Required to upload artifacts
+  issues: write         # Required to comment on issues
+  checks: write         # Required to update checks on PRs
+  statuses: write       # Required to update commit statuses
 
 jobs:
+  setup-env-vars:
+    runs-on: ubuntu-latest
+    outputs:
+      WORKING_DIR_KUBERNETES: ${{ steps.set-env.outputs.WORKING_DIR_KUBERNETES }}
+      KUBECONFIG_PARAM_PATH: ${{ steps.set-env.outputs.KUBECONFIG_PARAM_PATH }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Set up Environment Variables
+        id: set-env
+        run: |
+          echo "WORKING_DIR_KUBERNETES=${{ env.WORKING_DIR_MAIN }}/kubernetes" >> $GITHUB_OUTPUT
+          echo "KUBECONFIG_PARAM_PATH=/${{ env.PROJECT_NAME}}/${{ env.ENVIRONMENT_NAME }}/kube/kubeconfig" >> $GITHUB_OUTPUT
+
   deploy_jenkins:
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy Jenkins' }}
     # if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy Jenkins' }}
     runs-on: ubuntu-latest
+    needs: setup-env-vars
+    env:
+      KUBECONFIG_PARAM_PATH: ${{ needs.setup-env-vars.outputs.KUBECONFIG_PARAM_PATH }}
+      WORKING_DIR_KUBERNETES: ${{ needs.setup-env-vars.outputs.WORKING_DIR_KUBERNETES }}
     defaults:
       run:
         shell: bash
@@ -64,7 +85,6 @@ jobs:
             --filters "Name=tag:Name,Values=*bastion*" \
             --query "SecurityGroups[*].GroupId" \
             --output text)" >> $GITHUB_ENV
-        working-directory: ${{ env.TASK_DIR }}
 
       - name: Add GitHub Runner IP to Security Group
         env:
@@ -86,9 +106,9 @@ jobs:
             --query "Parameter.Value" \
             --output text > kubeconfig
                 chmod 600 kubeconfig
-          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.elysium-space.com|" kubeconfig
+          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.${{ env.ROUTE53_DOMAIN }}|" kubeconfig
           echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Install helm
         uses: azure/setup-helm@v4.3.0
@@ -107,19 +127,19 @@ jobs:
           else
             echo "Namespace 'jenkins' already exists. Skipping creation."
           fi
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Create Jenkins service account
         run: |
-          kubectl apply -f ./jenkins/jenkins_sa.yaml -n jenkins --kubeconfig kubeconfig
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+          kubectl apply -f jenkins_sa.yaml -n jenkins --kubeconfig kubeconfig
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
 
       - name: Apply Persistent Storage Configuration (Optional)
         run: |
-          kubectl apply -f ./jenkins/jenkins_storage_class.yaml -n jenkins --kubeconfig kubeconfig
-          kubectl apply -f ./jenkins/jenkins_pv.yaml -n jenkins --kubeconfig kubeconfig
-          kubectl apply -f ./jenkins/jenkins_pvc.yaml -n jenkins --kubeconfig kubeconfig
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+          kubectl apply -f jenkins_storage_class.yaml -n jenkins --kubeconfig kubeconfig
+          kubectl apply -f jenkins_pv.yaml -n jenkins --kubeconfig kubeconfig
+          kubectl apply -f jenkins_pvc.yaml -n jenkins --kubeconfig kubeconfig
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -130,9 +150,9 @@ jobs:
         run: |
           pip install jinja2-cli
 
-      - name: Render Jenkins values manifest for Helm from J2 template
+      - name: Render Jenkins manifests for Helm chart from Jinja2 templates
         run: |
-          jinja2 jenkins/jenkins_values.yaml.j2 \
+          jinja2 jenkins_values.yaml.j2 \
             -D JENKINS_ADMIN_USERNAME='${{ secrets.JENKINS_ADMIN_USERNAME }}' \
             -D JENKINS_ADMIN_PASSWORD='${{ secrets.JENKINS_ADMIN_PASSWORD }}' \
             -D JENKINS_USER_LOGIN='${{ secrets.JENKINS_USER_LOGIN }}' \
@@ -145,7 +165,13 @@ jobs:
             -D DOCKER_HUB_USERNAME='${{ secrets.DOCKER_HUB_USERNAME }}' \
             -D DOCKER_HUB_PASSWORD='${{ secrets.DOCKER_HUB_PASSWORD }}' \
             > jenkins_values.yaml
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+          jinja2 jenkins_ingress_route.yaml.j2 \
+            -D ROUTE53_DOMAIN='${{ env.ROUTE53_DOMAIN }}' \
+            > jenkins_ingress_route.yaml
+          jinja2 jenkins_pv.yaml.j2 \
+            -D JENKINS_DATA_DIR='${{ vars.JENKINS_DATA_DIR }}' \
+            > jenkins_pv.yaml
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
 
       - name: Deploy Jenkins with Helm
         run: |
@@ -153,14 +179,14 @@ jobs:
           helm repo update
           helm upgrade --install my-jenkins jenkins/jenkins \
           --namespace jenkins \
-          --values ./jenkins/jenkins_values.yaml \
+          --values jenkins_values.yaml \
           --kubeconfig kubeconfig
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
 
       - name: Apply Jenkins Ingress Route (Optional)
         run: |
-          kubectl apply -f ./jenkins/jenkins_ingress_route.yaml -n jenkins --kubeconfig kubeconfig
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+          kubectl apply -f jenkins_ingress_route.yaml -n jenkins --kubeconfig kubeconfig
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
 
       - name: Collect Jenkins Deployment Info
         id: jenkins-info
@@ -182,7 +208,7 @@ jobs:
           echo "helm_output<<EOF" >> $GITHUB_OUTPUT
           cat status.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Remove IP from Security Group
         if: always()
@@ -231,7 +257,7 @@ jobs:
             ${svc_output}
             \`\`\`
 
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TASK_DIR }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.WORKING_DIR_MAIN }}\`, Workflow: \`${{ github.workflow }}\`*`;
 
             // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {
@@ -253,6 +279,11 @@ jobs:
   deploy_flask:
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy Flask' }}
     runs-on: ubuntu-latest
+    needs: setup-env-vars
+    env:
+      KUBECONFIG_PARAM_PATH: ${{ needs.setup-env-vars.outputs.KUBECONFIG_PARAM_PATH }}
+      WORKING_DIR_KUBERNETES: ${{ needs.setup-env-vars.outputs.WORKING_DIR_KUBERNETES }}
+
     defaults:
       run:
         shell: bash
@@ -278,7 +309,6 @@ jobs:
             --filters "Name=tag:Name,Values=*bastion*" \
             --query "SecurityGroups[*].GroupId" \
             --output text)" >> $GITHUB_ENV
-        working-directory: ${{ env.TASK_DIR }}
 
       - name: Add GitHub Runner IP to Security Group
         env:
@@ -300,28 +330,14 @@ jobs:
             --query "Parameter.Value" \
             --output text > kubeconfig
                 chmod 600 kubeconfig
-          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.elysium-space.com|" kubeconfig
+          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.${{ env.ROUTE53_DOMAIN }}|" kubeconfig
           echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Install helm
         uses: azure/setup-helm@v4.3.0
         with:
           version: v3.18.3
-
-      - name: Create Flask-App Namespace
-        run: |
-          if ! kubectl get namespace flask-app \
-              --kubeconfig kubeconfig > /dev/null 2>&1; then
-            echo "Namespace 'flask-app' does not exist. Creating..."
-            kubectl create namespace flask-app \
-              --dry-run=client -o yaml \
-              --kubeconfig kubeconfig | \
-            kubectl apply -f - --kubeconfig kubeconfig
-          else
-            echo "Namespace 'flask-app' already exists. Skipping creation."
-          fi
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
 
       - name: Deploy Flask with Helm
         run: |
@@ -329,7 +345,7 @@ jobs:
           --namespace flask-app \
           --values values.yaml \
           --kubeconfig ../../kubernetes/kubeconfig
-        working-directory: ${{ env.TASK_DIR }}/helm/flask-app
+        working-directory: ${{ env.WORKING_DIR_MAIN }}/helm/flask-app
 
       - name: Remove IP from Security Group
         if: always()
@@ -347,6 +363,11 @@ jobs:
   destroy_jenkins:
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy Jenkins' }}
     runs-on: ubuntu-latest
+    needs: setup-env-vars
+    env:
+      KUBECONFIG_PARAM_PATH: ${{ needs.setup-env-vars.outputs.KUBECONFIG_PARAM_PATH }}
+      WORKING_DIR_KUBERNETES: ${{ needs.setup-env-vars.outputs.WORKING_DIR_KUBERNETES }}
+
     defaults:
       run:
         shell: bash
@@ -372,7 +393,6 @@ jobs:
             --filters "Name=tag:Name,Values=*bastion*" \
             --query "SecurityGroups[*].GroupId" \
             --output text)" >> $GITHUB_ENV
-        working-directory: ${{ env.TASK_DIR }}
 
       - name: Add GitHub Runner IP to Security Group
         env:
@@ -394,21 +414,21 @@ jobs:
             --query "Parameter.Value" \
             --output text > kubeconfig
                 chmod 600 kubeconfig
-          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.elysium-space.com|" kubeconfig
+          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.${{ env.ROUTE53_DOMAIN }}|" kubeconfig
           echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Uninstall Jenkins with Helm
         run: |
           helm uninstall my-jenkins --namespace jenkins --kubeconfig kubeconfig || echo "Jenkins already uninstalled."
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Delete Kubernetes Resources
         run: |
-          kubectl delete -f ./jenkins/ --kubeconfig kubeconfig --ignore-not-found
+          kubectl delete -f . --kubeconfig kubeconfig --ignore-not-found
           kubectl delete secret jenkins-admin --namespace jenkins --kubeconfig kubeconfig --ignore-not-found
           kubectl delete namespace jenkins --kubeconfig kubeconfig --ignore-not-found
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
 
       - name: Remove IP from Security Group
         if: always()
@@ -422,9 +442,15 @@ jobs:
             --protocol tcp \
             --port 6443 \
             --cidr $RUNNER_IP
+
   destroy_flask:
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy Flask' }}
     runs-on: ubuntu-latest
+    needs: setup-env-vars
+    env:
+      KUBECONFIG_PARAM_PATH: ${{ needs.setup-env-vars.outputs.KUBECONFIG_PARAM_PATH }}
+      WORKING_DIR_KUBERNETES: ${{ needs.setup-env-vars.outputs.WORKING_DIR_KUBERNETES }}
+
     defaults:
       run:
         shell: bash
@@ -450,7 +476,6 @@ jobs:
             --filters "Name=tag:Name,Values=*bastion*" \
             --query "SecurityGroups[*].GroupId" \
             --output text)" >> $GITHUB_ENV
-        working-directory: ${{ env.TASK_DIR }}
 
       - name: Add GitHub Runner IP to Security Group
         env:
@@ -472,19 +497,14 @@ jobs:
             --query "Parameter.Value" \
             --output text > kubeconfig
                 chmod 600 kubeconfig
-          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.elysium-space.com|" kubeconfig
+          sed -i "s|^\( *server: https://\)[^:]*|\1k8s.${{ env.ROUTE53_DOMAIN }}|" kubeconfig
           echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Uninstall Flask with Helm
         run: |
           helm uninstall flask-app --namespace flask-app --kubeconfig kubeconfig || echo "Flask already uninstalled."
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
-
-      - name: Delete Kubernetes Resources
-        run: |
-          kubectl delete namespace flask-app --kubeconfig kubeconfig --ignore-not-found
-        working-directory: ${{ env.TASK_DIR }}/kubernetes
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Remove IP from Security Group
         if: always()
