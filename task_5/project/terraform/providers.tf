@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
     tls = {
       source  = "hashicorp/tls"
@@ -10,11 +10,11 @@ terraform {
     }
     local = {
       source  = "hashicorp/local"
-      version = ">= 2.0.0"
+      version = ">= 2.5.0"
     }
     null = {
       source  = "hashicorp/null"
-      version = ">= 3.0.0"
+      version = ">= 3.2.0"
     }
     template = {
       source  = "hashicorp/template"
@@ -30,7 +30,7 @@ terraform {
     use_lockfile = true
   }
 
-  required_version = ">= 1.3.0"
+  required_version = ">= 1.12.0"
 }
 
 provider "aws" {
@@ -41,7 +41,7 @@ provider "aws" {
       "Task"        = "5. Simple Application Deployment with Helm"
       "ManagedBy"   = "Terraform"
       "CI"          = "GitHub Actions"
-      "Date"        = "2025-07-08"
+      "Date"        = "2025-07-11"
       "Project"     = "rs"
       "Environment" = "dev"
     }
