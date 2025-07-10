@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`jenkins.elysium-space.com`)  # Replace with your domain
+    - match: Host(`jenkins.{{ ROUTE53_DOMAIN }}`)  # Replace with your domain
       kind: Rule
       services:
         - name: my-jenkins  # Replace with your Jenkins service name

@@ -1,0 +1,213 @@
+env:
+  BASTION_CF_RECORD_NAME: ${{ secrets.BASTION_CF_RECORD_NAME }}
+  FLASK_CF_RECORD_NAME: ${{ secrets.FLASK_CF_RECORD_NAME }} # Set this in GitHub Secrets
+  CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+  CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+  JENKINS_CF_RECORD_NAME: ${{ secrets.JENKINS_CF_RECORD_NAME }}
+  K8S_CF_RECORD_NAME: ${{ secrets.K8S_CF_RECORD_NAME }}
+
+  configure-dns:
+    name: Configure DNS Records
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'configure-dns' }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-dns-management
+
+      - name: Update Bastion A record on Cloudflare
+        run: |
+          # Get Bastion public IP address
+          BASTION_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Role,Values=bastion" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
+
+          # Get existing record ID
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.BASTION_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          # Set or update existing bastion host DNS A record
+          if [ "$RECORD_ID" = "null" ]; then
+            echo "Creating new A record..."
+            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.BASTION_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          else
+            echo "Updating existing A record..."
+            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.BASTION_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          fi
+
+      - name: Update K8s A record on Cloudflare
+        run: |
+          # Get Bastion public IP address
+          BASTION_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Role,Values=bastion" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
+
+          # Get existing record ID
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.K8S_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          # Set or update existing bastion host DNS A record
+          if [ "$RECORD_ID" = "null" ]; then
+            echo "Creating new A record..."
+            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.K8S_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          else
+            echo "Updating existing A record..."
+            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.K8S_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          fi
+
+      - name: Update Jenkins A record on Cloudflare
+        run: |
+          # Get Bastion public IP address
+          BASTION_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Role,Values=bastion" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
+
+          # Get existing record ID
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.JENKINS_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          # Set or update existing bastion host DNS A record
+          if [ "$RECORD_ID" = "null" ]; then
+            echo "Creating new A record..."
+            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.JENKINS_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          else
+            echo "Updating existing A record..."
+            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.JENKINS_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          fi
+
+      - name: Update Flask A record on Cloudflare
+        run: |
+          # Get Bastion public IP address
+          BASTION_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Role,Values=bastion" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
+
+          # Get existing record ID
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.FLASK_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          # Set or update existing bastion host DNS A record
+          if [ "$RECORD_ID" = "null" ]; then
+            echo "Creating new A record..."
+            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.FLASK_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          else
+            echo "Updating existing A record..."
+            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"${{ env.FLASK_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
+          fi
+
+  remove-dns:
+    name: Remove DNS Records
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'remove-dns' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-dns-removal
+
+      - name: Remove Bastion A record from Cloudflare
+        run: |
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.BASTION_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          if [ "$RECORD_ID" != "null" ]; then
+            echo "Deleting Bastion DNS A record..."
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json"
+          else
+            echo "No Bastion DNS record found to delete."
+          fi
+
+      - name: Remove K8s A record from Cloudflare
+        run: |
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.K8S_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          if [ "$RECORD_ID" != "null" ]; then
+            echo "Deleting K8s DNS A record..."
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json"
+          else
+            echo "No K8s DNS record found to delete."
+          fi
+
+      - name: Remove Jenkins A record from Cloudflare
+        run: |
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.JENKINS_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          if [ "$RECORD_ID" != "null" ]; then
+            echo "Deleting Jenkins DNS A record..."
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json"
+          else
+            echo "No Jenkins DNS record found to delete."
+          fi
+
+      - name: Remove Flask A record from Cloudflare
+        run: |
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.FLASK_CF_RECORD_NAME }}" \
+            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          if [ "$RECORD_ID" != "null" ]; then
+            echo "Deleting DNS A record..."
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json"
+          else
+            echo "No Flask DNS record found to delete."
+          fi

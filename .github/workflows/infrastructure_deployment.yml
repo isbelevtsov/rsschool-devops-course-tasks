@@ -11,8 +11,7 @@ on:
           - plan
           - apply
           - destroy
-          - configure-dns
-          - remove-dns
+        default: plan
   # push:
   #   branches:
   #     - main
@@ -33,40 +32,32 @@ on:
       - '**/*.yaml'
 
 env:
-  ALLOWED_SSH_CIDR: ${{ secrets.ALLOWED_SSH_CIDR }} # Set this in GitHub Secrets
-  AWS_REGION: ${{ secrets.AWS_REGION }} # Set this in GitHub Secrets
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} # Set this in GitHub Secrets
-  AZS: ${{ secrets.AZS }} # Set this in GitHub Secrets
-  BASTION_CF_RECORD_NAME: ${{ secrets.BASTION_CF_RECORD_NAME }}
-  FLASK_CF_RECORD_NAME: ${{ secrets.FLASK_CF_RECORD_NAME }} # Set this in GitHub Secrets
-  CERT_PATH: ${{ secrets.CERT_PATH }} # Path to the certificate file, if needed
-  CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-  CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
-  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for commenting on PRs
-  INSTANCE_TYPE_BASTION: ${{ vars.INSTANCE_TYPE_BASTION }} # Set this in GitHub Variables
-  INSTANCE_TYPE_CP: ${{ vars.INSTANCE_TYPE_CP }} # Set this in GitHub Variables
-  INSTANCE_TYPE_WORKER: ${{ vars.INSTANCE_TYPE_WORKER }} # Set this in GitHub Variables
-  JENKINS_CF_RECORD_NAME: ${{ secrets.JENKINS_CF_RECORD_NAME }}
-  JENKINS_DATA_DIR: ${{ vars.JENKINS_DATA_DIR }}
-  KEY_PAIR: ${{ secrets.KEY_PAIR }} # Set this in GitHub Secrets
-  KEY_PARAM_PATH: ${{ secrets.KEY_PARAM_PATH }} # Name of the parameter in AWS Systems Manager Parameter Store, if needed
-  KUBECONFIG_PARAM_PATH: ${{ secrets.KUBECONFIG_PARAM_PATH }} # Path to the kubeconfig in AWS Systems Manager Parameter Store, if needed
-  K8S_CF_RECORD_NAME: ${{ secrets.K8S_CF_RECORD_NAME }}
-  NODE_TOKEN_PARAM_PATH: ${{ secrets.NODE_TOKEN_PARAM_PATH }}
-  PRIVATE_SUBNET_CIDRS: ${{ secrets.PRIVATE_SUBNET_CIDRS }} # Set this in GitHub Secrets
-  PUBLIC_SUBNET_CIDRS: ${{ secrets.PUBLIC_SUBNET_CIDRS }} # Set this in GitHub Secrets
-  TASK_DIR: ${{ vars.TASK_DIR }} # Set this in GitHub Variables
-  TF_VERSION: ${{ secrets.TF_VERSION }} # Set this in GitHub Secrets
-  VPC_CIDR: ${{ secrets.VPC_CIDR }} # Set this in GitHub Secrets
+  ALLOWED_SSH_CIDR: ${{ vars.ALLOWED_SSH_CIDR }}            # Allowed CIDR for Bastion and public instances access. Set this in GitHub Variables
+  AWS_REGION: ${{ vars.AWS_REGION }}                        # AWS default region. Set this in GitHub Variables
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}             # AWS account ID. Set this in GitHub Secrets
+  AZS: ${{ vars.AZS }}                                      # AWS Availability Zones. Set this in GitHub Variables
+  ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME }}            # Environment name. Set this in GitHub Variables
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}                     # GitHub token for commenting on PRs
+  INSTANCE_TYPE_BASTION: ${{ vars.INSTANCE_TYPE_BASTION }}  # AWS EC2 instance type. Set this in GitHub Variables
+  INSTANCE_TYPE_CP: ${{ vars.INSTANCE_TYPE_CP }}            # AWS EC2 instance type. Set this in GitHub Variables
+  INSTANCE_TYPE_WORKER: ${{ vars.INSTANCE_TYPE_WORKER }}    # AWS EC2 instance type. Set this in GitHub Variables
+  JENKINS_DATA_DIR: ${{ vars.JENKINS_DATA_DIR }}            # Jenkins local persistent data directory path. Set this in GitHub Variables
+  PRIVATE_SUBNET_CIDRS: ${{ vars.PRIVATE_SUBNET_CIDRS }}    # AWS Private subnet CIDRs. Set this in GitHub Variables
+  PROJECT_NAME: ${{ vars.PROJECT_NAME }}                    # Project name. Set this in GitHub Variables
+  PUBLIC_SUBNET_CIDRS: ${{ vars.PUBLIC_SUBNET_CIDRS }}      # AWS Public subnet CIDRs. Set this in GitHub Variables
+  ROUTE53_DOMAIN: ${{ vars.ROUTE53_DOMAIN }}                # AWS Route53 domain. Set this in GitHub Variables
+  WORKING_DIR_INFRA: ${{ vars.WORKING_DIR_INFRA }}          # Working directory for Terraform. Set this in GitHub Variables
+  TF_VERSION: ${{ vars.TF_VERSION }}                        # Terraform version. Set this in GitHub Variables
+  VPC_CIDR: ${{ vars.VPC_CIDR }}                            # AWS VPC CIDR. Set this in GitHub Variables
 
 permissions:
-  id-token: write  # Required for OIDC token exchange
-  contents: read   # Required to checkout the repo
+  id-token: write       # Required for OIDC token exchange
+  contents: read        # Required to checkout the repo
   pull-requests: write  # Required to comment on PRs
-  actions: read   # Required to upload artifacts
-  issues: write   # Required to comment on issues
-  checks: write   # Required to update checks on PRs
-  statuses: write # Required to update commit statuses
+  actions: read         # Required to upload artifacts
+  issues: write         # Required to comment on issues
+  checks: write         # Required to update checks on PRs
+  statuses: write       # Required to update commit statuses
 
 jobs:
   terraform-plan:
@@ -98,54 +89,52 @@ jobs:
       - name: Generate terraform.auto.tfvars
         run: |
           cat <<EOF > terraform.auto.tfvars
+          vpc_cidr              = "${{ env.VPC_CIDR }}"
           aws_region            = "${{ env.AWS_REGION }}"
           aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
-          vpc_cidr              = "${{ env.VPC_CIDR }}"
           azs                   = ${{ env.AZS }}
           public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
           private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
           allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
-          key_pair              = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
           instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
-          cert_path             = "${{ env.CERT_PATH }}"
-          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
-          kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
-          node_token_param_path = "${{ env.NODE_TOKEN_PARAM_PATH }}"
           jenkins_data_dir      = "${{ env.JENKINS_DATA_DIR }}"
+          project_name          = "${{ env.PROJECT_NAME }}"
+          environment_name      = "${{ env.ENVIRONMENT_NAME }}"
+          route53_domain        = "${{ env.ROUTE53_DOMAIN }}"
 
           EOF
-        working-directory: ${{ env.TASK_DIR }}
+        working-directory: ${{ env.WORKING_DIR_INFRA }}
 
       - name: Terraform Init
         id: init
         run: terraform init
-        working-directory: ${{ env.TASK_DIR }}
+        working-directory: ${{ env.WORKING_DIR_INFRA }}
 
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
-        working-directory: ${{ env.TASK_DIR }}
+        working-directory: ${{ env.WORKING_DIR_INFRA }}
 
       - name: Terraform Plan
         id: plan
         run: |
-          cd ${{ env.TASK_DIR }}
+          cd ${{ env.WORKING_DIR_INFRA }}
           terraform  plan -no-color -out=output.tfplan
 
       - name: Terraform Show to file
         if: github.event_name == 'pull_request'
         run: terraform show -no-color output.tfplan > tfplan.txt
-        working-directory: ${{ env.TASK_DIR }}
+        working-directory: ${{ env.WORKING_DIR_INFRA }}
 
       - name: Upload Plan
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
           path: |
-            ${{ env.TASK_DIR }}/output.tfplan
-            ${{ env.TASK_DIR }}/tfplan.txt
+            ${{ env.WORKING_DIR_INFRA }}/output.tfplan
+            ${{ env.WORKING_DIR_INFRA }}/tfplan.txt
 
       - name: Comment Plan on PR
         uses: actions/github-script@v7
@@ -236,168 +225,37 @@ jobs:
       - name: Generate terraform.auto.tfvars
         run: |
           cat <<EOF > terraform.auto.tfvars
+          vpc_cidr              = "${{ env.VPC_CIDR }}"
           aws_region            = "${{ env.AWS_REGION }}"
           aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
-          vpc_cidr              = "${{ env.VPC_CIDR }}"
           azs                   = ${{ env.AZS }}
           public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
           private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
           allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
-          key_pair              = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
           instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
-          cert_path             = "${{ env.CERT_PATH }}"
-          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
-          kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
-          node_token_param_path = "${{ env.NODE_TOKEN_PARAM_PATH }}"
           jenkins_data_dir      = "${{ env.JENKINS_DATA_DIR }}"
+          project_name          = "${{ env.PROJECT_NAME }}"
+          environment_name      = "${{ env.ENVIRONMENT_NAME }}"
+          route53_domain        = "${{ env.ROUTE53_DOMAIN }}"
 
           EOF
-        working-directory: ${{ env.TASK_DIR }}
+        working-directory: ${{ env.WORKING_DIR_INFRA }}
 
       - name: Terraform Init
         run: terraform init
-        working-directory: ${{ env.TASK_DIR }}
+        working-directory: ${{ env.WORKING_DIR_INFRA }}
 
       - name: Download Plan
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan
-          path: ${{ env.TASK_DIR }}
+          path: ${{ env.WORKING_DIR_INFRA }}
 
       - name: Terraform Apply
         run: terraform apply output.tfplan
-        working-directory: ${{ env.TASK_DIR }}
-
-  configure-dns:
-    name: Configure DNS Records
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'configure-dns' }}
-
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: gha-dns-management
-
-      - name: Update Bastion A record on Cloudflare
-        run: |
-          # Get Bastion public IP address
-          BASTION_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Role,Values=bastion" \
-            --query "Reservations[*].Instances[*].PublicIpAddress" \
-            --output text)
-
-          # Get existing record ID
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.BASTION_CF_RECORD_NAME }}" \
-            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
-
-          # Set or update existing bastion host DNS A record
-          if [ "$RECORD_ID" = "null" ]; then
-            echo "Creating new A record..."
-            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"${{ env.BASTION_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
-          else
-            echo "Updating existing A record..."
-            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"${{ env.BASTION_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
-          fi
-
-      - name: Update K8s A record on Cloudflare
-        run: |
-          # Get Bastion public IP address
-          BASTION_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Role,Values=bastion" \
-            --query "Reservations[*].Instances[*].PublicIpAddress" \
-            --output text)
-
-          # Get existing record ID
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.K8S_CF_RECORD_NAME }}" \
-            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
-
-          # Set or update existing bastion host DNS A record
-          if [ "$RECORD_ID" = "null" ]; then
-            echo "Creating new A record..."
-            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"${{ env.K8S_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
-          else
-            echo "Updating existing A record..."
-            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"${{ env.K8S_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
-          fi
-
-      - name: Update Jenkins A record on Cloudflare
-        run: |
-          # Get Bastion public IP address
-          BASTION_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Role,Values=bastion" \
-            --query "Reservations[*].Instances[*].PublicIpAddress" \
-            --output text)
-
-          # Get existing record ID
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.JENKINS_CF_RECORD_NAME }}" \
-            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
-
-          # Set or update existing bastion host DNS A record
-          if [ "$RECORD_ID" = "null" ]; then
-            echo "Creating new A record..."
-            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"${{ env.JENKINS_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
-          else
-            echo "Updating existing A record..."
-            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"${{ env.JENKINS_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
-          fi
-
-      - name: Update Flask A record on Cloudflare
-        run: |
-          # Get Bastion public IP address
-          BASTION_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Role,Values=bastion" \
-            --query "Reservations[*].Instances[*].PublicIpAddress" \
-            --output text)
-
-          # Get existing record ID
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.FLASK_CF_RECORD_NAME }}" \
-            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
-
-          # Set or update existing bastion host DNS A record
-          if [ "$RECORD_ID" = "null" ]; then
-            echo "Creating new A record..."
-            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"${{ env.FLASK_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
-          else
-            echo "Updating existing A record..."
-            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"${{ env.FLASK_CF_RECORD_NAME }}\",\"content\":\"$BASTION_IP\",\"ttl\":300,\"proxied\":false}"
-          fi
+        working-directory: ${{ env.WORKING_DIR_INFRA }}
 
   terraform-destroy:
     name: Terraform Destroy
@@ -428,107 +286,28 @@ jobs:
       - name: Generate terraform.auto.tfvars
         run: |
           cat <<EOF > terraform.auto.tfvars
+          vpc_cidr              = "${{ env.VPC_CIDR }}"
           aws_region            = "${{ env.AWS_REGION }}"
           aws_account_id        = "${{ env.AWS_ACCOUNT_ID }}"
-          vpc_cidr              = "${{ env.VPC_CIDR }}"
           azs                   = ${{ env.AZS }}
           public_subnet_cidrs   = ${{ env.PUBLIC_SUBNET_CIDRS }}
           private_subnet_cidrs  = ${{ env.PRIVATE_SUBNET_CIDRS }}
           allowed_ssh_cidr      = "${{ env.ALLOWED_SSH_CIDR }}"
-          key_pair              = "${{ env.KEY_PAIR }}"
           instance_type_bastion = "${{ env.INSTANCE_TYPE_BASTION }}"
           instance_type_cp      = "${{ env.INSTANCE_TYPE_CP }}"
           instance_type_worker  = "${{ env.INSTANCE_TYPE_WORKER }}"
-          cert_path             = "${{ env.CERT_PATH }}"
-          key_param_path        = "${{ env.KEY_PARAM_PATH }}"
-          kubeconfig_param_path = "${{ env.KUBECONFIG_PARAM_PATH }}"
-          node_token_param_path = "${{ env.NODE_TOKEN_PARAM_PATH }}"
           jenkins_data_dir      = "${{ env.JENKINS_DATA_DIR }}"
+          project_name          = "${{ env.PROJECT_NAME }}"
+          environment_name      = "${{ env.ENVIRONMENT_NAME }}"
+          route53_domain        = "${{ env.ROUTE53_DOMAIN }}"
 
           EOF
-        working-directory: ${{ env.TASK_DIR }}
+        working-directory: ${{ env.WORKING_DIR_INFRA }}
 
       - name: Terraform Init
         run: terraform init
-        working-directory: ${{ env.TASK_DIR }}
+        working-directory: ${{ env.WORKING_DIR_INFRA }}
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve
-        working-directory: ${{ env.TASK_DIR }}
-
-  remove-dns:
-    name: Remove DNS Records
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'remove-dns' || github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' }}
-
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionRole
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: gha-dns-removal
-
-      - name: Remove Bastion A record from Cloudflare
-        run: |
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.BASTION_CF_RECORD_NAME }}" \
-            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
-
-          if [ "$RECORD_ID" != "null" ]; then
-            echo "Deleting Bastion DNS A record..."
-            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json"
-          else
-            echo "No Bastion DNS record found to delete."
-          fi
-
-      - name: Remove K8s A record from Cloudflare
-        run: |
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.K8S_CF_RECORD_NAME }}" \
-            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
-
-          if [ "$RECORD_ID" != "null" ]; then
-            echo "Deleting K8s DNS A record..."
-            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json"
-          else
-            echo "No K8s DNS record found to delete."
-          fi
-
-      - name: Remove Jenkins A record from Cloudflare
-        run: |
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.JENKINS_CF_RECORD_NAME }}" \
-            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
-
-          if [ "$RECORD_ID" != "null" ]; then
-            echo "Deleting Jenkins DNS A record..."
-            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json"
-          else
-            echo "No Jenkins DNS record found to delete."
-          fi
-
-      - name: Remove Flask A record from Cloudflare
-        run: |
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records?name=${{ env.FLASK_CF_RECORD_NAME }}" \
-            -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
-
-          if [ "$RECORD_ID" != "null" ]; then
-            echo "Deleting DNS A record..."
-            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ env.CF_ZONE_ID }}/dns_records/$RECORD_ID" \
-              -H "Authorization: Bearer ${{ env.CF_API_TOKEN }}" \
-              -H "Content-Type: application/json"
-          else
-            echo "No Flask DNS record found to delete."
-          fi
+        working-directory: ${{ env.WORKING_DIR_INFRA }}

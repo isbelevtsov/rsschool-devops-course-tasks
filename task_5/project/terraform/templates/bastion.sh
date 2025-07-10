@@ -1,120 +1,167 @@
 #!/bin/bash
-# Set the hostname
-hostnamectl set-hostname ${PROJECT_NAME}-bastion-${ENVIRONMENT_NAME}
-if [ $? -eq 0 ]; then
-    echo "====> Hostname have been set succsessfully"
-    echo "127.0.0.1 $(hostname)" >> /etc/hosts
-    cloud-init single --name set-hostname --frequency always
-else
-    echo "====> Failed to set instance hostname"
-    # exit 1
-fi
+set -euo pipefail
+
+# Redirect all output to log
+exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
+
+echo "====> Running EC2 user data script on $(hostname) at $(date)"
 
 # Update the instance
+echo "====> Updating the system..."
 apt-get update -y
-if [ $? -eq 0 ]; then
-    echo "====> Updated the instance successfully."
-else
-    echo "====> Failed to update the instance."
-    # exit 1
-fi
+echo "====> System updated."
 
-# Install needed packages
+# Install required packages
+echo "====> Installing packages: awscli, jq, nginx"
 apt-get install -y awscli jq nginx
-if [ $? -eq 0 ]; then
-    echo "====> Packages has been installed successfully"
-else
-    echo "====> Failed to install system packages"
-    # exit 1
+echo "====> Packages installed."
+
+# Retrieve instance metadata token
+echo "====> Fetching metadata token..."
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
+    -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+
+if [[ -z "$TOKEN" ]]; then
+    echo "====> Failed to fetch metadata token."
+    exit 1
+fi
+echo "====> Metadata token acquired."
+
+# Get instance ID and region
+echo "====> Retrieving instance metadata..."
+INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+    http://169.254.169.254/latest/meta-data/instance-id)
+
+AWS_REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+    http://169.254.169.254/latest/meta-data/placement/region)
+
+if [[ -z "$INSTANCE_ID" || -z "$AWS_REGION" ]]; then
+    echo "====> Failed to retrieve instance metadata (ID or region)."
+    exit 1
+fi
+echo "====> Instance ID: $INSTANCE_ID"
+echo "====> AWS Region: $AWS_REGION"
+
+# Configure AWS CLI
+mkdir -p /home/ubuntu/.aws
+cat > /home/ubuntu/.aws/config <<EOF
+[default]
+region = $AWS_REGION
+EOF
+chown -R ubuntu:ubuntu /home/ubuntu/.aws
+chmod 600 /home/ubuntu/.aws/config
+export AWS_DEFAULT_REGION="$AWS_REGION"
+echo "AWS_REGION=$AWS_REGION" >> /etc/environment
+echo "AWS_DEFAULT_REGION=$AWS_REGION" >> /etc/environment
+echo "====> AWS CLI configured with region $AWS_REGION"
+
+# Check if AWS CLI is authenticated
+echo "====> Checking AWS CLI authentication..."
+if ! command -v aws >/dev/null 2>&1; then
+  echo "====> AWS CLI is not installed. Please install it to proceed."
+  exit 1
+fi
+aws sts get-caller-identity >/dev/null 2>&1 || {
+  echo "====> AWS CLI is not authenticated. Ensure instance profile is attached."
+  exit 1
+}
+
+# Retrieve EC2 tag values
+get_tag_value() {
+    local key="$1"
+    aws ec2 describe-tags \
+        --region "$AWS_REGION" \
+        --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=$key" \
+        --query "Tags[0].Value" --output text
+}
+
+HOSTNAME_VALUE=$(get_tag_value "Name")
+PROJECT_NAME=$(get_tag_value "Project")
+ENVIRONMENT_NAME=$(get_tag_value "Environment")
+
+if [[ -z "$HOSTNAME_VALUE" || -z "$PROJECT_NAME" || -z "$ENVIRONMENT_NAME" ]]; then
+    echo "====> Failed to retrieve one or more required tags."
+    exit 1
 fi
 
-# systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service && systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
-# if [ $? -eq 0 ]; then
-#     echo "====> Amazon SSM Agent service has been enabled and started"
-# else
-#     echo "====> Failed to enable and start Amazon SSM Agent service"
-#     # exit 1
-# fi
+echo "====> Hostname: $HOSTNAME_VALUE"
+echo "====> Project: $PROJECT_NAME"
+echo "====> Environment: $ENVIRONMENT_NAME"
 
-# Creates token to authenticate and retrieve instance metadata
-TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-if [ ! -z $TOKEN ]; then
-    echo "====> Created token for instance metadata."
-else
-    echo "====> Failed to create token."
-    # exit 1
+# Sanitize and set hostname
+HOSTNAME_CLEAN=$(echo "$HOSTNAME_VALUE" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-zA-Z0-9.-')
+hostnamectl set-hostname "$HOSTNAME_CLEAN"
+echo "127.0.0.1 $HOSTNAME_CLEAN" >> /etc/hosts
+echo "====> Hostname set to $HOSTNAME_CLEAN"
+
+# Start Amazon SSM agent
+systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
+systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
+echo "====> Amazon SSM Agent started"
+
+# Retrieve SSH certificate from SSM
+CERT=$(aws ssm get-parameter \
+    --name "/$PROJECT_NAME/$ENVIRONMENT_NAME/common/ssh_key" \
+    --with-decryption \
+    --query "Parameter.Value" \
+    --output text)
+
+if [[ -z "$CERT" ]]; then
+    echo "====> Failed to retrieve SSH certificate."
+    exit 1
 fi
 
-# Set the AWS region using the token
-AWS_REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254/latest/meta-data/placement/region)
-if [ ! -z $AWS_REGIOM ]; then
-    export AWS_DEFAULT_REGION=$AWS_REGION
-    echo "====> Setting AWS Region to: $AWS_DEFAULT_REGION"
-else
-    echo "====> Failed to fetch AWS region."
-    # exit 1
-fi
+KEY_FILE="$PROJECT_NAME-$ENVIRONMENT_NAME-ssh-key.pem"
+echo "$CERT" > "$KEY_FILE"
+chmod 600 "$KEY_FILE"
+chown ubuntu:ubuntu "$KEY_FILE"
+echo "SSH_KEY_FILE=$KEY_FILE" >> /etc/environment
+echo "====> SSH certificate saved to $KEY_FILE"
 
-# Retrieve the SSH certificate
-CERT=$(aws ssm get-parameter --name "${KEY_PARAM_PATH}" --with-decryption --query "Parameter.Value" --output text)
-if [ ! -z $CERT ]; then
-    echo "====> SSH certificate received successfully"
-else
-    echo "====> Failed to get SSH certificate"
-    # exit 1
-fi
-
-# Write it to file
-echo "$${CERT}" > "${CERT_PATH}"
-if [ $? -eq 0 ]; then
-    echo "====> Saved SSH certificate to file"
-else
-    echo "====> Failed to save SSH certificate"
-    # exit 1
-fi
-
-# Set SSH certificate file permissions
-chmod 600 "${CERT_PATH}"
-if [ $? -eq 0 ]; then
-    echo "====> Permissions was successfully set"
-else
-    echo "====> Failed to set permissions to file"
-    # exit 1
-fi
-
-# Change certificate ownership
-chown ubuntu:ubuntu "${CERT_PATH}"
-if [ $? -eq 0 ]; then
-    echo "====> Certificate ownership changed successfully"
-else
-    echo "====> Failed to changle certificate ownership"
-    # exit 1
-fi
-
-# Backup existing default config
+# Disable default Nginx config if exists
 mv /etc/nginx/sites-enabled/default /etc/nginx/sites-enabled/default.bak 2>/dev/null || true
 mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.bak 2>/dev/null || true
+echo "====> Default Nginx configuration disabled"
 
-# Restart and enable Nginx systemd service
-systemctl restart nginx && systemctl enable nginx
-if [ $? -eq 0 ]; then
-    echo "====> Nginx service has been succsessfully restarted and enabled"
-else
-    echo "====> Failed to restart and enable Nginx systemd service"
-    # exit 1
-fi
+# Restart and enable Nginx
+systemctl restart nginx
+systemctl enable nginx
+echo "====> Nginx restarted and enabled"
 
-# Open firewall
-NGINX_PORT=6443
+# Open firewall ports
+PORTS=(22 80 443 6443)
+
 if command -v ufw >/dev/null 2>&1; then
-    sudo ufw allow "$NGINX_PORT/tcp"
+    echo "====> UFW detected. Allowing ports: ${PORTS[*]}"
+    for PORT in "${PORTS[@]}"; do
+        ufw allow "$PORT/tcp"
+    done
 elif command -v firewall-cmd >/dev/null 2>&1; then
-    sudo firewall-cmd --add-port=$${NGINX_PORT}/tcp --permanent
-    sudo firewall-cmd --reload
-fi
-if [ $? -eq 0 ]; then
-    echo "Configuring firewall to allow TCP $${NGINX_PORT}"
+    echo "====> firewalld detected. Opening ports: ${PORTS[*]}"
+    for PORT in "${PORTS[@]}"; do
+        firewall-cmd --add-port=${PORT}/tcp --permanent
+    done
+    firewall-cmd --reload
 else
-    echo "Failed to open $${NGINX_PORT} thought firewall"
-    # exit 1
+    echo "====> No supported firewall tool detected (ufw or firewalld)"
 fi
+
+# Enable IP forwarding for routing
+echo "====> Enabling IP forwarding..."
+echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.d/custom-ip-forwarding.conf
+sysctl -p /etc/sysctl.d/custom-ip-forwarding.conf
+echo "====> IP forwarding enabled"
+
+# Set up NAT to allow private instances to access the internet through Bastion
+echo "====> Setting up NAT for internet access..."
+if ! command -v iptables >/dev/null 2>&1; then
+    echo "====> iptables is not installed. Please install it to proceed."
+    exit 1
+fi
+iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE
+iptables -F FORWARD
+iptables-save > /etc/iptables/rules.v4
+echo "====> NAT setup completed"
+
+echo "====> Firewall rules applied"
+echo "====> EC2 instance configuration completed at $(date)"

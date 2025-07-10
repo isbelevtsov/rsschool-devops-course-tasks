@@ -1,6 +1,6 @@
 upstream jenkins {
   keepalive 32;
-  server ${k3s_control_plane_private_ip}:80;  # IP and exposed NodePort of Jenkins
+  server ${k3s_control_plane_private_ip}:80;  # IP and exposed ClusterIP of Jenkins
 }
 
 map $http_upgrade $connection_upgrade {
@@ -10,7 +10,7 @@ map $http_upgrade $connection_upgrade {
 
 server {
   listen 80;
-  server_name jenkins.elysium-space.com;
+  server_name jenkins.${route53_domain}.com;
 
   access_log /var/log/nginx/jenkins.access.log;
   error_log /var/log/nginx/jenkins.error.log;

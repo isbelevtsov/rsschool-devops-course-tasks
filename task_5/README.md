@@ -8,7 +8,7 @@ ______________________________________________________________________
 
 📌
 
-This project will bootstrap a basic AWS infrastructure with bastion host at front and K8s Cluster using K3s that allocated behind in private subnet. When cluster will be ready you can deploy a Jenkins CI/CD tool with GHA that can be runned manually after bootstrap.
+This project will bootstrap a basic AWS infrastructure with bastion host at front and K8s Cluster using K3s that allocated behind in private subnet. When cluster will be ready you can deploy a Jenkins CI/CD tool and Flask simple app with GHA that can be runned manually after bootstrap.
 
 ______________________________________________________________________
 
@@ -47,7 +47,8 @@ ______________________________________________________________________
 - [Terraform](https://www.terraform.io/) - Terraform is an open-source infrastructure as code software tool that provides a consistent CLI workflow to manage hundreds of cloud services. Terraform codifies cloud APIs into declarative configuration files.
 - [Amazon AWS Account](https://aws.amazon.com/it/console/) - Amazon AWS account.
 - [AWS CLI](https://aws.amazon.com/cli/) - Amazon AWS CLI.
-- Preconfigured SSM Parameter Store secure string object with you SSH key for EC2 instance access
+- [Docker](https://www.docker.com/products/docker-desktop/) - Docker desktop engine.
+- Preconfigured SSM Parameter Store secure string object with you SSH key for EC2 instance access.
 - Task 1 bootstrap Terraform code must be executed before running this task.
 - Github Action Secrets must be already initialized throught the Github web console.
 - Set variables according to your desire.
@@ -73,7 +74,7 @@ ______________________________________________________________________
 - CloudWatch log group for VPC flow logs
 - Tags including GitHub Actions metadata
 - GitHub Actions pipeline for Terraform Plan, Apply & Destroy using OIDC
-- GitHub Actions pipiline for Jenkins CI/CD deployment into K3s kubernetes cluster
+- GitHub Actions pipiline for Jenkins CI/CD and Flask app deployment into K3s kubernetes cluster
 
 ______________________________________________________________________
 
@@ -87,48 +88,109 @@ ______________________________________________________________________
 │   └── workflows
 │       ├── infrastructure_deployment.yml         # Github Actions workflow pipeline configuration that will bootstrap prerequisites infrastructure
 │       └── k8s_management.yml                    # Github Actions workflow pipeline configuration that will deploy k8s resources inside the cluster
-├── task_4
+├── task_5
 │   ├── project
+│   │    ├── app
+│   │    │    ├── app.py                          # Simple python flask application
+│   │    │    ├── Dockerfile                      # Docker image build file
+│   │    │    └── requirements.txt                # Python package requirements for application
+│   │    ├── helm
+│   │    │    └── flask-app                       # Flask application custom Helm chart
+│   │    │         └── ...
 │   │    ├── kubernetes                           # Kubernetes manifests location for deploying into cluster
-│   │    │    ├── app_configmap.yaml              # Web App configmap manifest
-│   │    │    ├── app_deployment.yaml             # Web App deployment manifest
-│   │    │    ├── app_namespace.yaml              # Web App namespace manifest
-│   │    │    ├── app_service.yaml                # Web App service manifest
-│   │    │    ├── ebs_storage_class.yaml          # EBS storage class for PV/PVC manifest
-│   │    │    ├── jenkins_ingress.yaml            # Jenkins ingress manifest
-│   │    │    ├── jenkins_pv.yaml                 # Jenkins persistent volume manifest
-│   │    │    ├── jenkins_pvc.yaml                # Jenkins persistent volume claims manifest
-│   │    │    ├── jenkins_sa.yaml                 # Jenkins service account manifest
-│   │    │    ├── jenkins_storage_class.yaml      # Jenkins local path storage class manifest
-│   │    │    └── jenkins_values.yaml             # Jenkins values for Helm chart deployment manifest
+│   │    │    ├── app
+│   │    │    │    ├── app_configmap.yaml         # Web App configmap manifest
+│   │    │    │    ├── app_deployment.yaml        # Web App deployment manifest
+│   │    │    │    ├── app_namespace.yaml         # Web App namespace manifest
+│   │    │    │    ├── app_service.yaml           # Web App service manifest
+│   │    │    │    └── ebs_storage_class.yaml     # EBS storage class for PV/PVC manifest
+│   │    │    └── jenkins
+│   │    │         ├── jenkins_ingress_route.yaml # Jenkins Traeffic ingress route manifest
+│   │    │         ├── jenkins_pv.yaml            # Jenkins persistent volume manifest
+│   │    │         ├── jenkins_pvc.yaml           # Jenkins persistent volume claims manifest
+│   │    │         ├── jenkins_sa.yaml            # Jenkins service account manifest
+│   │    │         ├── jenkins_storage_class.yaml # Jenkins local path storage class manifest
+│   │    │         └── jenkins_values.yaml.j2     # Jenkins values Jinja2 template for Helm chart deployment manifest
 │   │    ├── scripts
 │   │    │    └── get_kubeconfig.sh               # Scripts that will get kubeconfig from AWS SSM Parameter Store and save it to you system
-│   │    ├── terraform
-│   │    │    ├── templates
-│   │    │    │    ├── bastion.sh                 # Terraform user data template for AWS EC2 instance bootstrap
-│   │    │    │    ├── controlplane.sh            # Terraform user data template for AWS EC2 instance bootstrap
-│   │    │    │    ├── nginx_jenkins.tpl          # Nginx reverse proxy configuration template for Jenkins
-│   │    │    │    ├── nginx_k3s.tpl              # Nginx reverse proxy configuration template for K3s cluster API server
-│   │    │    │    └── worker.sh                  # Terraform user data template for AWS EC2 instance bootstrap
-│   │    │    ├── .env.example                    # Example file contains variables for Makefile
-│   │    │    ├── ami.tf                          # AWS AMI configuration for future EC2 instaces deployment
-│   │    │    ├── backend.tf                      # Terraform backend condiguration
-│   │    │    ├── ec2.tf                          # AWS EC2 instances configuration
-│   │    │    ├── iam.tf                          # AWS IAM configuration
-│   │    │    ├── logs.tf                         # AWS S3 bucket logging for security purpose and KMS key configuration for data encryption
-│   │    │    ├── Makefile                        # Makefile for better project and data magement
-│   │    │    ├── networking.tf                   # AWS subnets and routing configuration alongside with network access lists configuration
-│   │    │    ├── outputs.tf                      # Terraform outputs data
-│   │    │    ├── providers.tf                    # Terraform providers configuration
-│   │    │    ├── sg.tf                           # AWS security groups configuration for network traffic control
-│   │    │    ├── terraform.auto.tfvars.example   # Example file contains test variables or placeholders for Terraform (only for
-│   │    │    │                                   # local usage, Github Actions workflow will generate it in process)
-│   │    │    ├── variables.tf                    # Terraform variables configuration
-│   │    │    └── vpc.tf                          # AWS VPC configuration
+│   │    └── terraform
+│   │         ├── templates
+│   │         │    ├── bastion.sh                 # Terraform user data template for AWS EC2 instance bootstrap
+│   │         │    ├── controlplane.sh            # Terraform user data template for AWS EC2 instance bootstrap
+│   │         │    ├── nginx_flask.tpl            # Nginx reverse proxy configuration template for Flask app
+│   │         │    ├── nginx_jenkins.tpl          # Nginx reverse proxy configuration template for Jenkins
+│   │         │    ├── nginx_k3s.tpl              # Nginx reverse proxy configuration template for K3s cluster API server
+│   │         │    └── worker.sh                  # Terraform user data template for AWS EC2 instance bootstrap
+│   │         ├── .env.example                    # Example file contains variables for Makefile
+│   │         ├── ec2.tf                          # AWS EC2 instances configuration
+│   │         ├── iam.tf                          # AWS IAM configuration
+│   │         ├── dns.tf                          # AWS Route53 DNS configuration
+│   │         ├── logs.tf                         # AWS S3 bucket logging for security purpose and KMS key configuration for data encryption
+│   │         ├── Makefile                        # Makefile for better project and data magement
+│   │         ├── networking.tf                   # AWS subnets and routing configuration alongside with network access lists configuration
+│   │         ├── outputs.tf                      # Terraform outputs data
+│   │         ├── providers.tf                    # Terraform providers configuration
+│   │         ├── sg.tf                           # AWS security groups configuration for network traffic control
+│   │         ├── terraform.auto.tfvars.example   # Example file contains test variables or placeholders for Terraform (only for
+│   │         │                                   # local usage, Github Actions workflow will generate it in process)
+│   │         └── variables.tf                    # Terraform variables configuration
 │   ├── screenshots                               # Screenshots location that mentioned in PR
 │   │    └── ...
 │   └── README.md                                 # This file
 ```
+
+______________________________________________________________________
+
+## Docker image build preparation
+
+You need to build your Flask image from scratch. To do that you'll need to use Docker engine. After you'll install it open console and do next steps:
+
+- Authenticate to your Docker Hub account
+
+```bash
+docker login
+```
+
+- Locate to the directory with Dockerfile
+
+```bash
+cd task_5/project/app
+```
+
+<details><summary>App folder content</summary>
+
+![App folder content](screenshots/scr_1.png)<br>
+
+</details><br>
+
+- Create multi-platform builder (you'll need it to be able to use your image on any architecture platform)
+
+```bash
+docker buildx create --use --name multiarch-builder
+```
+
+<details><summary>Creation multi-architecture image builder</summary>
+
+![Creation multi-architecture image builder](screenshots/scr_2.png)<br>
+
+</details><br>
+
+- Build your own image and push it to your Docker Hub account
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t username/image_name:custom_tag -t username/image_name:latest \
+  --push .
+```
+
+<details><summary>Docker image build and push process</summary>
+
+![Docker image build and push process](screenshots/scr_3.png)<br>
+
+</details><br>
+
+> Dont forget to change `username` to your Docker Hub user account, `image_name` to your defined Docker image name and `custom_tag` to your defined tag (for example: `isbelevtsov/task-5:v1.0`). It's a best practice to add more than one tag to your images to able to track latest version actual. When this process will be done you'll need to adjust Flask-app Helm chart `values.yaml` file to use your actual image repository in this section:
+> ![Flask-app Heml chart values](screenshots/scr_4.png)<br>
 
 ______________________________________________________________________
 
@@ -150,6 +212,7 @@ The `k8s_management.yml` workflow performs:
 - Code checkout
 - Helm setup
 - Deploy Jenkins Helm chart to K3s cluster with all prerequisites
+- Deploy Flask app Helm chart to K3s cluster
 - PR comment with Jenkins Helm chart deployment info
 
 ______________________________________________________________________
@@ -479,32 +542,16 @@ ______________________________________________________________________
 
 <details><summary>Resources creation and usage proofs</summary>
 
-### AWS VPC Resource map<br>
+### Flask-app service overview<br>
 
-![AWS VPC Resource map](screenshots/scr_1.png)<br>
+![Flask-app deployemnt overview](screenshots/scr_5.png)<br>
 
-### AWS EC2 instances<br>
+### Flask-app Helm chart release overview<br>
 
-![AWS EC2 instances](screenshots/scr_2.png)<br>
-
-### NAT gateway for private network<br>
-
-![NAT gateway for private network](screenshots/scr_3.png)<br>
-
-### Kubernetes cluster overview from Lens<br>
-
-![Kubernetes cluster overview from Lens](screenshots/scr_4.png)<br>
-
-### Kubernetes cluster overview from command line<br>
-
-![Kubernetes cluster overview from command line](screenshots/scr_5.png)<br>
+![Flask-app Helm chart release overview](screenshots/scr_6.png)<br>
 
 ### Web browser connectivity test<br>
 
-![Web browser connectivity test](screenshots/scr_6.png)<br>
-
-### Jenkins freestyle job output
-
-![Jenkins freestyle job output](screenshots/scr_7.png)<br>
+![Web browser connectivity test](screenshots/scr_7.png)<br>
 
 </details>

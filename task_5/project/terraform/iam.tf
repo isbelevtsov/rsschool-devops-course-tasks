@@ -51,10 +51,8 @@ resource "aws_iam_policy" "bastion_policy" {
         Effect = "Allow",
         Action = "ssm:GetParameter",
         Resource = [
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.key_param_path}",
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/conf/nginx_k3s_conf",
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/conf/nginx_jenkins_conf",
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/conf/nginx_flask_conf"
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/common/*",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/${local.bastion_role}/*",
         ]
       },
       {
@@ -62,10 +60,12 @@ resource "aws_iam_policy" "bastion_policy" {
         Action = [
           "ssm:UpdateInstanceInformation",
           "ssmmessages:*",
+          "ec2:DescribeInstances",
+          "ec2:DescribeTags",
           "ec2messages:*",
           "cloudwatch:PutMetricData",
-          "ds:CreateComputer",
-          "ds:DescribeDirectories"
+          "kms:Decrypt",
+          "sts:GetCallerIdentity"
         ],
         Resource = "*"
       }
@@ -109,15 +109,32 @@ resource "aws_iam_policy" "controlplane_policy" {
         Effect = "Allow",
         Action = "ssm:PutParameter",
         Resource = [
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.kubeconfig_param_path}",
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.node_token_param_path}"
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/kube/*"
         ]
 
       },
       {
-        Effect   = "Allow",
-        Action   = "ssm:GetParameter",
-        Resource = "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.key_param_path}"
+        Effect = "Allow",
+        Action = "ssm:GetParameter",
+        Resource = [
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/common/*",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/kube/*"
+        ]
+
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ssm:UpdateInstanceInformation",
+          "ssmmessages:*",
+          "ec2:DescribeInstances",
+          "ec2:DescribeTags",
+          "ec2messages:*",
+          "cloudwatch:PutMetricData",
+          "kms:Decrypt",
+          "sts:GetCallerIdentity"
+        ],
+        Resource = "*"
       }
     ]
   })
@@ -159,14 +176,21 @@ resource "aws_iam_policy" "worker_policy" {
         Effect = "Allow",
         Action = "ssm:GetParameter",
         Resource = [
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.kubeconfig_param_path}",
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.node_token_param_path}",
-          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter${var.key_param_path}"
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/common/*",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/${var.project_name}/${var.environment_name}/kube/*"
         ]
       },
       {
-        Effect   = "Allow",
-        Action   = "ec2:DescribeInstances",
+        Effect = "Allow",
+        Action = [
+          "ssm:UpdateInstanceInformation",
+          "ssmmessages:*",
+          "ec2:DescribeTags",
+          "ec2messages:*",
+          "cloudwatch:PutMetricData",
+          "kms:Decrypt",
+          "sts:GetCallerIdentity"
+        ],
         Resource = "*"
       }
     ]

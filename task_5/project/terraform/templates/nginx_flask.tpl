@@ -1,11 +1,11 @@
 upstream flask {
   keepalive 32;
-  server ${k3s_control_plane_private_ip}:80;  # IP and exposed NodePort of Jenkins
+  server ${k3s_control_plane_private_ip}:80;  # IP and exposed ClusterIP of Flask
 }
 
 server {
   listen 80;
-  server_name flask.elysium-space.com;
+  server_name flask.${route53_domain};
 
   access_log /var/log/nginx/flask.access.log;
   error_log /var/log/nginx/flask.error.log;

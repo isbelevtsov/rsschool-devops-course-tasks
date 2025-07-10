@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
     local = {
       source  = "hashicorp/local"
       version = ">= 2.0.0"
@@ -18,6 +22,14 @@ terraform {
     }
   }
 
+  backend "s3" {
+    bucket       = "rsschool-bootstrap-terraform-state"
+    key          = "global/rsschool/terraform-project.tfstate"
+    region       = "eu-north-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+
   required_version = ">= 1.3.0"
 }
 
@@ -25,11 +37,13 @@ provider "aws" {
   region = var.aws_region
   default_tags {
     tags = {
-      "Course"    = "RSSchool DevOps Course"
-      "Task"      = "4. Jenkins Installation and Configuration"
-      "ManagedBy" = "Terraform"
-      "CI"        = "GitHub Actions"
-      "Date"      = "2025-07-05"
+      "Course"      = "RSSchool DevOps Course"
+      "Task"        = "5. Simple Application Deployment with Helm"
+      "ManagedBy"   = "Terraform"
+      "CI"          = "GitHub Actions"
+      "Date"        = "2025-07-08"
+      "Project"     = "rs"
+      "Environment" = "dev"
     }
   }
 }

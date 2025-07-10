@@ -11,4 +11,4 @@ spec:
     storage: 4Gi
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: "/data/jenkins-data"
+    path: "{{ JENKINS_DATA_DIR }}"
