@@ -156,17 +156,6 @@ resource "aws_network_acl_rule" "private_inbound_all_vpc" {
   to_port        = 0
 }
 
-# resource "aws_network_acl_rule" "private_inbound_ssh" {
-#   network_acl_id = aws_network_acl.private.id
-#   rule_number    = 100
-#   egress         = false
-#   protocol       = "tcp"
-#   rule_action    = "allow"
-#   cidr_block     = aws_subnet.public[0].cidr_block
-#   from_port      = 22
-#   to_port        = 22
-# }
-
 # Inbound: Allow ephemeral return traffic
 resource "aws_network_acl_rule" "private_inbound_ephemeral" {
   network_acl_id = aws_network_acl.private.id

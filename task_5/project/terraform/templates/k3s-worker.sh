@@ -13,7 +13,7 @@ echo "====> System updated."
 
 # Install required packages
 echo "====> Installing packages: awscli, jq, curl, openssh-client"
-apt-get install -y awscli jq curl openssh-client
+DEBIAN_FRONTEND=noninteractive apt-get install -y awscli jq curl openssh-client
 echo "====> Packages installed."
 
 # Retrieve instance metadata token
