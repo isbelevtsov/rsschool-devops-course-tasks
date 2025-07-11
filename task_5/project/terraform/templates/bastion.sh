@@ -11,6 +11,12 @@ echo "====> Updating the system..."
 apt-get update -y
 echo "====> System updated."
 
+# Configure iptables-persistent prerequisites
+echo "====> Configuring iptables-persistent prerequisites..."
+echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
+echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
+echo "====> Prerequisites configured for iptables-persistent."
+
 # Install required packages
 echo "====> Installing packages: awscli, jq, nginx, iptables, iptables-persistent"
 apt-get install -y awscli jq nginx iptables iptables-persistent
