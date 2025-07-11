@@ -58,16 +58,18 @@ resource "aws_iam_policy" "bastion_policy" {
       {
         Effect = "Allow",
         Action = [
-          "ssm:UpdateInstanceInformation",
-          "ssmmessages:*",
+          "kms:Decrypt",
           "ec2:DescribeInstances",
           "ec2:DescribeTags",
           "ec2messages:*",
           "cloudwatch:PutMetricData",
-          "kms:Decrypt",
           "sts:GetCallerIdentity",
           "ssm:SendCommand",
-          "ssm:GetCommandInvocation"
+          "ssm:GetCommandInvocation",
+          "ssm:AmazonSSMManagedInstanceCore",
+          "ssm:UpdateInstanceInformation",
+          "ssm:DescribeInstanceProperties",
+          "ssmmessages:*"
         ],
         Resource = "*"
       }
@@ -128,16 +130,18 @@ resource "aws_iam_policy" "controlplane_policy" {
       {
         Effect = "Allow",
         Action = [
-          "ssm:UpdateInstanceInformation",
-          "ssmmessages:*",
+          "kms:Decrypt",
           "ec2:DescribeInstances",
           "ec2:DescribeTags",
           "ec2messages:*",
           "cloudwatch:PutMetricData",
-          "kms:Decrypt",
           "sts:GetCallerIdentity",
           "ssm:SendCommand",
-          "ssm:GetCommandInvocation"
+          "ssm:GetCommandInvocation",
+          "ssm:AmazonSSMManagedInstanceCore",
+          "ssm:UpdateInstanceInformation",
+          "ssm:DescribeInstanceProperties",
+          "ssmmessages:*"
         ],
         Resource = "*"
       }
@@ -189,15 +193,18 @@ resource "aws_iam_policy" "worker_policy" {
       {
         Effect = "Allow",
         Action = [
-          "ssm:UpdateInstanceInformation",
-          "ssmmessages:*",
+          "kms:Decrypt",
+          "ec2:DescribeInstances",
           "ec2:DescribeTags",
           "ec2messages:*",
           "cloudwatch:PutMetricData",
-          "kms:Decrypt",
           "sts:GetCallerIdentity",
           "ssm:SendCommand",
-          "ssm:GetCommandInvocation"
+          "ssm:GetCommandInvocation",
+          "ssm:AmazonSSMManagedInstanceCore",
+          "ssm:UpdateInstanceInformation",
+          "ssm:DescribeInstanceProperties",
+          "ssmmessages:*"
         ],
         Resource = "*"
       }
