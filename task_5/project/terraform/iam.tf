@@ -69,6 +69,11 @@ resource "aws_iam_policy" "bastion_policy" {
           "ssm:AmazonSSMManagedInstanceCore",
           "ssm:UpdateInstanceInformation",
           "ssm:DescribeInstanceProperties",
+          "ssm:ListAssociations",
+          "ssm:ListInstanceAssociations",
+          "ssm:ListCommandInvocations",
+          "ssm:ListCommands",
+          "ssm:ListCommandInvocations",
           "ssmmessages:*"
         ],
         Resource = "*"
@@ -141,6 +146,11 @@ resource "aws_iam_policy" "controlplane_policy" {
           "ssm:AmazonSSMManagedInstanceCore",
           "ssm:UpdateInstanceInformation",
           "ssm:DescribeInstanceProperties",
+          "ssm:ListAssociations",
+          "ssm:ListInstanceAssociations",
+          "ssm:ListCommandInvocations",
+          "ssm:ListCommands",
+          "ssm:ListCommandInvocations",
           "ssmmessages:*"
         ],
         Resource = "*"
@@ -204,6 +214,11 @@ resource "aws_iam_policy" "worker_policy" {
           "ssm:AmazonSSMManagedInstanceCore",
           "ssm:UpdateInstanceInformation",
           "ssm:DescribeInstanceProperties",
+          "ssm:ListAssociations",
+          "ssm:ListInstanceAssociations",
+          "ssm:ListCommandInvocations",
+          "ssm:ListCommands",
+          "ssm:ListCommandInvocations",
           "ssmmessages:*"
         ],
         Resource = "*"
