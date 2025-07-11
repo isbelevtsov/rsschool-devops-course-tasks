@@ -14,12 +14,12 @@ echo "====> System updated."
 # Configure iptables-persistent prerequisites
 echo "====> Configuring iptables-persistent prerequisites..."
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
-echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
 echo "====> Prerequisites configured for iptables-persistent."
 
 # Install required packages
 echo "====> Installing packages: awscli, jq, nginx, iptables, iptables-persistent"
-DEBIAN_FRONTEND=noninteractive apt-get install -y awscli jq nginx iptables iptables-persistent
+DEBIAN_FRONTEND=noninteractive apt-get install -y awscli jq nginx iptables iptables-persistent netfilter-persistent
 echo "====> Packages installed."
 
 # Retrieve instance metadata token
@@ -196,9 +196,14 @@ if ! command -v iptables >/dev/null 2>&1; then
     echo "====> iptables is not installed. Please install it to proceed."
     exit 1
 fi
-iptables -t nat -A POSTROUTING -o ens5 -s 0.0.0.0/0 -j MASQUERADE
-iptables -F FORWARD
+echo "====> Determining network interface for NAT..."
+NIC=$(ip route | grep default | awk '{print $5}')
+iptables -t nat -A POSTROUTING -o "$NIC" -j MASQUERADE
+# iptables -F FORWARD
+service iptables save || true
 iptables-save -c > /etc/iptables/rules.v4
+echo "====> Ensuring iptables-persistent loads rules on boot..."
+systemctl enable netfilter-persistent || true
 echo "====> NAT setup completed"
 
 echo "====> Firewall rules applied"
