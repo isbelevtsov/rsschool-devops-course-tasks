@@ -43,6 +43,11 @@ echo "====> Instance ID: $INSTANCE_ID"
 echo "====> AWS Region: $AWS_REGION"
 
 # Configure AWS CLI
+echo "====> Configuring AWS CLI..."
+if ! command -v aws >/dev/null 2>&1; then
+  echo "====> AWS CLI is not installed. Please install it to proceed."
+  exit 1
+fi
 mkdir -p /home/ubuntu/.aws
 cat > /home/ubuntu/.aws/config <<EOF
 [default]
@@ -65,8 +70,10 @@ aws sts get-caller-identity >/dev/null 2>&1 || {
   echo "====> AWS CLI is not authenticated. Ensure instance profile is attached."
   exit 1
 }
+echo "====> AWS CLI authenticated successfully."
 
 # Retrieve EC2 tag values
+echo "====> Retrieving EC2 tag values..."
 get_tag_value() {
     local key="$1"
     aws ec2 describe-tags \
@@ -87,19 +94,33 @@ fi
 echo "====> Hostname: $HOSTNAME_VALUE"
 echo "====> Project: $PROJECT_NAME"
 echo "====> Environment: $ENVIRONMENT_NAME"
+echo "====> Tags retrieved successfully"
 
 # Sanitize and set hostname
+echo "====> Setting hostname..."
 HOSTNAME_CLEAN=$(echo "$HOSTNAME_VALUE" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-zA-Z0-9.-')
 hostnamectl set-hostname "$HOSTNAME_CLEAN"
 echo "127.0.0.1 $HOSTNAME_CLEAN" >> /etc/hosts
 echo "====> Hostname set to $HOSTNAME_CLEAN"
 
 # Start Amazon SSM agent
+echo "====> Starting Amazon SSM Agent..."
+if ! command -v snap >/dev/null 2>&1; then
+    echo "====> Snap is not installed. Installing snapd..."
+    apt-get install -y snapd
+    echo "====> Snapd installed."
+fi
+if ! command -v amazon-ssm-agent >/dev/null 2>&1; then
+    echo "====> Amazon SSM Agent is not installed. Installing..."
+    snap install amazon-ssm-agent --classic
+    echo "====> Amazon SSM Agent installed."
+fi
 systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
 systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
 echo "====> Amazon SSM Agent started"
 
 # Retrieve SSH certificate from SSM
+echo "====> Retrieving SSH certificate from SSM..."
 CERT=$(aws ssm get-parameter \
     --name "/$PROJECT_NAME/$ENVIRONMENT_NAME/common/ssh_key" \
     --with-decryption \
@@ -110,9 +131,10 @@ if [[ -z "$CERT" ]]; then
     echo "====> Failed to retrieve SSH certificate."
     exit 1
 fi
+echo "====> SSH certificate retrieved successfully."
 
 KEY_FILE="/home/ubuntu/$PROJECT_NAME-$ENVIRONMENT_NAME-ssh-key.pem"
-echo "====> Saving SSH certificate to $KEY_FILE"
+echo "====> Saving SSH certificate..."
 echo "$CERT"
 echo "$CERT" > "$KEY_FILE"
 chmod 600 "$KEY_FILE"
@@ -121,16 +143,20 @@ echo "SSH_KEY_FILE=$KEY_FILE" >> /etc/environment
 echo "====> SSH certificate saved to $KEY_FILE"
 
 # Disable default Nginx config if exists
+echo "====> Disabling default Nginx configuration..."
 mv /etc/nginx/sites-enabled/default /etc/nginx/sites-enabled/default.bak 2>/dev/null || true
 mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.bak 2>/dev/null || true
 echo "====> Default Nginx configuration disabled"
 
 # Restart and enable Nginx
+echo "====> Restarting and enabling Nginx..."
 systemctl restart nginx
 systemctl enable nginx
 echo "====> Nginx restarted and enabled"
 
 # Open firewall ports
+echo "====> Configuring firewall rules..."
+# Define ports to open
 PORTS=(22 80 443 6443)
 
 if command -v ufw >/dev/null 2>&1; then
@@ -147,6 +173,7 @@ elif command -v firewall-cmd >/dev/null 2>&1; then
 else
     echo "====> No supported firewall tool detected (ufw or firewalld)"
 fi
+echo "====> Firewall rules configured for ports: ${PORTS[*]}"
 
 # Enable IP forwarding for routing
 echo "====> Enabling IP forwarding..."

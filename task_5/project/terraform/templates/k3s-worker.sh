@@ -43,6 +43,11 @@ echo "====> Instance ID: $INSTANCE_ID"
 echo "====> AWS Region: $AWS_REGION"
 
 # Configure AWS CLI
+echo "====> Configuring AWS CLI..."
+if ! command -v aws >/dev/null 2>&1; then
+  echo "====> AWS CLI is not installed. Please install it to proceed."
+  exit 1
+fi
 mkdir -p /home/ubuntu/.aws
 cat > /home/ubuntu/.aws/config <<EOF
 [default]
@@ -65,8 +70,10 @@ aws sts get-caller-identity >/dev/null 2>&1 || {
   echo "====> AWS CLI is not authenticated. Ensure instance profile is attached."
   exit 1
 }
+echo "====> AWS CLI is authenticated successfully."
 
 # Retrieve EC2 tag values
+echo "====> Retrieving EC2 tag values..."
 get_tag_value() {
   local key="$1"
   aws ec2 describe-tags \
@@ -79,18 +86,41 @@ HOSTNAME_VALUE=$(get_tag_value "Name")
 PROJECT_NAME=$(get_tag_value "Project")
 ENVIRONMENT_NAME=$(get_tag_value "Environment")
 
+if [[ -z "$HOSTNAME_VALUE" || -z "$PROJECT_NAME" || -z "$ENVIRONMENT_NAME" ]]; then
+    echo "====> Failed to retrieve one or more required tags."
+    exit 1
+fi
+
+echo "====> Hostname: $HOSTNAME_VALUE"
+echo "====> Project: $PROJECT_NAME"
+echo "====> Environment: $ENVIRONMENT_NAME"
+echo "====> Tags retrieved successfully"
+
 # Sanitize and set hostname
+echo "====> Setting hostname..."
 HOSTNAME_CLEAN=$(echo "$HOSTNAME_VALUE" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-zA-Z0-9.-')
 hostnamectl set-hostname "$HOSTNAME_CLEAN"
 echo "127.0.0.1 $HOSTNAME_CLEAN" >> /etc/hosts
 echo "====> Hostname set to $HOSTNAME_CLEAN"
 
 # Start SSM agent
+echo "====> Starting Amazon SSM Agent..."
+if ! command -v snap >/dev/null 2>&1; then
+    echo "====> Snap is not installed. Installing snapd..."
+    apt-get install -y snapd
+    echo "====> Snapd installed."
+fi
+if ! command -v amazon-ssm-agent >/dev/null 2>&1; then
+    echo "====> Amazon SSM Agent is not installed. Installing..."
+    snap install amazon-ssm-agent --classic
+    echo "====> Amazon SSM Agent installed."
+fi
 systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
 systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
-echo "====> SSM agent started."
+echo "====> Amazon SSM Agent started"
 
 # Retrieve SSH certificate from SSM
+echo "====> Retrieving SSH certificate from SSM..."
 CERT=$(aws ssm get-parameter \
     --name "/$PROJECT_NAME/$ENVIRONMENT_NAME/common/ssh_key" \
     --with-decryption \
@@ -101,8 +131,10 @@ if [[ -z "$CERT" ]]; then
     echo "====> Failed to retrieve SSH certificate."
     exit 1
 fi
+echo "====> SSH certificate retrieved successfully."
 
 KEY_FILE="$PROJECT_NAME-$ENVIRONMENT_NAME-ssh-key.pem"
+echo "====> Saving SSH certificate..."
 echo "$CERT" > "$KEY_FILE"
 chmod 600 "$KEY_FILE"
 chown ubuntu:ubuntu "$KEY_FILE"
@@ -110,6 +142,7 @@ echo "SSH_KEY_FILE=$KEY_FILE" >> /etc/environment
 echo "====> SSH certificate saved to $KEY_FILE"
 
 # Prepare directory for Jenkins persistent data
+echo "====> Preparing Jenkins data directory..."
 JENKINS_DATA_DIR=$(aws ssm get-parameter \
     --name "/$PROJECT_NAME/$ENVIRONMENT_NAME/kube/jenkins_data_dir" \
     --query "Parameter.Value" \
@@ -118,7 +151,7 @@ if [[ -z "$JENKINS_DATA_DIR" ]]; then
     echo "====> Failed to retrieve Jenkins data directory from SSM."
     exit 1
 fi
-echo "====> Preparing Jenkins data directory at ${JENKINS_DATA_DIR}..."
+echo "====> Setting Jenkins data directory to ${JENKINS_DATA_DIR}..."
 sudo mkdir -p ${JENKINS_DATA_DIR} && sudo chown ubuntu:ubuntu ${JENKINS_DATA_DIR}
 if [ $? -eq 0 ]; then
     echo "====> Data directory has been created successfully ${JENKINS_DATA_DIR}"
@@ -161,12 +194,12 @@ if [[ -z "$K3S_TOKEN" ]]; then
   echo "====> ERROR: Failed to retrieve k3s token."
   exit 1
 fi
+echo "====> K3s token retrieved successfully."
 
 # Install k3s as worker
 echo "====> Installing K3s worker..."
 curl -sfL https://get.k3s.io | K3S_URL="$K3S_URL" K3S_TOKEN="$K3S_TOKEN" sh -s - agent
 echo "====> K3s worker installation completed."
 
-# Optional: confirm node has joined
 echo "====> Worker node provisioning complete at $(date)"
 echo "====> EC2 instance configuration completed at $(date)"
