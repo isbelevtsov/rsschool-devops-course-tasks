@@ -12,8 +12,8 @@ apt-get update -y
 echo "====> System updated."
 
 # Install required packages
-echo "====> Installing packages: awscli, jq, nginx, iptables-services, iptables-persistent"
-apt-get install -y awscli jq nginx iptables-persistent iptables-services
+echo "====> Installing packages: awscli, jq, nginx, iptables, iptables-persistent"
+apt-get install -y awscli jq nginx iptables iptables-persistent
 echo "====> Packages installed."
 
 # Retrieve instance metadata token

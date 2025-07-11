@@ -65,7 +65,9 @@ resource "aws_iam_policy" "bastion_policy" {
           "ec2messages:*",
           "cloudwatch:PutMetricData",
           "kms:Decrypt",
-          "sts:GetCallerIdentity"
+          "sts:GetCallerIdentity",
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation"
         ],
         Resource = "*"
       }
@@ -133,7 +135,9 @@ resource "aws_iam_policy" "controlplane_policy" {
           "ec2messages:*",
           "cloudwatch:PutMetricData",
           "kms:Decrypt",
-          "sts:GetCallerIdentity"
+          "sts:GetCallerIdentity",
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation"
         ],
         Resource = "*"
       }
@@ -191,7 +195,9 @@ resource "aws_iam_policy" "worker_policy" {
           "ec2messages:*",
           "cloudwatch:PutMetricData",
           "kms:Decrypt",
-          "sts:GetCallerIdentity"
+          "sts:GetCallerIdentity",
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation"
         ],
         Resource = "*"
       }
