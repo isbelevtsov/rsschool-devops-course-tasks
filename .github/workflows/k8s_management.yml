@@ -20,14 +20,24 @@ on:
   #     - task_5
 
 env:
-  AWS_REGION: ${{ vars.AWS_REGION }}                      # AWS default region. Set this in GitHub Variables
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}           # AWS account ID. Set this in GitHub Secrets
-  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }} # Docker Hub username. Set this in GitHub Secrets
-  DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }} # Docker Hub token. Set this in GitHub Secrets
-  ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME }}          # Environment name. Set this in GitHub Variables
-  PROJECT_NAME: ${{ vars.PROJECT_NAME }}                  # Project name. Set this in GitHub Variables
-  ROUTE53_DOMAIN: ${{ vars.ROUTE53_DOMAIN }}              # AWS Route53 domain. Set this in GitHub Variables
-  WORKING_DIR_MAIN: ${{ vars.WORKING_DIR_MAIN }}          # Main working directory. Set this in GitHub Variables
+  AWS_REGION: ${{ vars.AWS_REGION }}                                  # AWS default region. Set this in GitHub Variables
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}                       # AWS account ID. Set this in GitHub Secrets
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}             # Docker Hub username. Set this in GitHub Secrets
+  DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}                   # Docker Hub token. Set this in GitHub Secrets
+  ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME }}                      # Environment name. Set this in GitHub Variables
+  JENKINS_ADMIN_USERNAME: ${{ secrets.JENKINS_ADMIN_USERNAME }}       # Jenkins admin username. Set this in GitHub Secrets
+  JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }}       # Jenkins admin password. Set this in GitHub Secrets
+  JENKINS_DATA_DIR: ${{ vars.JENKINS_DATA_DIR }}                      # Jenkins data directory. Set this in GitHub Variables
+  JENKINS_USER_LOGIN: ${{ secrets.JENKINS_USER_LOGIN }}               # Jenkins user login. Set this in GitHub Secrets
+  JENKINS_USER_DISPLAY_NAME: ${{ secrets.JENKINS_USER_DISPLAY_NAME }} # Jenkins user display name. Set this in GitHub Secrets
+  JENKINS_USER_PASSWORD: ${{ secrets.JENKINS_USER_PASSWORD }}         # Jenkins user password. Set this in GitHub Secrets
+  JENKINS_USER_EMAIL: ${{ secrets.JENKINS_USER_EMAIL }}               # Jenkins user email. Set this in GitHub Secrets
+  JENKINS_URL: ${{ secrets.JENKINS_URL }}                             # Jenkins URL. Set this in GitHub Secrets
+  GH_JENKINS_TOKEN: ${{ secrets.GH_JENKINS_TOKEN }}                   # GitHub token for Jenkins. Set this in GitHub Secrets
+  GH_JENKINS_SSH_KEY: ${{ secrets.GH_JENKINS_SSH_KEY }}               # GitHub SSH key for Jenkins. Set this in GitHub Secrets
+  PROJECT_NAME: ${{ vars.PROJECT_NAME }}                              # Project name. Set this in GitHub Variables
+  ROUTE53_DOMAIN: ${{ vars.ROUTE53_DOMAIN }}                          # AWS Route53 domain. Set this in GitHub Variables
+  WORKING_DIR_MAIN: ${{ vars.WORKING_DIR_MAIN }}                      # Main working directory. Set this in GitHub Variables
 
 permissions:
   id-token: write       # Required for OIDC token exchange
@@ -155,23 +165,23 @@ jobs:
       - name: Render Jenkins manifests for Helm chart from Jinja2 templates
         run: |
           jinja2 jenkins_values.yaml.j2 \
-            -D JENKINS_ADMIN_USERNAME='${{ secrets.JENKINS_ADMIN_USERNAME }}' \
-            -D JENKINS_ADMIN_PASSWORD='${{ secrets.JENKINS_ADMIN_PASSWORD }}' \
-            -D JENKINS_USER_LOGIN='${{ secrets.JENKINS_USER_LOGIN }}' \
-            -D JENKINS_USER_DISPLAY_NAME='${{ secrets.JENKINS_USER_DISPLAY_NAME }}' \
-            -D JENKINS_USER_PASSWORD='${{ secrets.JENKINS_USER_PASSWORD }}' \
-            -D JENKINS_USER_EMAIL='${{ secrets.JENKINS_USER_EMAIL }}' \
-            -D JENKINS_URL='${{ secrets.JENKINS_URL }}' \
-            -D GH_JENKINS_TOKEN='${{ secrets.GH_JENKINS_TOKEN }}' \
-            -D GH_JENKINS_SSH_KEY='${{ secrets.GH_JENKINS_SSH_KEY }}' \
-            -D DOCKER_HUB_USERNAME='${{ secrets.DOCKER_HUB_USERNAME }}' \
-            -D DOCKER_HUB_PASSWORD='${{ secrets.DOCKER_HUB_PASSWORD }}' \
+            -D JENKINS_ADMIN_USERNAME='${{ env.JENKINS_ADMIN_USERNAME }}' \
+            -D JENKINS_ADMIN_PASSWORD='${{ env.JENKINS_ADMIN_PASSWORD }}' \
+            -D JENKINS_USER_LOGIN='${{ env.JENKINS_USER_LOGIN }}' \
+            -D JENKINS_USER_DISPLAY_NAME='${{ env.JENKINS_USER_DISPLAY_NAME }}' \
+            -D JENKINS_USER_PASSWORD='${{ env.JENKINS_USER_PASSWORD }}' \
+            -D JENKINS_USER_EMAIL='${{ env.JENKINS_USER_EMAIL }}' \
+            -D JENKINS_URL='${{ env.JENKINS_URL }}' \
+            -D GH_JENKINS_TOKEN='${{ env.GH_JENKINS_TOKEN }}' \
+            -D GH_JENKINS_SSH_KEY='${{ env.GH_JENKINS_SSH_KEY }}' \
+            -D DOCKER_HUB_USERNAME='${{ env.DOCKER_HUB_USERNAME }}' \
+            -D DOCKER_HUB_PASSWORD='${{ env.DOCKER_HUB_TOKEN }}' \
             > jenkins_values.yaml
           jinja2 jenkins_ingress_route.yaml.j2 \
             -D ROUTE53_DOMAIN='${{ env.ROUTE53_DOMAIN }}' \
             > jenkins_ingress_route.yaml
           jinja2 jenkins_pv.yaml.j2 \
-            -D JENKINS_DATA_DIR='${{ vars.JENKINS_DATA_DIR }}' \
+            -D JENKINS_DATA_DIR='${{ env.JENKINS_DATA_DIR }}' \
             > jenkins_pv.yaml
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
 
@@ -303,7 +313,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_HUB_USERNAME }}
-          password: ${{ env.DOCKER_HUB_PASSWORD }}
+          password: ${{ env.DOCKER_HUB_TOKEN }}
 
       - name: Build and push (multi-arch)
         uses: docker/build-push-action@v5
