@@ -272,41 +272,41 @@ resource "aws_ssm_document" "apply_nginx_conf" {
     aws_ssm_parameter.nginx_confs
   ]
 
-  name          = "apply_nginx_conf_ssm"
-  document_type = "Command"
+  name            = "apply_nginx_conf_ssm"
+  document_format = "YAML"
+  document_type   = "Command"
 
-  content = jsonencode({
+  content = yamlencode({
     schemaVersion = "2.2"
     description   = "Apply nginx reverse proxy configs"
-    mainSteps = [
-      {
-        action = "aws:runShellScript"
-        name   = "applyConfigAndCopyFiles"
-        inputs = {
-          runCommand = concat(
-            flatten([
-              for key, conf in local.nginx_configs : [
-                "echo 'Applying ${key} config...'",
-                "for i in {1..3}; do",
-                "  VALUE=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/${key}\" --query \"Parameter.Value\" --output text 2>/dev/null)",
-                "  if [ -n \"$VALUE\" ] && ! echo \"$VALUE\" | grep -q 'ParameterNotFound'; then",
-                "    echo \"$VALUE\" | sudo tee ${conf.output_file} > /dev/null",
-                "    break",
-                "  fi",
-                "  echo \"Retrying ${key}...\"; sleep 5",
-                "done"
+    runtimeConfig = {
+      "aws:runShellScript" = {
+        properties = [
+          {
+            id               = "0.aws:runShellScript"
+            timeoutSeconds   = 3600
+            workingDirectory = "/home/ubuntu"
+            runCommand = concat(
+              flatten([
+                for key, conf in local.nginx_configs : [
+                  "echo 'Applying ${key} config...'",
+                  "VALUE=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/${key}\" --query \"Parameter.Value\" --output text)",
+                  "echo \"$VALUE\" | sudo tee ${conf.output_file} > /dev/null"
+                ]
+              ]),
+              [
+                "sudo nginx -t",
+                "sudo systemctl restart nginx",
+                "sudo systemctl enable nginx"
               ]
-            ]),
-            [
-              "sudo nginx -t || { echo 'NGINX config test failed'; exit 1; }",
-              "sudo systemctl restart nginx && sudo systemctl enable nginx"
-            ]
-          )
-        }
+            )
+          }
+        ]
       }
-    ]
+    }
   })
 }
+
 
 resource "aws_ssm_association" "apply_nginx_conf_association" {
   name = aws_ssm_document.apply_nginx_conf.name
