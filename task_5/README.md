@@ -47,10 +47,9 @@ ______________________________________________________________________
 - [Terraform](https://www.terraform.io/) - Terraform is an open-source infrastructure as code software tool that provides a consistent CLI workflow to manage hundreds of cloud services. Terraform codifies cloud APIs into declarative configuration files.
 - [Amazon AWS Account](https://aws.amazon.com/it/console/) - Amazon AWS account.
 - [AWS CLI](https://aws.amazon.com/cli/) - Amazon AWS CLI.
-- [Docker](https://www.docker.com/products/docker-desktop/) - Docker desktop engine.
-- Preconfigured SSM Parameter Store secure string object with you SSH key for EC2 instance access.
+- (Optional)[Docker](https://www.docker.com/products/docker-desktop/) - Docker desktop engine.
 - Task 1 bootstrap Terraform code must be executed before running this task.
-- Github Action Secrets must be already initialized throught the Github web console.
+- Github Action Secrets and Variables must be already initialized throught the Github web console.
 - Set variables according to your desire.
 
 ______________________________________________________________________
@@ -141,73 +140,6 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-## Docker image build preparation
-
-You need to build your Flask image from scratch. There are two ways to achieve that:
-
-- **Automatic**
-- **Manual**
-
-### Automatic build
-
-`k8s_management.yml` Github Action Workflow file already contains steps that will do all needed prerequisites:
-
-- Build multi-architecture docker image
-- Push it DockerHub registry with provided credentials
-
-### Manual build
-
-To do that you'll need to use Docker engine. After you'll install it open console and do next steps:
-
-- Authenticate to your Docker Hub account
-
-```bash
-docker login
-```
-
-- Locate to the directory with Dockerfile
-
-```bash
-cd task_5/project/app
-```
-
-<details><summary>App folder content</summary>
-
-![App folder content](screenshots/scr_1.png)<br>
-
-</details><br>
-
-- Create multi-platform builder (you'll need it to be able to use your image on any architecture platform)
-
-```bash
-docker buildx create --use --name multiarch-builder
-```
-
-<details><summary>Creation multi-architecture image builder</summary>
-
-![Creation multi-architecture image builder](screenshots/scr_2.png)<br>
-
-</details><br>
-
-- Build your own image and push it to your Docker Hub account
-
-```bash
-docker buildx build --platform linux/amd64,linux/arm64 \
-  -t username/image_name:custom_tag -t username/image_name:latest \
-  --push .
-```
-
-<details><summary>Docker image build and push process</summary>
-
-![Docker image build and push process](screenshots/scr_3.png)<br>
-
-</details><br>
-
-> Dont forget to change `username` to your Docker Hub user account, `image_name` to your defined Docker image name and `custom_tag` to your defined tag (for example: `isbelevtsov/flask-app:v1.0`). It's a best practice to add more than one tag to your images to able to track latest version actual. When this process will be done you'll need to adjust Flask-app Helm chart `values.yaml` file to use your actual image repository in this section:
-> ![Flask-app Heml chart values](screenshots/scr_4.png)<br>
-
-______________________________________________________________________
-
 ## GitHub Actions Workflow
 
 🔍
@@ -218,7 +150,6 @@ The `infrastructure_deployment.yml` workflow performs:
 - Terraform setup
 - AWS credentials via OIDC
 - `terraform init`, `validate`, `plan`, `apply`, `destroy`
-- `update dns`, `remove dns`
 - PR comment with `terraform plan` output
 
 The `k8s_management.yml` workflow performs:
@@ -399,8 +330,6 @@ Tunnel will be exist till your ssh remote session lives.
 
 3. If you aleady export you `$KUBECONFIG` system variable with kibeconfig configuration file location then you can run `kubectl` commands as well as you can import kubeconfig to any Kubernetes IDE like **Lens** from Mirantis.
 
-______________________________________________________________________
-
 In this path `task_5/project/kubernetes` you can find kubernetes manifests that can be deployed to our kubernetes cluster to achieve next goals:
 
 - Create `Namespace` with name **Web**.
@@ -427,17 +356,17 @@ After that you can test that all work by open [locahost:31000](http://localhost:
 
 ### Solution 2:
 
-You can use predefined Nginx reverse proxy server that traslates connections to both K8s API server and Jenkins deployment from the next GHA workflow mentioned below.
+You can use predefined Nginx reverse proxy server that traslates connections to K8s API server, Flask and Jenkins deployments from the next GHA workflow mentioned below.
 
-To achive that you can store you external DNS record in any DNS registrar e.g. CloudFlare, Amazon Route53, etc.
+To achive that you can store you external DNS record in any DNS registrar e.g. CloudFlare, Amazon Route53, etc. (its already has predefined Amazon Route53 usage inside workflow)
+
+______________________________________________________________________
 
 ## GitHub Actions Workflow: K8s Management
 
 ### 📘 Overview
 
 This GitHub Actions workflow automates the deployment and teardown of **Jenkins** and **Flask** applications into a **Kubernetes cluster** using **Helm**, and supports multi-architecture Docker image builds (for Flask). It supports manual triggering and runs conditionally based on the selected action.
-
-______________________________________________________________________
 
 ### 🧩 Trigger
 
@@ -459,8 +388,6 @@ on:
 ```
 
 You can trigger it manually with one of the above actions.
-
-______________________________________________________________________
 
 ### 🌐 Global Environment Variables
 
@@ -487,16 +414,12 @@ These are defined using GitHub Actions `env` block:
 | `ROUTE53_DOMAIN`            | Route53 domain name                          | GitHub Variables       |
 | `WORKING_DIR_MAIN`          | Path to main working directory               | GitHub Variables       |
 
-______________________________________________________________________
-
 ### 🔒 Permissions
 
 Explicit permissions granted for:
 
 - OIDC (`id-token`) to assume AWS IAM roles
 - GitHub features: `contents`, `pull-requests`, `issues`, `statuses`, `checks`
-
-______________________________________________________________________
 
 ### 🧪 Jobs
 
@@ -506,8 +429,6 @@ Sets shared environment outputs:
 
 - `WORKING_DIR_KUBERNETES`
 - `KUBECONFIG_PARAM_PATH`
-
-______________________________________________________________________
 
 #### 2. `deploy_jenkins`
 
@@ -527,8 +448,6 @@ ______________________________________________________________________
 - Comments deployment info on PR (if triggered from PR)
 - Cleans up security group rule
 
-______________________________________________________________________
-
 #### 3. `deploy_flask`
 
 **Condition:** `workflow_dispatch` with `action == deploy Flask`.
@@ -538,9 +457,97 @@ ______________________________________________________________________
 - Docker multi-architecture build and push (`linux/amd64`, `linux/arm64`)
 - Pushes to Docker Hub
 - Retrieves kubeconfig
-- Deploys Flask Helm chart
+- Deploys Flask Helm chart based on this docker image
 
-______________________________________________________________________
+**Docker image build preparation for Flask app:**
+
+You need to build your Flask docker image from scratch. There are two ways to achieve that:
+
+- **Automatic**
+- **Manual**
+
+**Automatic build**
+
+`k8s_management.yml` Github Action Workflow file already contains steps that will do all needed prerequisites:
+
+- Build multi-architecture docker image
+- Push it DockerHub registry with provided credentials
+
+**Manual build**
+
+To do that you'll need to use Docker engine. After you'll install it open console and do next steps:
+
+- Authenticate to your Docker Hub account
+
+```bash
+docker login
+```
+
+- Locate to the directory with Dockerfile
+
+```bash
+cd task_5/project/app
+```
+
+<details><summary>App folder content</summary>
+
+![App folder content](screenshots/scr_1.png)<br>
+
+</details><br>
+
+- Create multi-platform builder (you'll need it to be able to use your image on any architecture platform)
+
+```bash
+docker buildx create --use --name multiarch-builder
+```
+
+<details><summary>Creation multi-architecture image builder</summary>
+
+![Creation multi-architecture image builder](screenshots/scr_2.png)<br>
+
+</details><br>
+
+- Build your own image and push it to your Docker Hub account
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t username/image_name:custom_tag -t username/image_name:latest \
+  --push .
+```
+
+<details><summary>Docker image build and push process</summary>
+
+![Docker image build and push process](screenshots/scr_3.png)<br>
+
+</details><br>
+
+> Dont forget to change `username` to your Docker Hub user account, `image_name` to your defined Docker image name and `custom_tag` to your defined tag (for example: `isbelevtsov/flask-app:v1.0`). It's a best practice to add more than one tag to your images to able to track latest version actual. When this process will be done you'll need to adjust Flask-app Helm chart `values.yaml` file to use your actual image repository in this section:
+> ![Flask-app Heml chart values](screenshots/scr_4.png)<br>
+
+**Flask Helm chart creation:**
+
+The simplest part of task:
+
+```bash
+cd task_5/project/helm
+helm create flask-app
+```
+
+*Take note that custom Flask Helm chart already included in repo. This part are only informational*
+
+**Flask Helm chart customization:**
+
+You need to adjust Helm chart values for you environment. They can be found under this location:
+`task_5/project/helm/flask-app/values.yaml`
+
+```yaml
+hostname: Host(`flask.aws.elysium-space.com`)  # Replace with your domain
+
+image:
+  repository: isbelevtsov/flask-app # Replace with your Docker image repository
+  pullPolicy: IfNotPresent
+  tag: latest # Replace with your Docker image tag
+```
 
 #### 4. `destroy_jenkins`
 
@@ -552,8 +559,6 @@ ______________________________________________________________________
 - Deletes namespace, secrets, other k8s resources
 - Cleans up security group
 
-______________________________________________________________________
-
 #### 5. `destroy_flask`
 
 **Condition:** `workflow_dispatch` with `action == destroy Flask`.
@@ -562,8 +567,6 @@ ______________________________________________________________________
 
 - Uninstalls Flask Helm chart
 - Cleans up security group
-
-______________________________________________________________________
 
 ### 📦 Docker Image Build (Flask App)
 
@@ -576,8 +579,6 @@ ______________________________________________________________________
   - `${{ github.sha }}`
   - `${{ github.ref_name }}`
 
-______________________________________________________________________
-
 ### 🔐 Security Group Handling
 
 Every job that accesses the cluster:
@@ -586,9 +587,7 @@ Every job that accesses the cluster:
 - Temporarily authorizes it for port 6443 in Bastion SG
 - Revokes access after job finishes (even on failure)
 
-______________________________________________________________________
-
-### 📎 Notes
+### 📎 Additional info
 
 - Kubeconfig is retrieved from AWS SSM Parameter Store
 - Access to K8s API server is tunneled through Bastion
@@ -612,6 +611,18 @@ ______________________________________________________________________
 ✅
 
 <details><summary>Resources creation and usage proofs</summary>
+
+### Flask app source directory<br>
+
+![Flask app source directory](screenshots/scr_1.png)<br>
+
+### Create multi-architecture builder<br>
+
+![Create multi-architecture builder](screenshots/scr_2.png)<br>
+
+### Building and pushing Docker image to Dockerhub registry<br>
+
+![Building and pushing Docker image to Dockerhub registry](screenshots/scr_3.png)<br>
 
 ### Flask-app service overview<br>
 
