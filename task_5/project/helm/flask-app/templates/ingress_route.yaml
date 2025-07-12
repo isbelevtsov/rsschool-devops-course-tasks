@@ -7,8 +7,8 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`flask.elysium-space.com`)  # Replace with your domain
+    - match: Host(`flask.aws.elysium-space.com`)  # Replace with your domain
       kind: Rule
       services:
-        - name: {{ .Release.Name }}  # Replace with your Flask service name
+        - name: {{ .Release.Name }}
           port: 80
