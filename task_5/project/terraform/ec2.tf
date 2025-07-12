@@ -272,43 +272,30 @@ resource "aws_ssm_document" "apply_nginx_conf" {
     aws_ssm_parameter.nginx_confs
   ]
 
-  name            = "apply_nginx_conf_ssm"
-  document_format = "YAML"
-  document_type   = "Command"
+  name          = "apply_nginx_conf_ssm"
+  document_type = "Command"
 
-  content = <<DOC
-  schemaVersion: '2.2'
-  description: Apply Nginx configuration files from SSM parameters
-  parameters:
-    commands:
-      type: StringList
-      description: List of commands to execute
-      default: []
-  mainSteps:
-    - action: 'aws:runShellScript'
-      name: 'applyNginxConf'
-      inputs:
-        DocumentName: 'AWS-RunShellScript'
-        Parameters:
-          commands:
-            - |
-              #!/bin/bash
-              set -e
-              set -o pipefail
-              echo "Applying Nginx configurations from SSM parameters..."
-              aws ssm get-parameters --name "/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_k3s" --query "Parameters[*].Value" --output text > ${local.nginx_configs.nginx_k3s.output_file}
-              aws ssm get-parameters --name "/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_jenkins" --query "Parameters[*].Value" --output text > ${local.nginx_configs.nginx_jenkins.output_file}
-              aws ssm get-parameters --name "/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_flask" --query "Parameters[*].Value" --output text > ${local.nginx_configs.nginx_flask.output_file}
-              echo "Nginx configurations applied from SSM parameters."
-              echo "Nginx configurations applied successfully."
-              echo "Restarting Nginx service..."
-              sudo systemctl restart nginx
-              echo "Nginx service restarted successfully."
-              echo "Nginx configuration completed."
-  DOC
-  tags = {
-    Name = "${var.project_name}-apply-nginx-conf-${var.environment_name}"
-  }
+  content = jsonencode({
+    schemaVersion = "2.2",
+    description   = "Apply nginx reverse proxy k3s config, copy extra files, restart service, and run post-restart command",
+    mainSteps = [
+      {
+        action = "aws:runShellScript",
+        name   = "applyConfigAndCopyFiles",
+        inputs = {
+          runCommand = [
+            "VALUES=$(aws ssm get-parameters --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_k3s/\" --query \"Parameter.Value\" --output text)",
+            "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_k3s.output_file} > /dev/null",
+            "VALUES=$(aws ssm get-parameters --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_jenkins/\" --query \"Parameter.Value\" --output text)",
+            "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_jenkins.output_file} > /dev/null",
+            "VALUES=$(aws ssm get-parameters --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_flask/\" --query \"Parameter.Value\" --output text)",
+            "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_flask.output_file} > /dev/null",
+            "sudo systemctl restart nginx"
+          ]
+        }
+      }
+    ]
+  })
 }
 
 resource "aws_ssm_association" "apply_nginx_conf_association" {
