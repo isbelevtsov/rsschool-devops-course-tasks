@@ -290,8 +290,12 @@ resource "aws_ssm_document" "apply_nginx_conf" {
               flatten([
                 for key, conf in local.nginx_configs : [
                   "echo 'Applying ${key} config...'",
-                  "VALUE=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/${key}\" --query \"Parameter.Value\" --output text)",
-                  "echo \"$VALUE\" | sudo tee ${conf.output_file} > /dev/null"
+                  <<-EOC
+                  bash -c '
+                    VALUE=$(aws ssm get-parameter --name "/${var.project_name}/${var.environment_name}/${local.bastion_role}/${key}" --query "Parameter.Value" --output text)
+                    echo "$VALUE" | sudo tee ${conf.output_file} > /dev/null
+                  '
+                  EOC
                 ]
               ]),
               [
