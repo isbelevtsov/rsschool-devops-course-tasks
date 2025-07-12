@@ -375,6 +375,20 @@ jobs:
         with:
           version: v3.18.3
 
+      - name: Create Flask Namespace
+        run: |
+          if ! kubectl get namespace flask-app \
+              --kubeconfig kubeconfig > /dev/null 2>&1; then
+            echo "Namespace 'flask-app' does not exist. Creating..."
+            kubectl create namespace flask-app \
+              --dry-run=client -o yaml \
+              --kubeconfig kubeconfig | \
+            kubectl apply -f - --kubeconfig kubeconfig
+          else
+            echo "Namespace 'flask-app' already exists. Skipping creation."
+          fi
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
+
       - name: Deploy Flask with Helm
         run: |
           helm upgrade --install flask-app . \
