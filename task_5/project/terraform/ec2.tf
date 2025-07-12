@@ -285,7 +285,7 @@ resource "aws_ssm_document" "apply_nginx_conf" {
       description: List of commands to execute
       default: []
   mainSteps:
-    - action: 'aws:runCommand'
+    - action: 'aws:runShellScript'
       name: 'applyNginxConf'
       inputs:
         DocumentName: 'AWS-RunShellScript'
