@@ -276,41 +276,40 @@ resource "aws_ssm_document" "apply_nginx_conf" {
   document_format = "YAML"
   document_type   = "Command"
 
-  content = yamlencode({
-    schemaVersion = "2.2"
-    description   = "Apply nginx reverse proxy configs"
-    runtimeConfig = {
-      "aws:runShellScript" = {
-        properties = [
-          {
-            id               = "0.aws:runShellScript"
-            timeoutSeconds   = 3600
-            workingDirectory = "/home/ubuntu"
-            runCommand = concat(
-              flatten([
-                for key, conf in local.nginx_configs : [
-                  "echo 'Applying ${key} config...'",
-                  <<-EOC
-                  bash -c '
-                    VALUE=$(aws ssm get-parameter --name "/${var.project_name}/${var.environment_name}/${local.bastion_role}/${key}" --query "Parameter.Value" --output text)
-                    echo "$VALUE" | sudo tee ${conf.output_file} > /dev/null
-                  '
-                  EOC
-                ]
-              ]),
-              [
-                "sudo nginx -t",
-                "sudo systemctl restart nginx",
-                "sudo systemctl enable nginx"
-              ]
-            )
-          }
-        ]
-      }
-    }
-  })
+  content = <<DOC
+  schemaVersion: '2.2'
+  description: Apply Nginx configuration files from SSM parameters
+  parameters:
+    commands:
+      type: StringList
+      description: List of commands to execute
+      default: []
+  mainSteps:
+    - action: 'aws:runCommand'
+      name: 'applyNginxConf'
+      inputs:
+        DocumentName: 'AWS-RunShellScript'
+        Parameters:
+          commands:
+            - |
+              #!/bin/bash
+              set -e
+              set -o pipefail
+              echo "Applying Nginx configurations from SSM parameters..."
+              aws ssm get-parameters --name "/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_k3s" --query "Parameters[*].Value" --output text > ${local.nginx_configs.nginx_k3s.output_file}
+              aws ssm get-parameters --name "/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_jenkins" --query "Parameters[*].Value" --output text > ${local.nginx_configs.nginx_jenkins.output_file}
+              aws ssm get-parameters --name "/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_flask" --query "Parameters[*].Value" --output text > ${local.nginx_configs.nginx_flask.output_file}
+              echo "Nginx configurations applied from SSM parameters."
+              echo "Nginx configurations applied successfully."
+              echo "Restarting Nginx service..."
+              sudo systemctl restart nginx
+              echo "Nginx service restarted successfully."
+              echo "Nginx configuration completed."
+  DOC
+  tags = {
+    Name = "${var.project_name}-apply-nginx-conf-${var.environment_name}"
+  }
 }
-
 
 resource "aws_ssm_association" "apply_nginx_conf_association" {
   name = aws_ssm_document.apply_nginx_conf.name
