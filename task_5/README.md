@@ -466,16 +466,26 @@ ______________________________________________________________________
 
 These are defined using GitHub Actions `env` block:
 
-| Variable | Description |
-|---------|-------------|
-| `AWS_REGION` | AWS region |
-| `AWS_ACCOUNT_ID` | AWS account ID |
-| `DOCKER_HUB_USERNAME` | Docker Hub username |
-| `DOCKER_HUB_PASSWORD` | Docker Hub token |
-| `ENVIRONMENT_NAME` | Environment name |
-| `PROJECT_NAME` | Project name |
-| `ROUTE53_DOMAIN` | Route53 domain name |
-| `WORKING_DIR_MAIN` | Path to main working directory |
+| Variable                    | Description                                  | Location               |
+|-----------------------------|----------------------------------------------|------------------------|
+| `AWS_REGION`                | AWS default region                           | GitHub Variables       |
+| `AWS_ACCOUNT_ID`            | AWS account ID                               | GitHub Secrets         |
+| `DOCKER_HUB_USERNAME`       | Docker Hub username                          | GitHub Secrets         |
+| `DOCKER_HUB_TOKEN`          | Docker Hub token                             | GitHub Secrets         |
+| `ENVIRONMENT_NAME`          | Environment name                             | GitHub Variables       |
+| `JENKINS_ADMIN_USERNAME`    | Jenkins admin username                       | GitHub Secrets         |
+| `JENKINS_ADMIN_PASSWORD`    | Jenkins admin password                       | GitHub Secrets         |
+| `JENKINS_DATA_DIR`          | Jenkins data directory path                  | GitHub Variables       |
+| `JENKINS_USER_LOGIN`        | Jenkins non-admin user login                 | GitHub Secrets         |
+| `JENKINS_USER_DISPLAY_NAME` | Jenkins user display name                    | GitHub Secrets         |
+| `JENKINS_USER_PASSWORD`     | Jenkins user password (token)                | GitHub Secrets         |
+| `JENKINS_USER_EMAIL`        | Jenkins user email                           | GitHub Secrets         |
+| `JENKINS_URL`               | Jenkins server URL                           | GitHub Secrets         |
+| `GH_JENKINS_TOKEN`          | GitHub token used in Jenkins integration     | GitHub Secrets         |
+| `GH_JENKINS_SSH_KEY`        | GitHub SSH key used in Jenkins integration   | GitHub Secrets         |
+| `PROJECT_NAME`              | Project name                                 | GitHub Variables       |
+| `ROUTE53_DOMAIN`            | Route53 domain name                          | GitHub Variables       |
+| `WORKING_DIR_MAIN`          | Path to main working directory               | GitHub Variables       |
 
 ______________________________________________________________________
 
