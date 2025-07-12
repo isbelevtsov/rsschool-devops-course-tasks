@@ -105,29 +105,29 @@ ______________________________________________________________________
 │   │    │    │    ├── app_service.yaml           # Web App service manifest
 │   │    │    │    └── ebs_storage_class.yaml     # EBS storage class for PV/PVC manifest
 │   │    │    └── jenkins
-│   │    │         ├── jenkins_ingress_route.yaml # Jenkins Traeffic ingress route manifest
-│   │    │         ├── jenkins_pv.yaml            # Jenkins persistent volume manifest
-│   │    │         ├── jenkins_pvc.yaml           # Jenkins persistent volume claims manifest
-│   │    │         ├── jenkins_sa.yaml            # Jenkins service account manifest
-│   │    │         ├── jenkins_storage_class.yaml # Jenkins local path storage class manifest
-│   │    │         └── jenkins_values.yaml.j2     # Jenkins values Jinja2 template for Helm chart deployment manifest
+│   │    │         ├── jenkins_ingress_route.yaml.j2 # Jenkins Jinja2 template for Traeffic ingress route manifest
+│   │    │         ├── jenkins_pv.yaml.j2            # Jenkins Jinja2 template for persistent volume manifest
+│   │    │         ├── jenkins_pvc.yaml              # Jenkins persistent volume claims manifest
+│   │    │         ├── jenkins_sa.yaml               # Jenkins service account manifest
+│   │    │         ├── jenkins_storage_class.yaml    # Jenkins local path storage class manifest
+│   │    │         └── jenkins_values.yaml.j2        # Jenkins values Jinja2 template for Helm chart deployment manifest
 │   │    ├── scripts
 │   │    │    └── get_kubeconfig.sh               # Scripts that will get kubeconfig from AWS SSM Parameter Store and save it to you system
 │   │    └── terraform
 │   │         ├── templates
 │   │         │    ├── bastion.sh                 # Terraform user data template for AWS EC2 instance bootstrap
-│   │         │    ├── controlplane.sh            # Terraform user data template for AWS EC2 instance bootstrap
+│   │         │    ├── k3s-control-plane.sh       # Terraform user data template for AWS EC2 instance bootstrap
+│   │         │    ├── k3s-worker.sh              # Terraform user data template for AWS EC2 instance bootstrap
 │   │         │    ├── nginx_flask.tpl            # Nginx reverse proxy configuration template for Flask app
 │   │         │    ├── nginx_jenkins.tpl          # Nginx reverse proxy configuration template for Jenkins
-│   │         │    ├── nginx_k3s.tpl              # Nginx reverse proxy configuration template for K3s cluster API server
-│   │         │    └── worker.sh                  # Terraform user data template for AWS EC2 instance bootstrap
+│   │         │    └── nginx_k3s.tpl              # Nginx reverse proxy configuration template for K3s cluster API server
 │   │         ├── .env.example                    # Example file contains variables for Makefile
-│   │         ├── ec2.tf                          # AWS EC2 instances configuration
+│   │         ├── ec2.tf                          # AWS EC2 instances related configuration
 │   │         ├── iam.tf                          # AWS IAM configuration
 │   │         ├── dns.tf                          # AWS Route53 DNS configuration
 │   │         ├── logs.tf                         # AWS S3 bucket logging for security purpose and KMS key configuration for data encryption
 │   │         ├── Makefile                        # Makefile for better project and data magement
-│   │         ├── networking.tf                   # AWS subnets and routing configuration alongside with network access lists configuration
+│   │         ├── networking.tf                   # AWS VPC, subnets and routing configuration alongside with network access lists configuration
 │   │         ├── outputs.tf                      # Terraform outputs data
 │   │         ├── providers.tf                    # Terraform providers configuration
 │   │         ├── sg.tf                           # AWS security groups configuration for network traffic control
@@ -143,7 +143,21 @@ ______________________________________________________________________
 
 ## Docker image build preparation
 
-You need to build your Flask image from scratch. To do that you'll need to use Docker engine. After you'll install it open console and do next steps:
+You need to build your Flask image from scratch. There are two ways to achieve that:
+
+- **Automatic**
+- **Manual**
+
+### Automatic build
+
+`k8s_management.yml` Github Action Workflow file already contains steps that will do all needed prerequisites:
+
+- Build multi-architecture docker image
+- Push it DockerHub registry with provided credentials
+
+### Manual build
+
+To do that you'll need to use Docker engine. After you'll install it open console and do next steps:
 
 - Authenticate to your Docker Hub account
 
@@ -189,7 +203,7 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 </details><br>
 
-> Dont forget to change `username` to your Docker Hub user account, `image_name` to your defined Docker image name and `custom_tag` to your defined tag (for example: `isbelevtsov/task-5:v1.0`). It's a best practice to add more than one tag to your images to able to track latest version actual. When this process will be done you'll need to adjust Flask-app Helm chart `values.yaml` file to use your actual image repository in this section:
+> Dont forget to change `username` to your Docker Hub user account, `image_name` to your defined Docker image name and `custom_tag` to your defined tag (for example: `isbelevtsov/flask-app:v1.0`). It's a best practice to add more than one tag to your images to able to track latest version actual. When this process will be done you'll need to adjust Flask-app Helm chart `values.yaml` file to use your actual image repository in this section:
 > ![Flask-app Heml chart values](screenshots/scr_4.png)<br>
 
 ______________________________________________________________________
@@ -387,7 +401,7 @@ Tunnel will be exist till your ssh remote session lives.
 
 ______________________________________________________________________
 
-In this path `task_4/project/kubernetes` you can find kubernetes manifests that can be deployed to our kubernetes cluster to achieve next goals:
+In this path `task_5/project/kubernetes` you can find kubernetes manifests that can be deployed to our kubernetes cluster to achieve next goals:
 
 - Create `Namespace` with name **Web**.
 - Create `ConfigMap` with simple one page **Hello World** site.
@@ -405,7 +419,7 @@ to establish one more SSH tunnel to cluster and then
 *Dont forget to change `/ssh/key/path` with your actual SSH key that used to access your EC2 instances,  `k3s_control_plane_private_ip` and `bastion_public_ip` with your actual IP addresses.*
 
 ```bash
-cd ./task_4/project/kubernetes/
+cd ./task_5/project/kubernetes/
 KUBECONFIG=kubeconfig kubectl apply -f .
 ```
 
@@ -419,112 +433,159 @@ To achive that you can store you external DNS record in any DNS registrar e.g. C
 
 ## GitHub Actions Workflow: K8s Management
 
-This workflow automates the deployment of Jenkins to a self-hosted AWS K3s Kubernetes cluster using Helm, and is triggered either manually or after a successful infrastructure deployment workflow.
+### 📘 Overview
+
+This GitHub Actions workflow automates the deployment and teardown of **Jenkins** and **Flask** applications into a **Kubernetes cluster** using **Helm**, and supports multi-architecture Docker image builds (for Flask). It supports manual triggering and runs conditionally based on the selected action.
 
 ______________________________________________________________________
 
-### 🔧 Trigger Conditions
+### 🧩 Trigger
 
-- `workflow_dispatch`: Manual trigger
-- `workflow_run`: Triggered when the **Infrastructure Deployment** workflow completes on the `task_4` branch
+#### Manual Trigger
 
-______________________________________________________________________
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action'
+        required: true
+        type: choice
+        options:
+          - deploy Jenkins
+          - deploy Flask
+          - destroy Jenkins
+          - destroy Flask
+```
 
-### 🔐 Required Secrets
-
-| Secret Name              | Description                                 |
-|--------------------------|---------------------------------------------|
-| `AWS_REGION`             | AWS region                                  |
-| `AWS_ACCOUNT_ID`         | AWS account ID                              |
-| `JENKINS_ADMIN_USER`     | Jenkins admin username                      |
-| `JENKINS_ADMIN_PASSWORD` | Jenkins admin password                      |
-| `KUBECONFIG_PARAM_PATH`  | SSM path to the kubeconfig for the cluster  |
-
-______________________________________________________________________
-
-### 📦 Job: `deploy_jenkins`
-
-#### Environment Variables
-
-All tasks assume the project path is located under `task_4/project`.
-
-#### Main Steps
-
-1. **Checkout Code**
-
-   - Clones the repository for use in this job.
-
-1. **Configure AWS Credentials**
-
-   - Uses OIDC to assume the configured IAM role and authenticate with AWS.
-
-1. **Get GitHub Runner IP**
-
-   - Captures the runner's public IP to allow temporary access to the cluster.
-
-1. **Get Bastion Security Group ID**
-
-   - Dynamically retrieves the SG ID using the `Name=*bastion*` filter.
-
-1. **Add GitHub Runner IP to SG**
-
-   - Adds an ingress rule to allow kubectl access to the cluster.
-
-1. **Set Up Kubeconfig**
-
-   - Downloads the kubeconfig from AWS SSM and rewrites the server hostname for public access.
-
-1. **Debug Kubeconfig**
-
-   - Lists and previews the kubeconfig file to confirm setup.
-
-1. **Install Helm**
-
-   - Installs Helm CLI v3.18.3 using `azure/setup-helm`.
-
-1. **Create Jenkins Namespace**
-
-   - Idempotent namespace creation using dry-run logic.
-
-1. **Create Jenkins service account**
-
-   - Create a Kubernetes service account for Jenkins resource management.
-
-1. **Create Jenkins Admin Secret**
-
-   - Creates a Kubernetes secret from GitHub secrets for Jenkins admin login.
-
-1. **Apply Persistent Storage (Optional)**
-
-   - Applies preconfigured storage class, persistent volume, and PVC manifests.
-
-1. **Deploy Jenkins via Helm**
-
-   - Deploys Jenkins with the official Helm chart and a `jenkins_values.yaml` file.
-
-1. **Apply Ingress (Optional)**
-
-   - Applies ingress configuration to expose Jenkins via hostname.
-
-1. **Collect Jenkins Info**
-
-   - Captures `kubectl get svc` and `helm status` output for PR reporting.
-
-1. **Remove Runner IP from SG**
-
-   - Cleans up ingress rule added earlier to restrict cluster access.
-
-1. **Comment Deployment Info on PR**
-
-   - Posts Jenkins deployment status back to the pull request.
+You can trigger it manually with one of the above actions.
 
 ______________________________________________________________________
 
-### 📝 Notes
+### 🌐 Global Environment Variables
 
-- This workflow supports secure dynamic access by modifying security groups temporarily.
-- It ensures the kubeconfig is valid and readable before executing any Helm or kubectl commands.
-- PR comments allow easy visibility into deployment status without leaving GitHub.
+These are defined using GitHub Actions `env` block:
+
+| Variable | Description |
+|---------|-------------|
+| `AWS_REGION` | AWS region |
+| `AWS_ACCOUNT_ID` | AWS account ID |
+| `DOCKER_HUB_USERNAME` | Docker Hub username |
+| `DOCKER_HUB_PASSWORD` | Docker Hub token |
+| `ENVIRONMENT_NAME` | Environment name |
+| `PROJECT_NAME` | Project name |
+| `ROUTE53_DOMAIN` | Route53 domain name |
+| `WORKING_DIR_MAIN` | Path to main working directory |
+
+______________________________________________________________________
+
+### 🔒 Permissions
+
+Explicit permissions granted for:
+
+- OIDC (`id-token`) to assume AWS IAM roles
+- GitHub features: `contents`, `pull-requests`, `issues`, `statuses`, `checks`
+
+______________________________________________________________________
+
+### 🧪 Jobs
+
+#### 1. `setup-env-vars`
+
+Sets shared environment outputs:
+
+- `WORKING_DIR_KUBERNETES`
+- `KUBECONFIG_PARAM_PATH`
+
+______________________________________________________________________
+
+#### 2. `deploy_jenkins`
+
+**Condition:** Triggered by `workflow_dispatch` with `action == deploy Jenkins`.
+
+**Performs:**
+
+- AWS authentication using OIDC
+- Adds runner IP to Bastion security group (port 6443)
+- Retrieves and patches kubeconfig
+- Installs Helm
+- Creates Kubernetes namespace, service account, PVC
+- Renders Helm templates using Jinja2
+- Deploys Jenkins via Helm
+- Optionally applies ingress
+- Collects status info
+- Comments deployment info on PR (if triggered from PR)
+- Cleans up security group rule
+
+______________________________________________________________________
+
+#### 3. `deploy_flask`
+
+**Condition:** `workflow_dispatch` with `action == deploy Flask`.
+
+**Performs:**
+
+- Docker multi-architecture build and push (`linux/amd64`, `linux/arm64`)
+- Pushes to Docker Hub
+- Retrieves kubeconfig
+- Deploys Flask Helm chart
+
+______________________________________________________________________
+
+#### 4. `destroy_jenkins`
+
+**Condition:** `workflow_dispatch` with `action == destroy Jenkins`.
+
+**Performs:**
+
+- Uninstalls Jenkins Helm chart
+- Deletes namespace, secrets, other k8s resources
+- Cleans up security group
+
+______________________________________________________________________
+
+#### 5. `destroy_flask`
+
+**Condition:** `workflow_dispatch` with `action == destroy Flask`.
+
+**Performs:**
+
+- Uninstalls Flask Helm chart
+- Cleans up security group
+
+______________________________________________________________________
+
+### 📦 Docker Image Build (Flask App)
+
+- Uses `docker/build-push-action`
+- Targets:
+  - `linux/amd64`
+  - `linux/arm64`
+- Docker tags:
+  - `latest`
+  - `${{ github.sha }}`
+  - `${{ github.ref_name }}`
+
+______________________________________________________________________
+
+### 🔐 Security Group Handling
+
+Every job that accesses the cluster:
+
+- Retrieves GitHub runner public IP
+- Temporarily authorizes it for port 6443 in Bastion SG
+- Revokes access after job finishes (even on failure)
+
+______________________________________________________________________
+
+### 📎 Notes
+
+- Kubeconfig is retrieved from AWS SSM Parameter Store
+- Access to K8s API server is tunneled through Bastion
+- Modular, extensible design
+- Requires proper configuration of GitHub Secrets and Variables
+
+______________________________________________________________________
 
 ## Notes
 
