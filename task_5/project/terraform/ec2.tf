@@ -60,7 +60,7 @@ resource "aws_ssm_parameter" "ssh_public_key" {
 }
 
 resource "aws_key_pair" "generated" {
-  key_name   = "generated-ssh-key"
+  key_name   = "${var.project_name}-ssh-key-${var.environment_name}"
   public_key = tls_private_key.ssh.public_key_openssh
 }
 
@@ -287,10 +287,10 @@ resource "aws_ssm_document" "apply_nginx_conf" {
             flatten([
               for key, conf in local.nginx_configs : [
                 "echo 'Applying ${key} config...'",
-                "for i in {1..5}; do",
+                "for i in {1..3}; do",
                 "  VALUE=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/${key}\" --query \"Parameter.Value\" --output text 2>/dev/null)",
-                "  if [ -n \"$VALUE\" ] && [[ \"$VALUE\" != *'ParameterNotFound'* ]]; then",
-                "    echo \"$VALUE\" > ${conf.output_file}",
+                "  if [ -n \"$VALUE\" ] && ! echo \"$VALUE\" | grep -q 'ParameterNotFound'; then",
+                "    echo \"$VALUE\" | sudo tee ${conf.output_file} > /dev/null",
                 "    break",
                 "  fi",
                 "  echo \"Retrying ${key}...\"; sleep 5",
