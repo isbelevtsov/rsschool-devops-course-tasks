@@ -284,11 +284,11 @@ resource "aws_ssm_document" "apply_nginx_conf" {
         name   = "applyConfigAndCopyFiles",
         inputs = {
           runCommand = [
-            "VALUES=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_k3s\" --query \"Parameter.Value\" --output text)",
+            "VALUES=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_k3s\" --query \"Parameter.Value\" --output text --region ${var.aws_region})",
             "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_k3s.output_file} > /dev/null",
-            "VALUES=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_jenkins\" --query \"Parameter.Value\" --output text)",
+            "VALUES=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_jenkins\" --query \"Parameter.Value\" --output text --region ${var.aws_region})",
             "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_jenkins.output_file} > /dev/null",
-            "VALUES=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_flask\" --query \"Parameter.Value\" --output text)",
+            "VALUES=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_flask\" --query \"Parameter.Value\" --output text --region ${var.aws_region})",
             "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_flask.output_file} > /dev/null",
             "sudo systemctl restart nginx"
           ]
