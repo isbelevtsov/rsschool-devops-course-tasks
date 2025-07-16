@@ -122,37 +122,6 @@ jobs:
           echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
-      - name: Install helm
-        uses: azure/setup-helm@v4.3.0
-        with:
-          version: v3.18.3
-
-      - name: Create Jenkins Namespace
-        run: |
-          if ! kubectl get namespace jenkins \
-              --kubeconfig kubeconfig > /dev/null 2>&1; then
-            echo "Namespace 'jenkins' does not exist. Creating..."
-            kubectl create namespace jenkins \
-              --dry-run=client -o yaml \
-              --kubeconfig kubeconfig | \
-            kubectl apply -f - --kubeconfig kubeconfig
-          else
-            echo "Namespace 'jenkins' already exists. Skipping creation."
-          fi
-        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
-
-      - name: Create Jenkins service account
-        run: |
-          kubectl apply -f jenkins_sa.yaml -n jenkins --kubeconfig ../kubeconfig
-        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
-
-      - name: Apply Persistent Storage Configuration (Optional)
-        run: |
-          kubectl apply -f jenkins_storage_class.yaml -n jenkins --kubeconfig ../kubeconfig
-          kubectl apply -f jenkins_pv.yaml -n jenkins --kubeconfig ../kubeconfig
-          kubectl apply -f jenkins_pvc.yaml -n jenkins --kubeconfig ../kubeconfig
-        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -183,6 +152,37 @@ jobs:
           jinja2 jenkins_pv.yaml.j2 \
             -D JENKINS_DATA_DIR='${{ env.JENKINS_DATA_DIR }}' \
             > jenkins_pv.yaml
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
+
+      - name: Install helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: v3.18.3
+
+      - name: Create Jenkins Namespace
+        run: |
+          if ! kubectl get namespace jenkins \
+              --kubeconfig kubeconfig > /dev/null 2>&1; then
+            echo "Namespace 'jenkins' does not exist. Creating..."
+            kubectl create namespace jenkins \
+              --dry-run=client -o yaml \
+              --kubeconfig kubeconfig | \
+            kubectl apply -f - --kubeconfig kubeconfig
+          else
+            echo "Namespace 'jenkins' already exists. Skipping creation."
+          fi
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
+
+      - name: Create Jenkins service account
+        run: |
+          kubectl apply -f jenkins_sa.yaml -n jenkins --kubeconfig ../kubeconfig
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
+
+      - name: Apply Persistent Storage Configuration (Optional)
+        run: |
+          kubectl apply -f jenkins_storage_class.yaml -n jenkins --kubeconfig ../kubeconfig
+          kubectl apply -f jenkins_pv.yaml -n jenkins --kubeconfig ../kubeconfig
+          kubectl apply -f jenkins_pvc.yaml -n jenkins --kubeconfig ../kubeconfig
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
 
       - name: Deploy Jenkins with Helm
