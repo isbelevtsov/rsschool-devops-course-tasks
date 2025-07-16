@@ -1,0 +1,235 @@
+controller:
+  image:
+    tag: "lts"
+
+  serviceType: ClusterIP
+  servicePort: 8080
+
+  jenkinsHome: /var/jenkins_home
+
+  installPlugins:
+    - kubernetes:latest
+    - kubernetes-credentials:latest
+    - git:latest
+    - configuration-as-code:latest
+    - workflow-aggregator:latest
+    - workflow-job:latest
+    - job-dsl:latest
+    - github:latest
+    - matrix-auth:latest
+
+  persistence:
+    enabled: true
+    existingClaim: jenkins-pvc
+    storageClass: jenkins-pv
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 3000
+
+  containerSecurityContext:
+    runAsUser: 1000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+  JCasC:
+    enabled: true
+    defaultConfig: false
+    configScripts:
+      jenkins-casc-config: |
+        jenkins:
+          systemMessage: Welcome to our RS School DevOps 2025 Q2 course CI\CD server.  This Jenkins is configured and managed 'as code'.
+          securityRealm:
+            local:
+              allowsSignup: false
+              enableCaptcha: false
+              users:
+              - id: "{{ JENKINS_ADMIN_USERNAME }}"
+                name: "Jenkins Admin"
+                password: "${{ JENKINS_ADMIN_PASSWORD }}"
+              - id: "{{ JENKINS_USER_LOGIN }}"
+                name: "{{ JENKINS_USER_DISPLAY_NAME }}"
+                password: "{{ JENKINS_USER_PASSWORD }}"
+                description: "RS School DevOps 2025 Q2 course student"
+                properties:
+                  - mailer:
+                      emailAddress: "{{ JENKINS_USER_EMAIL }}"
+                  - preferredProvider:
+                      providerId: "default"
+                  - timezone:
+                      timeZoneName: "Europe/Kyiv"
+          clouds:
+          - kubernetes:
+              containerCap: 10
+              containerCapStr: "10"
+              garbageCollection:
+                timeout: 300
+              jenkinsTunnel: "my-jenkins-agent.jenkins.svc.cluster.local:50000"
+              jenkinsUrl: "http://my-jenkins.jenkins.svc.cluster.local:8080"
+              name: "Kubernetes"
+              namespace: "jenkins"
+              serverUrl: "https://kubernetes.default"
+              templates:
+              - containers:
+                - args: "^${computer.jnlpmac} ^${computer.name}"
+                  image: "jenkins/inbound-agent:alpine"
+                  livenessProbe:
+                    failureThreshold: 0
+                    initialDelaySeconds: 0
+                    periodSeconds: 0
+                    successThreshold: 0
+                    timeoutSeconds: 0
+                  name: "jnlp"
+                  ttyEnabled: true
+                  workingDir: "/home/jenkins/agent"
+                id: "eb725512-3a95-4d82-8ac5-375fda38038f"
+                label: "jenkins-agent"
+                name: "default"
+                yamlMergeStrategy: "override"
+              - containers:
+                - args: "9999"
+                  command: "sleep"
+                  image: "gcr.io/kaniko-project/executor:latest"
+                  livenessProbe:
+                    failureThreshold: 0
+                    initialDelaySeconds: 0
+                    periodSeconds: 0
+                    successThreshold: 0
+                    timeoutSeconds: 0
+                  name: "kaniko"
+                  workingDir: "/home/jenkins/agent"
+                id: "0c06f798-0628-439b-8af6-09091f5da9a1"
+                label: "kaniko-agent"
+                name: "kaniko"
+                volumes:
+                - secretVolume:
+                    mountPath: "/kaniko/.docker"
+                    optional: false
+                    secretName: "A Kubernetes secret that contains .docker/config.json"
+                yamlMergeStrategy: "override"
+              waitForPodSec: 60
+          crumbIssuer:
+            standard:
+              excludeClientIPFromCrumb: false
+          remotingSecurity:
+            enabled: true
+          numExecutors: 0
+          primaryView:
+            all:
+              name: "all"
+          projectNamingStrategy: "standard"
+          quietPeriod: 5
+          labelAtoms:
+          - name: "built-in"
+          - name: "jenkins-agent"
+          - name: "kaniko-agent"
+          - name: "master"
+          labelString: "master"
+          markupFormatter: "plainText"
+          mode: EXCLUSIVE
+          myViewsTabBar: "standard"
+          nodeMonitors:
+          - "architecture"
+          - "clock"
+          - diskSpace:
+              freeSpaceThreshold: "1GiB"
+              freeSpaceWarningThreshold: "2GiB"
+          - "swapSpace"
+          - tmpSpace:
+              freeSpaceThreshold: "1GiB"
+              freeSpaceWarningThreshold: "2GiB"
+          - "responseTime"
+          scmCheckoutRetryCount: 2
+          disableRememberMe: false
+          authorizationStrategy:
+            projectMatrix:
+              entries:
+                - user:
+                    name: {{ JENKINS_ADMIN_USERNAME }}
+                    permissions:
+                      - Overall/Administer
+                - user:
+                    name: {{ JENKINS_USER_LOGIN }}
+                    permissions:
+                      - Overall/Read
+                      - Job/Build
+        credentials:
+          system:
+            domainCredentials:
+            - credentials:
+              - string:
+                  description: "GH_JENKINS_TOKEN"
+                  id: "GH_JENKINS_TOKEN"
+                  scope: GLOBAL
+                  secret: "{{ GH_JENKINS_TOKEN }}"
+              - basicSSHUserPrivateKey:
+                  description: "GH_JENKINS_SSH_KEY"
+                  id: "GH_JENKINS_SSH_KEY"
+                  privateKeySource:
+                    directEntry:
+                      privateKey: "{{ GH_JENKINS_SSH_KEY }}"
+                  scope: GLOBAL
+                  username: "git"
+                  usernameSecret: true
+              - usernamePassword:
+                  description: "DOCKER_HUB_CREDS"
+                  id: "DOCKER_HUB_CREDS"
+                  password: "{{ DOCKER_HUB_PASSWORD }}"
+                  scope: GLOBAL
+                  username: "{{ DOCKER_HUB_USERNAME }}"
+        unclassified:
+          buildDiscarders:
+            configuredBuildDiscarders:
+            - "jobBuildDiscarder"
+          fingerprints:
+            fingerprintCleanupDisabled: false
+            storage: "file"
+          gitHubPluginConfig:
+            configs:
+            - credentialsId: "GH_JENKINS_TOKEN"
+              name: "Default"
+            hookUrl: "http://{{ JENKINS_URL }}/github-webhook/"
+          location:
+            adminAddress: "{{ JENKINS_USER_EMAIL }}"
+            url: "http://{{ JENKINS_URL }}/"
+          scmGit:
+            hideCredentials: true
+        jobs:
+          - script: |
+              pipelineJob('test-job') {
+                definition {
+                  cps {
+                    script('''
+                      pipeline {
+                              agent any
+                              stages {
+                                  stage('Stage 1') {
+                                      steps {
+                                          echo 'Hello World!'
+                                      }
+                                  }
+                                  stage('Stage 2') {
+                                      steps {
+                                          echo 'Is it me your looking for'
+                                      }
+                                  }
+                              }
+                      }
+                    '''.stripIndent())
+                    sandbox()
+                  }
+                }
+              }
