@@ -59,7 +59,7 @@ controller:
               users:
               - id: "{{ JENKINS_ADMIN_USERNAME }}"
                 name: "Jenkins Admin"
-                password: "${{ JENKINS_ADMIN_PASSWORD }}"
+                password: "{{ JENKINS_ADMIN_PASSWORD }}"
               - id: "{{ JENKINS_USER_LOGIN }}"
                 name: "{{ JENKINS_USER_DISPLAY_NAME }}"
                 password: "{{ JENKINS_USER_PASSWORD }}"
