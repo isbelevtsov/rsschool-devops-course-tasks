@@ -95,7 +95,7 @@ controller:
                   name: "jnlp"
                   ttyEnabled: true
                   workingDir: "/home/jenkins/agent"
-                id: "eb725512-3a95-4d82-8ac5-375fda38038f"
+                id: "jenkins"
                 label: "jenkins-agent"
                 name: "default"
                 yamlMergeStrategy: "override"
@@ -103,24 +103,27 @@ controller:
                 - args: "9999"
                   command: "sleep"
                   image: "gcr.io/kaniko-project/executor:latest"
+                  ttyEnabled: true
+                  name: "kaniko"
+                  workingDir: "/home/jenkins/agent"
                   livenessProbe:
                     failureThreshold: 0
                     initialDelaySeconds: 0
                     periodSeconds: 0
                     successThreshold: 0
                     timeoutSeconds: 0
-                  name: "kaniko"
-                  workingDir: "/home/jenkins/agent"
-                id: "0c06f798-0628-439b-8af6-09091f5da9a1"
+                id: "kaniko"
                 label: "kaniko-agent"
                 name: "kaniko"
                 volumes:
                 - secretVolume:
                     mountPath: "/kaniko/.docker"
                     optional: false
-                    secretName: "A Kubernetes secret that contains .docker/config.json"
+                    secretName: "docker-config"
                 yamlMergeStrategy: "override"
               waitForPodSec: 60
+              hostNetwork: true
+              dnsPolicy: "ClusterFirstWithHostNet"
           crumbIssuer:
             standard:
               excludeClientIPFromCrumb: false

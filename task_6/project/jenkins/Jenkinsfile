@@ -1,42 +1,79 @@
 pipeline {
-  agent {
-    kubernetes {
-      label 'kaniko-agent'  // Matches your predefined pod template
-      defaultContainer 'kaniko'
-    }
-  }
+  agent { label 'kaniko-agent' }
 
-  parameters {
-        string(name: 'IMAGE', defaultValue: 'isbelevtsov/task-5', description: 'Docker image name (including repo)')
-        string(name: 'TAG', defaultValue: 'latest', description: 'Image tag')
+  environment {
+    APP_NAME = 'flask-k8s-app'
+    IMAGE_TAG = "${env.BUILD_NUMBER}"
+    ECR_REGISTRY = '123456789012.dkr.ecr.us-east-1.amazonaws.com'
+    SONARQUBE_ENV = 'SonarQube'
   }
 
   stages {
-    stage('Build & Push with Kaniko') {
+    stage('Checkout') {
       steps {
-        withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CREDS', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          sh '''
-            mkdir -p /kaniko/.docker
-            cat <<EOF > /kaniko/.docker/config.json
-            {
-              "auths": {
-                "https://index.docker.io/v1/": {
-                  "username": "$DOCKER_USER",
-                  "password": "$DOCKER_PASS",
-                  "auth": "$(echo -n "$DOCKER_USER:$DOCKER_PASS" | base64)"
-                }
-              }
-            }
-EOF
+        checkout scm
+      }
+    }
 
-            /kaniko/executor \
-              --context=$(pwd)/task_5/project/app \
-              --dockerfile=$(pwd)/task_5/project/app/Dockerfile \
-              --destination=${IMAGE}:${TAG} \
-              --insecure \
-              --skip-tls-verify
+    stage('Unit Tests') {
+      agent { label 'jenkins-agent' }
+      steps {
+        sh 'python3 -m venv venv && source venv/bin/activate && pip install flask pytest && pytest tests/'
+      }
+    }
+
+    stage('SonarQube Scan') {
+      agent { label 'jenkins-agent' }
+      environment {
+        SONAR_TOKEN = credentials('SONAR_TOKEN')
+      }
+      steps {
+        withSonarQubeEnv("${SONARQUBE_ENV}") {
+          sh '''
+          sonar-scanner \
+            -Dsonar.projectKey=flask-k8s-app \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.login=$SONAR_TOKEN
           '''
         }
+      }
+    }
+
+    stage('Manual Approval to Build Image') {
+      steps {
+        input message: 'Approve to build and push Docker image to ECR?'
+      }
+    }
+
+    stage('Build and Push Docker Image to ECR') {
+      steps {
+        container('kaniko') {
+          withCredentials([[
+            $class: 'AmazonWebServicesCredentialsBinding',
+            credentialsId: 'AWS_ECR_CREDS'
+          ]]) {
+            sh '''
+              aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
+              /kaniko/executor \
+                --context `pwd` \
+                --dockerfile ./Dockerfile \
+                --destination $ECR_REGISTRY/$APP_NAME:$IMAGE_TAG \
+                --destination $ECR_REGISTRY/$APP_NAME:latest
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Deploy to K8s via Helm') {
+      steps {
+        sh '''
+        helm upgrade --install $APP_NAME ./helm-chart \
+          --set image.repository=$ECR_REGISTRY/$APP_NAME \
+          --set image.tag=$IMAGE_TAG \
+          --namespace default
+        '''
       }
     }
   }

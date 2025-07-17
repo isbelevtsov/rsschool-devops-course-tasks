@@ -154,6 +154,23 @@ resource "aws_iam_policy" "controlplane_policy" {
           "ssmmessages:*"
         ],
         Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:CreateRepository",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages"
+        ],
+        Resource = "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.project_name}/${var.environment_name}/kube/*"
       }
     ]
   })
@@ -222,6 +239,23 @@ resource "aws_iam_policy" "worker_policy" {
           "ssmmessages:*"
         ],
         Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:CreateRepository",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages"
+        ],
+        Resource = "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.project_name}/${var.environment_name}/kube/*"
       }
     ]
   })
