@@ -258,3 +258,32 @@ resource "aws_iam_instance_profile" "worker_profile" {
   name = "${var.project_name}-worker-instance-profile-${var.environment_name}"
   role = aws_iam_role.worker_role.name
 }
+
+resource "aws_iam_role" "k3s_jenkins_ecr_role" {
+  name = "${var.project_name}-k3s-jenkins-ecr-role-${var.environment_name}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      },
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-controlplane-role-${var.environment_name}"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecr_access" {
+  role       = aws_iam_role.k3s_jenkins_ecr_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+}
