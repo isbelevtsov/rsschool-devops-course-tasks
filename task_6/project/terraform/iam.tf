@@ -270,7 +270,10 @@ resource "aws_iam_role" "k3s_jenkins_ecr_role" {
         Principal = {
           Service = "ec2.amazonaws.com"
         }
-        Action = "sts:AssumeRole"
+        Action = [
+          "sts:AssumeRole",
+          "ec2:DescribeRegions"
+        ]
       },
       {
         Effect = "Allow"
@@ -285,11 +288,6 @@ resource "aws_iam_role" "k3s_jenkins_ecr_role" {
           AWS = "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-worker-role-${var.environment_name}"
         }
         Action = "sts:AssumeRole"
-      },
-      {
-        Action   = "ec2:DescribeRegions"
-        Effect   = "Allow"
-        Resource = "*"
       }
     ]
   })
