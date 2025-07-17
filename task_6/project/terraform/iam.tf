@@ -266,6 +266,13 @@ resource "aws_iam_role" "k3s_jenkins_ecr_role" {
     Version = "2012-10-17"
     Statement = [
       {
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      },
+      {
         Effect = "Allow"
         Principal = {
           AWS = [
