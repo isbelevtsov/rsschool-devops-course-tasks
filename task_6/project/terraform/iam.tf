@@ -170,7 +170,7 @@ resource "aws_iam_policy" "controlplane_policy" {
           "ecr:DescribeRepositories",
           "ecr:ListImages"
         ],
-        Resource = "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.project_name}/${var.environment_name}/kube/*"
+        Resource = "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.project_name}-flask-app-${var.environment_name}"
       }
     ]
   })
@@ -255,7 +255,7 @@ resource "aws_iam_policy" "worker_policy" {
           "ecr:DescribeRepositories",
           "ecr:ListImages"
         ],
-        Resource = "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.project_name}/${var.environment_name}/kube/*"
+        Resource = "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.project_name}-flask-app-${var.environment_name}"
       }
     ]
   })
