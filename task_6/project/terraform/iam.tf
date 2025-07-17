@@ -139,6 +139,17 @@ resource "aws_iam_policy" "controlplane_policy" {
           "ec2:DescribeInstances",
           "ec2:DescribeTags",
           "ec2messages:*",
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:CreateRepository",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
           "cloudwatch:PutMetricData",
           "sts:GetCallerIdentity",
           "ssm:SendCommand",
@@ -154,23 +165,6 @@ resource "aws_iam_policy" "controlplane_policy" {
           "ssmmessages:*"
         ],
         Resource = "*"
-      },
-      {
-        Effect = "Allow",
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:PutImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload",
-          "ecr:CreateRepository",
-          "ecr:DescribeRepositories",
-          "ecr:ListImages"
-        ],
-        Resource = "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.project_name}-flask-app-${var.environment_name}"
       }
     ]
   })
@@ -224,6 +218,17 @@ resource "aws_iam_policy" "worker_policy" {
           "ec2:DescribeInstances",
           "ec2:DescribeTags",
           "ec2messages:*",
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:CreateRepository",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
           "cloudwatch:PutMetricData",
           "sts:GetCallerIdentity",
           "ssm:SendCommand",
@@ -239,23 +244,6 @@ resource "aws_iam_policy" "worker_policy" {
           "ssmmessages:*"
         ],
         Resource = "*"
-      },
-      {
-        Effect = "Allow",
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:PutImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload",
-          "ecr:CreateRepository",
-          "ecr:DescribeRepositories",
-          "ecr:ListImages"
-        ],
-        Resource = "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.project_name}-flask-app-${var.environment_name}"
       }
     ]
   })
