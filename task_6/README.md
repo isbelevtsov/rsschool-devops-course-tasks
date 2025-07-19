@@ -1,4 +1,4 @@
-# Tasks 5: Simple Application Deployment with Helm
+# Tasks 6: Application Deployment via Jenkins Pipeline
 
 [![Terraform Plan and Apply](https://github.com/isbelevtsov/rsschool-devops-course-tasks/actions/workflows/terraform.yml/badge.svg)](https://github.com/isbelevtsov/rsschool-devops-course-tasks/actions/workflows/terraform.yml)
 
