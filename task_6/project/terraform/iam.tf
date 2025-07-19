@@ -264,29 +264,53 @@ resource "aws_iam_role" "k3s_jenkins_ecr_role" {
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow",
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        },
-        Action = "sts:AssumeRole"
-      },
-      {
-        Effect = "Allow"
-        Principal = {
-          AWS = [
-            "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-controlplane-role-${var.environment_name}",
-            "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-worker-role-${var.environment_name}"
-          ]
-        }
-        Action = "sts:AssumeRole"
+    Statement = [{
+      Sid    = "JenkinsAssumeRole",
+      Effect = "Allow"
+      Principal = {
+        AWS = [
+          "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-controlplane-role-${var.environment_name}",
+          "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-worker-role-${var.environment_name}"
+        ]
       }
-    ]
+      Action = "sts:AssumeRole"
+    }]
   })
 }
 
 resource "aws_iam_role_policy_attachment" "ecr_access" {
   role       = aws_iam_role.k3s_jenkins_ecr_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+}
+
+resource "aws_iam_role_policy" "controlplane_assume_kube2iam_role" {
+  name = "assume-kube2iam-jenkins-ecr-role"
+  role = aws_iam_role.controlplane_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = "sts:AssumeRole",
+        Resource = aws_iam_role.k3s_jenkins_ecr_role.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "worker_assume_kube2iam_role" {
+  name = "assume-kube2iam-jenkins-ecr-role"
+  role = aws_iam_role.worker_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = "sts:AssumeRole",
+        Resource = aws_iam_role.k3s_jenkins_ecr_role.arn
+      }
+    ]
+  })
 }
