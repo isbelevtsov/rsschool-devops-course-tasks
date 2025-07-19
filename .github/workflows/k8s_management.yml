@@ -145,6 +145,8 @@ jobs:
             -D GH_JENKINS_SSH_KEY='${{ env.GH_JENKINS_SSH_KEY }}' \
             -D DOCKER_HUB_USERNAME='${{ env.DOCKER_HUB_USERNAME }}' \
             -D DOCKER_HUB_PASSWORD='${{ env.DOCKER_HUB_TOKEN }}' \
+            -D AWS_REGION='${{ env.AWS_REGION }}' \
+            -D AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' \
             > jenkins_values.yaml
           jinja2 jenkins_ingress_route.yaml.j2 \
             -D ROUTE53_DOMAIN='${{ env.ROUTE53_DOMAIN }}' \
