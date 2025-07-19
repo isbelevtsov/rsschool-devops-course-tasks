@@ -156,6 +156,15 @@ jobs:
             > jenkins_pv.yaml
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
 
+      - name: Render kube2iam manifests from Jinja2 templates
+        run: |
+          jinja2 kube2iam.yaml.j2 \
+            -D AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' \
+            -D PROJECT_NAME='${{ env.PROJECT_NAME }}' \
+            -D ENVIRONMENT_NAME='${{ env.ENVIRONMENT_NAME }}' \
+            > kube2iam.yaml
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
+
       - name: Install helm
         uses: azure/setup-helm@v4.3.0
         with:
@@ -222,6 +231,11 @@ jobs:
           echo "helm_output<<EOF" >> $GITHUB_OUTPUT
           cat status.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
+
+      - name: Deploy kube2iam
+        run: |
+          kubectl apply -f kube2iam.yaml --kubeconfig kubeconfig
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Remove IP from Security Group
