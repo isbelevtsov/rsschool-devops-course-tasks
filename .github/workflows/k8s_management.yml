@@ -118,7 +118,8 @@ jobs:
             --with-decryption \
             --query "Parameter.Value" \
             --output text > kubeconfig
-                chmod 600 kubeconfig
+          chmod 600 kubeconfig
+          cp kubeconfig kubeconfig_raw
           sed -i "s|^\( *server: https://\)[^:]*|\1k8s.${{ env.ROUTE53_DOMAIN }}|" kubeconfig
           echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
@@ -134,6 +135,7 @@ jobs:
 
       - name: Render Jenkins manifests for Helm chart from Jinja2 templates
         run: |
+          KUBECONFIG_CONTENT=$(base64 -w 0 ../kubeconfig_raw)
           jinja2 jenkins_values.yaml.j2 \
             -D JENKINS_ADMIN_USERNAME='${{ env.JENKINS_ADMIN_USERNAME }}' \
             -D JENKINS_ADMIN_PASSWORD='${{ env.JENKINS_ADMIN_PASSWORD }}' \
@@ -151,6 +153,7 @@ jobs:
             -D PROJECT_NAME='${{ env.PROJECT_NAME }}' \
             -D ENVIRONMENT_NAME='${{ env.ENVIRONMENT_NAME }}' \
             -D SONAR_TOKEN='${{ env.SONAR_TOKEN }}' \
+            -D KUBECONFIG_CONTENT="$KUBECONFIG_CONTENT" \
             > jenkins_values.yaml
           jinja2 jenkins_ingress_route.yaml.j2 \
             -D ROUTE53_DOMAIN='${{ env.ROUTE53_DOMAIN }}' \

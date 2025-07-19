@@ -12,7 +12,7 @@ pipeline {
     IMAGE_TAG = 'latest'
   }
   stages {
-    stage('Checkout') {
+    stage('Checkout Repository') {
       steps {
         git branch: "$GIT_BRANCH",
         url: "$GIT_REPO",
@@ -24,7 +24,7 @@ pipeline {
       steps {
         sh '''
           echo "Installing required packages..."
-          dnf install -y python3 python3-pip curl unzip
+          dnf install -y python3 python3-pip curl unzip helm kubectl
           pip install -r task_6/project/app/requirements.txt pytest
         '''
       }
@@ -55,7 +55,6 @@ pipeline {
               -Dsonar.projectKey=isbelevtsov_rsschool-devops-course-tasks \
               -Dsonar.sources=task_6/project/app/ \
               -Dsonar.host.url=https://sonarcloud.io
-              -Dsonar.login=$SONAR_TOKEN
           '''
         }
       }
@@ -63,7 +62,7 @@ pipeline {
 
     stage('Manual Approval to Build Image') {
       steps {
-        input message: 'Approve to build and push Docker image to ECR?'
+        input message: 'Approve to build and push Docker image to Dockerhub?'
       }
     }
 
@@ -76,7 +75,7 @@ pipeline {
       }
     }
 
-    stage('Push to Docker Hub') {
+    stage('Push Image to Docker Hub') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CREDS', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh '''
@@ -88,15 +87,19 @@ pipeline {
       }
     }
 
-    // stage('Deploy to K8s via Helm') {
-    //   steps {
-    //     sh '''
-    //     helm upgrade --install $APP_NAME ./helm-chart \
-    //       --set image.repository=$IMAGE_NAME \
-    //       --set image.tag=$IMAGE_TAG \
-    //       --namespace default
-    //     '''
-    //   }
-    // }
+    stage('Deploy Flask Helm Chart to K8s with Helm') {
+      steps {
+        withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
+          sh '''
+            echo "Deploying application using Helm..."
+            cd task_6/project/helm/flask-app
+            helm upgrade --install flask-app . \
+              --namespace flask-app \
+              --create-namespace \
+              --values values.yaml
+          '''
+        }
+      }
+    }
   }
 }

@@ -8,15 +8,24 @@ controller:
   jenkinsHome: /var/jenkins_home
 
   installPlugins:
+    - configuration-as-code:latest
+    - job-dsl:latest
+    - matrix-auth:latest
     - kubernetes:latest
     - kubernetes-credentials:latest
     - git:latest
-    - configuration-as-code:latest
+    - github:latest
+    - github-branch-source:latest
+    - pipeline-stage-view:latest
+    - workflow-aggregator:latest
+    - credentials:latest
+    - plain-credentials:latest
+    - scm-api:latest
+    - structs:latest
+    - pipeline-github-lib:latest
+    - token-macro:latest
     - workflow-aggregator:latest
     - workflow-job:latest
-    - job-dsl:latest
-    - github:latest
-    - matrix-auth:latest
 
   persistence:
     enabled: true
@@ -79,6 +88,11 @@ controller:
                   password: "{{ DOCKER_HUB_PASSWORD }}"
                   scope: GLOBAL
                   username: "{{ DOCKER_HUB_USERNAME }}"
+              - file:
+                  fileName: "kubeconfig"
+                  id: "KUBECONFIG_FILE"
+                  scope: GLOBAL
+                  secretBytes: "{{ KUBECONFIG_CONTENT }}"
 
         jenkins:
           authorizationStrategy:
