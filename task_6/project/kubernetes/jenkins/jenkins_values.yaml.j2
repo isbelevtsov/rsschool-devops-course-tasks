@@ -195,7 +195,7 @@ controller:
                 yamlMergeStrategy: "override"
               - annotations:
                 - key: "iam.amazonaws.com/role"
-                  value: "arn:aws:iam::{{ AWS_ACCOUNT_ID }}:role/{{ K3S_JENKINS_ECR_ROLE }}"
+                  value: "arn:aws:iam::{{ AWS_ACCOUNT_ID }}:role/{{ PROJECT_NAME }}-k3s-jenkins-ecr-role-{{ ENVIRONMENT_NAME }}"
                 containers:
                 - command: "cat"
                   image: "quay.io/buildah/stable:latest"
