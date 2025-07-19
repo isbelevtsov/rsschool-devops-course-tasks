@@ -27,6 +27,7 @@ ______________________________________________________________________
 - [Script](#script)
 - [How to manage kubernetes cluster](#how-to-manage-kubernetes-cluster)
 - [GitHub Actions Workflow: K8s Management](#github-actions-workflow-k8s-management)
+- [Jenkins](#jenkins)
 - [Notes](#notes)
 - [Usability confirmation](#usability-confirmation)
 
@@ -87,15 +88,18 @@ ______________________________________________________________________
 │   └── workflows
 │       ├── infrastructure_deployment.yml         # Github Actions workflow pipeline configuration that will bootstrap prerequisites infrastructure
 │       └── k8s_management.yml                    # Github Actions workflow pipeline configuration that will deploy k8s resources inside the cluster
-├── task_5
+├── task_6
 │   ├── project
 │   │    ├── app
 │   │    │    ├── app.py                          # Simple python flask application
 │   │    │    ├── Dockerfile                      # Docker image build file
-│   │    │    └── requirements.txt                # Python package requirements for application
+│   │    │    ├── requirements.txt                # Python package requirements for application
+│   │    │    └── test_app.py                     # Unit-test for our Flask application
 │   │    ├── helm
 │   │    │    └── flask-app                       # Flask application custom Helm chart
 │   │    │         └── ...
+│   │    ├── jenkins
+│   │    │    └── Jenkinsfile                     # Jenkins pipeline script for Flask application CI/CD process
 │   │    ├── kubernetes                           # Kubernetes manifests location for deploying into cluster
 │   │    │    ├── app
 │   │    │    │    ├── app_configmap.yaml         # Web App configmap manifest
@@ -103,13 +107,14 @@ ______________________________________________________________________
 │   │    │    │    ├── app_namespace.yaml         # Web App namespace manifest
 │   │    │    │    ├── app_service.yaml           # Web App service manifest
 │   │    │    │    └── ebs_storage_class.yaml     # EBS storage class for PV/PVC manifest
-│   │    │    └── jenkins
-│   │    │         ├── jenkins_ingress_route.yaml.j2 # Jenkins Jinja2 template for Traeffic ingress route manifest
-│   │    │         ├── jenkins_pv.yaml.j2            # Jenkins Jinja2 template for persistent volume manifest
-│   │    │         ├── jenkins_pvc.yaml              # Jenkins persistent volume claims manifest
-│   │    │         ├── jenkins_sa.yaml               # Jenkins service account manifest
-│   │    │         ├── jenkins_storage_class.yaml    # Jenkins local path storage class manifest
-│   │    │         └── jenkins_values.yaml.j2        # Jenkins values Jinja2 template for Helm chart deployment manifest
+│   │    │    ├── jenkins
+│   │    │    │    ├── jenkins_ingress_route.yaml.j2 # Jenkins Jinja2 template for Traeffic ingress route manifest
+│   │    │    │    ├── jenkins_pv.yaml.j2            # Jenkins Jinja2 template for persistent volume manifest
+│   │    │    │    ├── jenkins_pvc.yaml              # Jenkins persistent volume claims manifest
+│   │    │    │    ├── jenkins_sa.yaml               # Jenkins service account manifest
+│   │    │    │    ├── jenkins_storage_class.yaml    # Jenkins local path storage class manifest
+│   │    │    │    └── jenkins_values.yaml.j2        # Jenkins values Jinja2 template for Helm chart deployment manifest
+│   │    │    └── kube2iam.yaml.j2                # Kube2IAM deployment configuration manifest for pod IAM role assuming
 │   │    ├── scripts
 │   │    │    └── get_kubeconfig.sh               # Scripts that will get kubeconfig from AWS SSM Parameter Store and save it to you system
 │   │    └── terraform
@@ -168,25 +173,8 @@ ______________________________________________________________________
 
 | Secret Name              | Description                        |
 | ------------------------ | ---------------------------------- |
-| `ALLOWED_SSH_CIDR`       | CIDR block for SSH access          |
 | `AWS_ACCOUNT_ID`         | AWS account ID                     |
-| `AWS_REGION`             | AWS region                         |
-| `AZS`                    | Comma-separated AZ list            |
-| `BASTION_CF_RECORD_NAME` | Bastion DNS A-record hostname      |
-| `CERT_PATH`              | SSH key file full path             |
-| `CF_API_TOKEN`           | CloudFlare API token               |
-| `CF_ZONE_ID`             | CloudFlare Zone ID                 |
 | `GH_TOKEN`               | Github token for commenting PR     |
-| `JENKINS_CF_RECORD_NAME` | Jenkins DNS A-record hostname      |
-| `KEY_PAIR`               | EC2 key pair name                  |
-| `KEY_PARAM_PATH`         | SSM Parameter Store key path       |
-| `KUBECONFIG_PARAM_PATH`  | SSM Parameter Store key path       |
-| `K8S_CF_RECORD_NAME`     | K3s cluster DNS A-record hostname  |
-| `NODE_TOKEN_PARAM_PATH`  | SSM Parameter Store key path       |
-| `PRIVATE_SUBNET_CIDRS`   | Comma-separated CIDRs for private  |
-| `PUBLIC_SUBNET_CIDRS`    | Comma-separated CIDRs for public   |
-| `TF_VERSION`             | Terraform version                  |
-| `VPC_CIDR`               | VPC CIDR block                     |
 
 ### Other variables that can be set inside terraform.yml
 
@@ -194,11 +182,21 @@ ______________________________________________________________________
 
 | Variable Name            | Description                                                                   |
 | ------------------------ | ----------------------------------------------------------------------------- |
+| `ALLOWED_SSH_CIDR`       | CIDR block for SSH access                                                     |
+| `AWS_REGION`             | AWS region                                                                    |
+| `AZS`                    | Comma-separated AZ list                                                       |
+| `ENVIRONMENT_NAME`       | Environment name                                                              |
 | `INSTANCE_TYPE_BASTION`  | EC2 Instance type for bastion host (min.req."t3.nano")                        |
 | `INSTANCE_TYPE_CP`       | EC2 Instance type for kubernetes controlplane node host (min.req."t3.medium") |
 | `INSTANCE_TYPE_WORKER`   | EC2 Instance type for kubernetes worker node host (min.req."t3.small")        |
 | `JENKINS_DATA_DIR`       | Jenkins persistent data mounting point path                                   |
-| `TASK_DIR`               | Current task working directory path                                           |
+| `PRIVATE_SUBNET_CIDRS`   | Comma-separated CIDRs for private                                             |
+| `PROJECT_NAME`           | Project name                                                                  |
+| `PUBLIC_SUBNET_CIDRS`    | Comma-separated CIDRs for public                                              |
+| `ROUTE53_DOMAIN`         | AWS Route53 domain                                                            |
+| `WORKING_DIR_INFRA`      | Current working directory path                                                |
+| `TF_VERSION`             | Terraform version                                                             |
+| `VPC_CIDR`               | VPC CIDR block                                                                |
 
 ______________________________________________________________________
 
@@ -403,6 +401,8 @@ These are defined using GitHub Actions `env` block:
 | `JENKINS_ADMIN_USERNAME`    | Jenkins admin username                       | GitHub Secrets         |
 | `JENKINS_ADMIN_PASSWORD`    | Jenkins admin password                       | GitHub Secrets         |
 | `JENKINS_DATA_DIR`          | Jenkins data directory path                  | GitHub Variables       |
+| `JENKINS_MAIL_USERNAME`     | Jenkins admin username                       | GitHub Secrets         |
+| `JENKINS_MAIL_PASSWORD`     | Jenkins admin password                       | GitHub Secrets         |
 | `JENKINS_USER_LOGIN`        | Jenkins non-admin user login                 | GitHub Secrets         |
 | `JENKINS_USER_DISPLAY_NAME` | Jenkins user display name                    | GitHub Secrets         |
 | `JENKINS_USER_PASSWORD`     | Jenkins user password (token)                | GitHub Secrets         |
@@ -412,6 +412,7 @@ These are defined using GitHub Actions `env` block:
 | `GH_JENKINS_SSH_KEY`        | GitHub SSH key used in Jenkins integration   | GitHub Secrets         |
 | `PROJECT_NAME`              | Project name                                 | GitHub Variables       |
 | `ROUTE53_DOMAIN`            | Route53 domain name                          | GitHub Variables       |
+| `SONAR_TOKEN`               | SonarQube cloud account toke                 | GitHub Secrets         |
 | `WORKING_DIR_MAIN`          | Path to main working directory               | GitHub Variables       |
 
 ### 🔒 Permissions
@@ -596,6 +597,44 @@ Every job that accesses the cluster:
 
 ______________________________________________________________________
 
+## Jenkins
+
+There are an option to use Jenkins job to build, test and deploy Flask application via Helm Chart to out k3s kubernetes cluster.
+
+Lets start from bootstrap required infrastructure with GitHub Actions:
+
+- `Infrastructure Deployment` with `Apply` option
+- `K8s Management`with `Deploy Jenkins` option
+
+This two workflow will prepare all required configuration to start our journey with Jenkins pipeline.
+
+First you need to login into Jenkins web console and create a new project with pipeline type. Inside project configuration you need to specify this two fields with your GitHub repo:
+![Project Configuration](screenshots/scr_01.png)<br>
+This options needed for Jenkins to be able to trigger jobs by GitHub Webhooks when someone pushes to the repo.
+
+Paste code from file `task_6/project/jenkins/Jenkinsfile` into pipeline editor. You need to adjust your environment variables at the top of the script then click on `Save` button.
+
+At this point you should configure you SMTP setting inside Jenkins configuration as showed on screenshot:
+![Email SMTP Configuration](screenshots/scr_02.png)<br>
+At the end you can test your configuration that will send you test email like this:
+![Test SMTP Configuration](screenshots/scr_03.png)<br>
+
+Now you have all prerequisites to do next:
+
+- When you will push anything to your repo this will trigger Jenkins to run this job
+- Job execution will do next:
+  - Checkout your repo,
+  - Test flask source code with unit-test,
+  - Check your code with SonarQube (you need to configure SonarQube cloud separately),
+  - Build Docker image,
+  - Deploy Helm chart,
+  - Test your deployment,
+  - Notify you about job results by email.
+
+At the end of this job you will have a Flask application deployed to your kubernetes cluster based on newly created image.
+
+______________________________________________________________________
+
 ## Notes
 
 📎
@@ -612,28 +651,30 @@ ______________________________________________________________________
 
 <details><summary>Resources creation and usage proofs</summary>
 
-### Flask app source directory<br>
+### Jenkins pipeline execution output<br>
 
-![Flask app source directory](screenshots/scr_1.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_04.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_05.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_06.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_07.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_08.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_09.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_10.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_11.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_12.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_13.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_14.png)<br>
 
-### Create multi-architecture builder<br>
+### Jenkins pipeline email notification<br>
 
-![Create multi-architecture builder](screenshots/scr_2.png)<br>
+![Jenkins pipeline email notification](screenshots/scr_15.png)<br>
 
-### Building and pushing Docker image to Dockerhub registry<br>
+### SonarQube checks<br>
 
-![Building and pushing Docker image to Dockerhub registry](screenshots/scr_3.png)<br>
+![SonarQube checks](screenshots/scr_16.png)<br>
 
-### Flask-app service overview<br>
+### Flask application web browser connectivity test<br>
 
-![Flask-app deployemnt overview](screenshots/scr_5.png)<br>
-
-### Flask-app Helm chart release overview<br>
-
-![Flask-app Helm chart release overview](screenshots/scr_6.png)<br>
-
-### Web browser connectivity test<br>
-
-![Web browser connectivity test](screenshots/scr_7.png)<br>
+![Jenkins pipeline email notification](screenshots/scr_17.png)<br>
 
 </details>

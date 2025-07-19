@@ -11,6 +11,7 @@ pipeline {
     GIT_BRANCH = 'task_6'
     IMAGE_NAME = 'isbelevtsov/flask-app'
     IMAGE_TAG = 'latest'
+    EMAIL_RECIPIENT = 'isbelevtsov@gmail.com'
   }
 
   stages {
@@ -127,17 +128,17 @@ pipeline {
 
   post {
     success {
-      mail to: 'isbelevtsov@gmail.com',
+      mail to: '${EMAIL_RECIPIENT}',
         subject: "✅ SUCCESS: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
         body: "Job completed successfully!\n\nSee details: ${env.BUILD_URL}"
     }
     failure {
-      mail to: 'isbelevtsov@gmail.com',
+      mail to: '${EMAIL_RECIPIENT}',
         subject: "❌ FAILURE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
         body: "Job failed. Please review the logs:\n\n${env.BUILD_URL}"
     }
     unstable {
-      mail to: 'isbelevtsov@gmail.com',
+      mail to: '${EMAIL_RECIPIENT}',
         subject: "⚠️ UNSTABLE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
         body: "Job is unstable.\n\nDetails: ${env.BUILD_URL}"
     }
