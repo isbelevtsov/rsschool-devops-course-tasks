@@ -242,11 +242,6 @@ jobs:
           kubectl apply -f kube2iam.yaml --kubeconfig kubeconfig
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
-      - name: Wait for kube2iam DaemonSet to be ready
-        run: |
-          kubectl wait --for=condition=available --timeout=300s daemonset/kube2iam -n kube-system --kubeconfig kubeconfig
-        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
-
       - name: Add kube2iam label to nodes
         run: |
           kubectl label nodes --all iam.amazonaws.com/allowed=true --overwrite --kubeconfig kubeconfig
