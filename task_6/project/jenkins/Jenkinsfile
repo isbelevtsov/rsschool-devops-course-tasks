@@ -141,9 +141,5 @@ pipeline {
         subject: "⚠️ UNSTABLE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
         body: "Job is unstable.\n\nDetails: ${env.BUILD_URL}"
     }
-    always {
-      echo "Cleaning up resources..."
-      sh 'buildah rm $(buildah ps -aq)'
-    }
   }
 }
