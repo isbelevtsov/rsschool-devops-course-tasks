@@ -147,6 +147,8 @@ jobs:
             -D DOCKER_HUB_PASSWORD='${{ env.DOCKER_HUB_TOKEN }}' \
             -D AWS_REGION='${{ env.AWS_REGION }}' \
             -D AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' \
+            -D PROJECT_NAME='${{ env.PROJECT_NAME }}' \
+            -D ENVIRONMENT_NAME='${{ env.ENVIRONMENT_NAME }}' \
             > jenkins_values.yaml
           jinja2 jenkins_ingress_route.yaml.j2 \
             -D ROUTE53_DOMAIN='${{ env.ROUTE53_DOMAIN }}' \
@@ -236,6 +238,16 @@ jobs:
       - name: Deploy kube2iam
         run: |
           kubectl apply -f kube2iam.yaml --kubeconfig kubeconfig
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
+
+      - name: Wait for kube2iam DaemonSet to be ready
+        run: |
+          kubectl wait --for=condition=available --timeout=300s daemonset/kube2iam -n kube-system --kubeconfig kubeconfig
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
+
+      - name: Add kube2iam label to nodes
+        run: |
+          kubectl label nodes --all iam.amazonaws.com/allowed=true --overwrite --kubeconfig kubeconfig
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Remove IP from Security Group

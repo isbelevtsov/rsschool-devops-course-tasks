@@ -284,7 +284,7 @@ resource "aws_iam_role_policy_attachment" "ecr_access" {
 }
 
 resource "aws_iam_role_policy" "controlplane_assume_kube2iam_role" {
-  name = "assume-kube2iam-jenkins-ecr-role"
+  name = "assume-kube2iam-jenkins-ecr-role-controlplane"
   role = aws_iam_role.controlplane_role.name
 
   policy = jsonencode({
@@ -300,7 +300,7 @@ resource "aws_iam_role_policy" "controlplane_assume_kube2iam_role" {
 }
 
 resource "aws_iam_role_policy" "worker_assume_kube2iam_role" {
-  name = "assume-kube2iam-jenkins-ecr-role"
+  name = "assume-kube2iam-jenkins-ecr-role-worker"
   role = aws_iam_role.worker_role.name
 
   policy = jsonencode({
