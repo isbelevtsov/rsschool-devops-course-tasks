@@ -145,6 +145,8 @@ jobs:
             -D GH_JENKINS_SSH_KEY='${{ env.GH_JENKINS_SSH_KEY }}' \
             -D DOCKER_HUB_USERNAME='${{ env.DOCKER_HUB_USERNAME }}' \
             -D DOCKER_HUB_PASSWORD='${{ env.DOCKER_HUB_TOKEN }}' \
+            -D AWS_REGION='${{ env.AWS_REGION }}' \
+            -D AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' \
             > jenkins_values.yaml
           jinja2 jenkins_ingress_route.yaml.j2 \
             -D ROUTE53_DOMAIN='${{ env.ROUTE53_DOMAIN }}' \
@@ -153,6 +155,15 @@ jobs:
             -D JENKINS_DATA_DIR='${{ env.JENKINS_DATA_DIR }}' \
             > jenkins_pv.yaml
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
+
+      - name: Render kube2iam manifests from Jinja2 templates
+        run: |
+          jinja2 kube2iam.yaml.j2 \
+            -D AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' \
+            -D PROJECT_NAME='${{ env.PROJECT_NAME }}' \
+            -D ENVIRONMENT_NAME='${{ env.ENVIRONMENT_NAME }}' \
+            > kube2iam.yaml
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Install helm
         uses: azure/setup-helm@v4.3.0
@@ -220,6 +231,11 @@ jobs:
           echo "helm_output<<EOF" >> $GITHUB_OUTPUT
           cat status.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
+
+      - name: Deploy kube2iam
+        run: |
+          kubectl apply -f kube2iam.yaml --kubeconfig kubeconfig
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Remove IP from Security Group
