@@ -109,7 +109,7 @@ pipeline {
         sh '''
           echo "Verifying application deployment..."
           for i in {1..10}; do
-            if curl -sSf http://flask-app.flask-app.svc.cluster.local:5000; then
+            if curl -sSf http://flask.aws.elysium-space.com; then
               echo "Application is up!"
               exit 0
             else
