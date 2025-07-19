@@ -6,10 +6,6 @@ pipeline {
     }
   }
 
-  trigger {
-    githubPush() // Runs on GitHub push events
-  }
-
   environment {
     GIT_REPO = 'https://github.com/isbelevtsov/rsschool-devops-course-tasks.git'
     GIT_BRANCH = 'task_6'
