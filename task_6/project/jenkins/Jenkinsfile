@@ -99,6 +99,7 @@ pipeline {
               --namespace flask-app \
               --create-namespace \
               --values values.yaml
+            echo "Helm deployment completed."
           '''
         }
       }
