@@ -59,6 +59,11 @@ controller:
                   id: "GH_JENKINS_TOKEN"
                   scope: GLOBAL
                   secret: "{{ GH_JENKINS_TOKEN }}"
+              - string:
+                  description: "SONAR_TOKEN"
+                  id: "SONAR_TOKEN"
+                  scope: GLOBAL
+                  secret: "{{ SONAR_TOKEN }}"
               - basicSSHUserPrivateKey:
                   description: "GH_JENKINS_SSH_KEY"
                   id: "GH_JENKINS_SSH_KEY"

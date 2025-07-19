@@ -37,6 +37,7 @@ env:
   GH_JENKINS_SSH_KEY: ${{ secrets.GH_JENKINS_SSH_KEY }}               # GitHub SSH key for Jenkins. Set this in GitHub Secrets
   PROJECT_NAME: ${{ vars.PROJECT_NAME }}                              # Project name. Set this in GitHub Variables
   ROUTE53_DOMAIN: ${{ vars.ROUTE53_DOMAIN }}                          # AWS Route53 domain. Set this in GitHub Variables
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}                             # SonarQube token. Set this in GitHub Secrets
   WORKING_DIR_MAIN: ${{ vars.WORKING_DIR_MAIN }}                      # Main working directory. Set this in GitHub Variables
 
 permissions:
@@ -149,6 +150,7 @@ jobs:
             -D AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' \
             -D PROJECT_NAME='${{ env.PROJECT_NAME }}' \
             -D ENVIRONMENT_NAME='${{ env.ENVIRONMENT_NAME }}' \
+            -D SONAR_TOKEN='${{ env.SONAR_TOKEN }}' \
             > jenkins_values.yaml
           jinja2 jenkins_ingress_route.yaml.j2 \
             -D ROUTE53_DOMAIN='${{ env.ROUTE53_DOMAIN }}' \

@@ -1,40 +1,61 @@
 pipeline {
-  agent { label 'kaniko-agent' }
-
-  environment {
-    APP_NAME = 'flask-k8s-app'
-    IMAGE_TAG = "${env.BUILD_NUMBER}"
-    ECR_REGISTRY = '123456789012.dkr.ecr.us-east-1.amazonaws.com'
-    SONARQUBE_ENV = 'SonarQube'
+  agent {
+    kubernetes {
+      label 'buildah-agent'
+      defaultContainer 'buildah'
+    }
   }
-
+  environment {
+    GIT_REPO = 'https://github.com/isbelevtsov/rsschool-devops-course-tasks.git'
+    GIT_BRANCH = 'task_6'
+    IMAGE_NAME = 'isbelevtsov/flask-app'
+    IMAGE_TAG = 'latest'
+  }
   stages {
     stage('Checkout') {
       steps {
-        checkout scm
+        git branch: "$GIT_BRANCH",
+        url: "$GIT_REPO",
+        credentialsId: 'GH_JENKINS_TOKEN'
       }
     }
 
-    stage('Unit Tests') {
-      agent { label 'jenkins-agent' }
+    stage('Install Required Packages') {
       steps {
-        sh 'python3 -m venv venv && source venv/bin/activate && pip install flask pytest && pytest tests/'
+        sh '''
+          echo "Installing required packages..."
+          dnf install -y python3 python3-pip curl unzip
+          pip install -r task_6/project/app/requirements.txt pytest
+        '''
       }
     }
 
-    stage('SonarQube Scan') {
-      agent { label 'jenkins-agent' }
-      environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN')
-      }
+    stage('Run Unit Test') {
       steps {
-        withSonarQubeEnv("${SONARQUBE_ENV}") {
+        sh '''
+          echo "Running unit tests..."
+          pytest task_6/project/app/test_app.py
+        '''
+      }
+    }
+
+    stage('Run SonarQube Security Check') {
+      steps {
+        withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
           sh '''
-          sonar-scanner \
-            -Dsonar.projectKey=flask-k8s-app \
-            -Dsonar.sources=. \
-            -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.login=$SONAR_TOKEN
+            echo "Running SonarQube security check..."
+            export SONAR_SCANNER_VERSION=7.0.2.4839
+            export SONAR_SCANNER_HOME=$HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux-x64
+            curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux-x64.zip
+            unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+            export PATH=$SONAR_SCANNER_HOME/bin:$PATH
+            export SONAR_SCANNER_OPTS="-server"
+            sonar-scanner \
+              -Dsonar.organization=isbelevtsov \
+              -Dsonar.projectKey=isbelevtsov_rsschool-devops-course-tasks \
+              -Dsonar.sources=task_6/project/app/ \
+              -Dsonar.host.url=https://sonarcloud.io
+              -Dsonar.login=$SONAR_TOKEN
           '''
         }
       }
@@ -46,35 +67,36 @@ pipeline {
       }
     }
 
-    stage('Build and Push Docker Image to ECR') {
+    stage('Build with Buildah') {
       steps {
-        container('kaniko') {
-          withCredentials([[
-            $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'AWS_ECR_CREDS'
-          ]]) {
-            sh '''
-              aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
-              /kaniko/executor \
-                --context `pwd` \
-                --dockerfile ./Dockerfile \
-                --destination $ECR_REGISTRY/$APP_NAME:$IMAGE_TAG \
-                --destination $ECR_REGISTRY/$APP_NAME:latest
-            '''
-          }
+        sh '''
+          echo "Building the Docker image with Buildah..."
+          buildah bud -t $IMAGE_NAME:$IMAGE_TAG -f task_6/project/app/Dockerfile task_6/project/app
+        '''
+      }
+    }
+
+    stage('Push to Docker Hub') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CREDS', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          sh '''
+            echo "Pushing the Docker image to Docker Hub..."
+            buildah login -u $DOCKER_USER -p $DOCKER_PASS docker.io
+            buildah push $IMAGE_NAME:$IMAGE_TAG docker://$IMAGE_NAME:$IMAGE_TAG
+          '''
         }
       }
     }
 
-    stage('Deploy to K8s via Helm') {
-      steps {
-        sh '''
-        helm upgrade --install $APP_NAME ./helm-chart \
-          --set image.repository=$ECR_REGISTRY/$APP_NAME \
-          --set image.tag=$IMAGE_TAG \
-          --namespace default
-        '''
-      }
-    }
+    // stage('Deploy to K8s via Helm') {
+    //   steps {
+    //     sh '''
+    //     helm upgrade --install $APP_NAME ./helm-chart \
+    //       --set image.repository=$IMAGE_NAME \
+    //       --set image.tag=$IMAGE_TAG \
+    //       --namespace default
+    //     '''
+    //   }
+    // }
   }
 }
