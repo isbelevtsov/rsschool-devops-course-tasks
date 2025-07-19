@@ -492,6 +492,7 @@ jobs:
       - name: Delete Kubernetes Resources
         run: |
           kubectl delete -f . --kubeconfig ../kubeconfig --ignore-not-found
+          kubectl delete -f kube2iam.yaml --kubeconfig ../kubeconfig --ignore-not-found
           kubectl delete secret jenkins-admin --namespace jenkins --kubeconfig ../kubeconfig --ignore-not-found
           kubectl delete namespace jenkins --kubeconfig ../kubeconfig --ignore-not-found
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}/jenkins
