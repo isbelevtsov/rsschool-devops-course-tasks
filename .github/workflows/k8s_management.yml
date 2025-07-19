@@ -28,6 +28,8 @@ env:
   JENKINS_ADMIN_USERNAME: ${{ secrets.JENKINS_ADMIN_USERNAME }}       # Jenkins admin username. Set this in GitHub Secrets
   JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }}       # Jenkins admin password. Set this in GitHub Secrets
   JENKINS_DATA_DIR: ${{ vars.JENKINS_DATA_DIR }}                      # Jenkins data directory. Set this in GitHub Variables
+  JENKINS_MAIL_USERNAME: ${{ secrets.JENKINS_MAIL_USERNAME }}         # Jenkins mail username. Set this in GitHub Secrets
+  JENKINS_MAIL_PASSWORD: ${{ secrets.JENKINS_MAIL_PASSWORD }}       # Jenkins mail password. Set this in GitHub Secrets
   JENKINS_USER_LOGIN: ${{ secrets.JENKINS_USER_LOGIN }}               # Jenkins user login. Set this in GitHub Secrets
   JENKINS_USER_DISPLAY_NAME: ${{ secrets.JENKINS_USER_DISPLAY_NAME }} # Jenkins user display name. Set this in GitHub Secrets
   JENKINS_USER_PASSWORD: ${{ secrets.JENKINS_USER_PASSWORD }}         # Jenkins user password. Set this in GitHub Secrets
@@ -139,6 +141,8 @@ jobs:
           jinja2 jenkins_values.yaml.j2 \
             -D JENKINS_ADMIN_USERNAME='${{ env.JENKINS_ADMIN_USERNAME }}' \
             -D JENKINS_ADMIN_PASSWORD='${{ env.JENKINS_ADMIN_PASSWORD }}' \
+            -D JENKINS_MAIL_USERNAME='${{ env.JENKINS_MAIL_USERNAME }}' \
+            -D JENKINS_MAIL_PASSWORD='${{ env.JENKINS_MAIL_PASSWORD }}' \
             -D JENKINS_USER_LOGIN='${{ env.JENKINS_USER_LOGIN }}' \
             -D JENKINS_USER_DISPLAY_NAME='${{ env.JENKINS_USER_DISPLAY_NAME }}' \
             -D JENKINS_USER_PASSWORD='${{ env.JENKINS_USER_PASSWORD }}' \

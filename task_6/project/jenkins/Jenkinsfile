@@ -99,10 +99,46 @@ pipeline {
               --namespace flask-app \
               --create-namespace \
               --values values.yaml
-            echo "Helm deployment completed."
           '''
         }
       }
     }
+
+    stage('Verify Application Deployment') {
+      steps {
+        sh '''
+          echo "Verifying application deployment..."
+          for i in {1..10}; do
+            if curl -sSf http://flask-app.flask-app.svc.cluster.local:5000; then
+              echo "Application is up!"
+              exit 0
+            else
+              echo "Waiting for application to become ready..."
+              sleep 5
+            fi
+          done
+
+          echo "Application verification failed."
+          exit 1
+        '''
+      }
+    }
+  }
+
+  post {
+  success {
+    mail to: 'isbelevtsov@gmail.com',
+         subject: "✅ SUCCESS: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+         body: "Job completed successfully!\n\nSee details: ${env.BUILD_URL}"
+  }
+  failure {
+    mail to: 'isbelevtsov@gmail.com',
+         subject: "❌ FAILURE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+         body: "Job failed. Please review the logs:\n\n${env.BUILD_URL}"
+  }
+  unstable {
+    mail to: 'isbelevtsov@gmail.com',
+         subject: "⚠️ UNSTABLE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+         body: "Job is unstable.\n\nDetails: ${env.BUILD_URL}"
   }
 }

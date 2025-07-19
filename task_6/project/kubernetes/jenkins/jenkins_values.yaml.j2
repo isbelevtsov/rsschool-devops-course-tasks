@@ -339,12 +339,21 @@ controller:
             - credentialsId: "GH_JENKINS_TOKEN"
               name: "Default"
             hookUrl: "http://{{ JENKINS_URL }}/github-webhook/"
+          githubPullRequests:
+            actualiseOnFactory: false
+          junitTestResultStorage:
+            storage: "file"
           location:
             adminAddress: "{{ JENKINS_USER_EMAIL }}"
             url: "http://{{ JENKINS_URL }}/"
           mailer:
+            authentication:
+              password: "{{ JENKINS_MAIL_PASSWORD }}"
+              username: "{{ JENKINS_MAIL_USERNAME }}"
             charset: "UTF-8"
-            useSsl: false
+            defaultSuffix: "@gmail.com"
+            smtpHost: "smtp.gmail.com"
+            useSsl: true
             useTls: false
           pollSCM:
             pollingThreadCount: 10
