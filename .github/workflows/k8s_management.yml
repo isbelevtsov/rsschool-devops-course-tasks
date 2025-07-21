@@ -358,7 +358,6 @@ jobs:
           tags: |
             isbelevtsov/flask-app:latest
             isbelevtsov/flask-app:${{ github.sha }}
-            isbelevtsov/flask-app:${{ github.ref_name }}
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4

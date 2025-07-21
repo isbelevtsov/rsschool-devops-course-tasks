@@ -78,15 +78,59 @@ pipeline {
       }
     }
 
-    stage('Push Image to Docker Hub') {
+    stage('Push Image to ECR') {
       steps {
-        withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CREDS', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          sh '''
-            echo "Pushing the Docker image to Docker Hub..."
-            buildah login -u $DOCKER_USER -p $DOCKER_PASS docker.io
-            buildah push $IMAGE_NAME:$IMAGE_TAG docker://$IMAGE_NAME:$IMAGE_TAG
-          '''
-        }
+        sh '''
+          echo "Pushing the Docker image to Amazon ECR..."
+          buildah tag $IMAGE_NAME:$IMAGE_TAG $ECR_REPO_URI/$IMAGE_NAME:$IMAGE_TAG
+          buildah push $IMAGE_NAME:$IMAGE_TAG docker://$ECR_REPO_URI/$IMAGE_NAME:$IMAGE_TAG
+        '''
+      }
+    }
+
+    stage('Get ECR Scan Results') {
+      steps {
+        sh '''
+          echo "Fetching scan results for $IMAGE_NAME:$IMAGE_TAG"
+
+          IMAGE_DIGEST=$(aws ecr describe-images \
+              --region $AWS_REGION \
+              --repository-name $IMAGE_NAME \
+              --image-ids imageTag=$IMAGE_TAG \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)
+
+          sleep 10
+          echo "Waiting for scan to complete..."
+          for i in {1..20}; do
+            STATUS=$(aws ecr describe-image-scan-findings \
+                --region $AWS_REGION \
+                --repository-name $IMAGE_NAME \
+                --image-id imageDigest=$IMAGE_DIGEST \
+                --query 'imageScanStatus.status' \
+                --output text)
+
+            echo "Current scan status: $STATUS"
+            if [ "$STATUS" == "COMPLETE" ]; then
+              echo "Scan complete!"
+              break
+            fi
+
+            if [ "$STATUS" == "FAILED" ]; then
+              echo "Scan failed!"
+              exit 1
+            fi
+
+          done
+
+          echo "Scan results for $IMAGE_NAME:$IMAGE_TAG:"
+          aws ecr describe-image-scan-findings \
+              --region $AWS_REGION \
+              --repository-name $IMAGE_NAME \
+              --image-id imageDigest=$IMAGE_DIGEST \
+              --query 'imageScanFindings.findings[*].[name,severity,uri]' \
+              --output table
+        '''
       }
     }
 

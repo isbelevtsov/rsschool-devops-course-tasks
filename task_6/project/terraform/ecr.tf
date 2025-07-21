@@ -28,6 +28,18 @@ resource "aws_ecr_lifecycle_policy" "flask_app_lifecycle" {
         action = {
           type = "expire"
         }
+      },
+      {
+        rulePriority = 2,
+        description  = "Keep the last 5 tagged images"
+        selection = {
+          tagStatus   = "tagged"
+          countType   = "imageCountMoreThan"
+          countNumber = 5
+        }
+        action = {
+          type = "expire"
+        }
       }
     ]
   })
