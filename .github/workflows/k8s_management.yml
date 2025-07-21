@@ -170,6 +170,7 @@ jobs:
       - name: Render kube2iam manifests from Jinja2 templates
         run: |
           jinja2 kube2iam.yaml.j2 \
+            -D AWS_REGION='${{ env.AWS_REGION }}' \
             -D AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' \
             -D PROJECT_NAME='${{ env.PROJECT_NAME }}' \
             -D ENVIRONMENT_NAME='${{ env.ENVIRONMENT_NAME }}' \

@@ -6,7 +6,7 @@ hostname: Host(`flask.aws.elysium-space.com`)  # Replace with your domain
 
 image:
   repository: isbelevtsov/flask-app # Replace with your Docker image repository
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   tag: latest # Replace with your Docker image tag
 
 podSecurityContext:

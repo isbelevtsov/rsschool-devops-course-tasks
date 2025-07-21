@@ -64,8 +64,10 @@ spec:
             - "--default-role={{ PROJECT_NAME }}-k3s-jenkins-ecr-role-{{ ENVIRONMENT_NAME }}"
             - "--iptables=true"
             - "--node=$(NODE_NAME)"
-            - "--host-interface=ens5"
+            - "--host-interface=cni0"
             - "--host-ip=$(HOST_IP)"
+            - "--use-regional-sts-endpoint"
+            - "--verbose"
           env:
             - name: NODE_NAME
               valueFrom:
@@ -74,7 +76,9 @@ spec:
             - name: HOST_IP
               valueFrom:
                 fieldRef:
-                  fieldPath: status.hostIP
+                  fieldPath: status.podIP
+            - name: AWS_REGION
+              value: "{{ AWS_REGION }}"
           ports:
             - containerPort: 8181
               hostPort: 8181

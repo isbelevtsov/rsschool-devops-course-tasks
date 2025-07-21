@@ -264,17 +264,27 @@ resource "aws_iam_role" "k3s_jenkins_ecr_role" {
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Sid    = "JenkinsAssumeRole",
-      Effect = "Allow"
-      Principal = {
-        AWS = [
-          "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-controlplane-role-${var.environment_name}",
-          "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-worker-role-${var.environment_name}"
-        ]
+    Statement = [
+      {
+        Sid    = "EC2AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      },
+      {
+        Sid    = "JenkinsAssumeRole",
+        Effect = "Allow"
+        Principal = {
+          AWS = [
+            "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-controlplane-role-${var.environment_name}",
+            "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-worker-role-${var.environment_name}"
+          ]
+        }
+        Action = "sts:AssumeRole"
       }
-      Action = "sts:AssumeRole"
-    }]
+    ]
   })
 }
 
