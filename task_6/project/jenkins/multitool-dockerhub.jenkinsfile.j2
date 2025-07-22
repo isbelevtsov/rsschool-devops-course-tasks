@@ -1,0 +1,219 @@
+pipeline {
+  agent {
+    kubernetes {
+      yaml '''
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: multitool-agent
+          namespace: jenkins
+          labels:
+            jenkins/label: multitool-agent
+          annotations:
+            iam.amazonaws.com/role: "arn:aws:iam::{{ AWS_ACCOUNT_ID }}:role/{{ PROJECT_NAME }}-k3s-jenkins-ecr-role-{{ ENVIRONMENT_NAME }}"
+        serviceAccountName: jenkins
+        spec:
+          containers:
+            - name: jnlp
+              image: jenkins/inbound-agent:latest
+              imagePullPolicy: IfNotPresent
+              workingDir: /home/jenkins/agent
+            - name: multitool
+              image: isbelevtsov/multitool:latest
+              imagePullPolicy: ifNotPresent
+              tty: true
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "500m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "1"
+              privileged: true
+                runAsUser: "0"
+                ttyEnabled: true
+                workingDir: /home/jenkins/agent
+              command:
+                - cat
+              volumeMounts:
+                - name: containers-storage
+                  mountPath: /var/lib/containers
+            - name: sonar
+              image: sonarsource/sonar-scanner-cli:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - sleep
+              args:
+                - 99d
+          restartPolicy: Never
+          volumes:
+            - name: containers-storage
+              emptyDir: {}
+      '''
+    }
+  }
+
+  options {
+    ansiColor('xterm')
+    buildDiscarder(logRotator(numToKeepStr: '5'))
+    disableConcurrentBuilds()
+    disableResume()
+    parallelsAlwaysFailFast()
+  }
+
+  environment {
+    APP_URL = '{{ APP_URL }}'
+    BUILD_IMAGE = '{{ BUILD_IMAGE }}'
+    EMAIL_RECIPIENT = '{{ EMAIL_RECIPIENT }}'
+    GIT_REPO = '{{ GIT_REPO }}'
+    GIT_BRANCH = '{{ GIT_BRANCH }}'
+    IMAGE_NAME = '{{ IMAGE_NAME }}'
+    IMAGE_TAG = '{{ IMAGE_TAG }}'
+    PUSH_IMAGE = '{{ PUSH_IMAGE }}'
+    SONAR_ORGANIZATION = '{{ SONAR_ORGANIZATION }}'
+    SONAR_PROJECT_KEY = '{{ SONAR_PROJECT_KEY }}'
+  }
+
+  stages {
+    stage('Checkout Repository') {
+      steps {
+        git branch: "$GIT_BRANCH",
+        url: "$GIT_REPO",
+        credentialsId: 'GH_JENKINS_TOKEN'
+      }
+    }
+
+    stage('Install Required Packages') {
+      steps {
+        container ('multitool') {
+          sh '''
+            echo "Installing required packages..."
+            pip install -r $GIT_BRANCH/project/app/requirements.txt pytest
+          '''
+        }
+      }
+    }
+
+    stage('Run Unit Test') {
+      steps {
+        container ('multitool') {
+          sh '''
+            echo "Running unit tests..."
+            pytest $GIT_BRANCH/project/app/test_app.py
+          '''
+        }
+      }
+    }
+
+    stage('Run SonarCloud Security Check') {
+      steps {
+        container ('sonar') {
+          withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+            sh '''
+              echo "Running SonarCloud security check..."
+              sonar-scanner \
+                -Dsonar.organization=$SONAR_ORGANIZATION \
+                -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                -Dsonar.sources=$GIT_BRANCH/project/app/ \
+                -Dsonar.host.url=https://sonarcloud.io
+            '''
+          }
+        }
+      }
+    }
+
+    // stage('Manual Approval to Build Image') {
+    //   steps {
+    //     input message: 'Approve to build and push Docker image to Dockerhub?'
+    //   }
+    // }
+
+    stage('Build with Buildah') {
+      when {
+        environment name: 'BUILD_IMAGE', value: 'true'
+      }
+      steps {
+        container ('multitool') {
+          sh '''
+            echo "Building the Docker image with Buildah..."
+            buildah bud -t $IMAGE_NAME:$IMAGE_TAG -f $GIT_BRANCH/project/app/Dockerfile $GIT_BRANCH/project/app
+          '''
+        }
+      }
+    }
+
+    stage('Push Image to Docker Hub') {
+      when {
+        environment name: 'PUSH_IMAGE', value: 'true'
+      }
+      steps {
+        container ('multitool') {
+          withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CREDS', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh '''
+              echo "Pushing the Docker image to Docker Hub..."
+              buildah login -u $DOCKER_USER -p $DOCKER_PASS docker.io
+              buildah push $IMAGE_NAME:$IMAGE_TAG docker://$IMAGE_NAME:$IMAGE_TAG
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Deploy Flask Helm Chart to K8s with Helm') {
+      steps {
+        container ('multitool') {
+          withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
+            sh '''
+              echo "Deploying application using Helm..."
+              cd $GIT_BRANCH/project/helm/flask-app
+              helm upgrade --install flask-app . \
+                --namespace flask-app \
+                --create-namespace \
+                --values values.yaml
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Verify Application Deployment') {
+      steps {
+        container ('multitool') {
+          sh '''
+            echo "Verifying application deployment..."
+            for i in {1..10}; do
+              if curl -sSf $APP_URL; then
+                echo "Application is up!"
+                exit 0
+              else
+                echo "Waiting for application to become ready..."
+                sleep 5
+              fi
+            done
+
+            echo "Application verification failed."
+            exit 1
+          '''
+        }
+      }
+    }
+
+    post {
+      success {
+        mail to: '${EMAIL_RECIPIENT}',
+          subject: "✅ SUCCESS: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+          body: "Job completed successfully!\n\nSee details: ${env.BUILD_URL}"
+      }
+      failure {
+        mail to: '${EMAIL_RECIPIENT}',
+          subject: "❌ FAILURE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+          body: "Job failed. Please review the logs:\n\n${env.BUILD_URL}"
+      }
+      unstable {
+        mail to: '${EMAIL_RECIPIENT}',
+          subject: "⚠️ UNSTABLE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+          body: "Job is unstable.\n\nDetails: ${env.BUILD_URL}"
+      }
+    }
+  }
+}
