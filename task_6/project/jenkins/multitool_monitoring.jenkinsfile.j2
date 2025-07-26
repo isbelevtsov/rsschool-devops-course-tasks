@@ -72,15 +72,21 @@ pipeline {
       }
     }
 
-    stage('Render manifests') {
+    stage('Render Monitoring IngressRoutes') {
       steps {
         container ('multitool') {
-          echo "Rendering Helm chart manifests..."
+          echo "Rendering Monitoring IngressRoute configuration..."
           sh '''
-            cd $GIT_BRANCH/project/helm/monitoring
+            cd $GIT_BRANCH/project/kubernetes/monitoring
             jinja2 grafana_ingress_route.yaml.j2 \
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
               -D NAMESPACE=$NAMESPACE > grafana_ingress_route.yaml
+            jinja2 alertmanager_ingress_route.yaml.j2 \
+              -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
+              -D NAMESPACE=$NAMESPACE > alertmanager_ingress_route.yaml
+            jinja2 prometheus_ingress_route.yaml.j2 \
+              -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
+              -D NAMESPACE=$NAMESPACE > prometheus_ingress_route.yaml
           '''
         }
       }
@@ -92,13 +98,14 @@ pipeline {
           withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
             echo "Deploying monitoring stack using Helm..."
             sh '''
+              cd $GIT_BRANCH/project/
               helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
               helm repo update
 
               helm upgrade --install $RELEASE_NAME $CHART \
                 -n $NAMESPACE --create-namespace \
                 -f $VALUES_FILE
-              kubectl apply -f $GIT_BRANCH/project/kubernetes/monitoring/grafana_ingress_route.yaml
+              kubectl apply -f kubernetes/monitoring/
             '''
           }
         }
@@ -111,7 +118,7 @@ pipeline {
           withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
             echo "Waiting for monitoring stack to be ready..."
             sh '''
-              kubectl wait --for=condition=available --timeout=600s deployment -n $NAMESPACE
+              kubectl wait --for=condition=available --timeout=600s deployment --all -n $NAMESPACE
             '''
           }
         }
@@ -124,10 +131,8 @@ pipeline {
           withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
             echo "Verifying monitoring stack components..."
             sh '''
-              kubectl get pods -n $NAMESPACE
-              kubectl get svc -n $NAMESPACE
-              kubectl get ingress -n $NAMESPACE
-            '''
+              kubectl get all -n $NAMESPACE -o wide
+             '''
           }
         }
       }
