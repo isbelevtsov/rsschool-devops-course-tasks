@@ -57,8 +57,10 @@ pipeline {
     EMAIL_RECIPIENT = '{{ EMAIL_RECIPIENT }}'
     GIT_REPO = '{{ GIT_REPO }}'
     GIT_BRANCH = '{{ GIT_BRANCH }}'
-    NAMESPACE = "monitoring"
-    RELEASE_NAME = "monitoring"
+    JENKINS_EMAIL_USERNAME = '{{ JENKINS_EMAIL_USERNAME }}'
+    JENKINS_EMAIL_PASSWORD = '{{ JENKINS_EMAIL_PASSWORD }}'
+    NAMESPACE = '{{ NAMESPACE }}'
+    RELEASE_NAME = '{{ RELEASE_NAME }}'
     ROUTE53_DOMAIN = '{{ ROUTE53_DOMAIN }}'
     VALUES_FILE = "$GIT_BRANCH/project/helm/monitoring/values.yaml"
   }
@@ -72,21 +74,33 @@ pipeline {
       }
     }
 
-    stage('Render Monitoring IngressRoutes') {
+    stage('Render Monitoring Manifests') {i
       steps {
         container ('multitool') {
           echo "Rendering Monitoring IngressRoute configuration..."
           sh '''
             cd $GIT_BRANCH/project/kubernetes/monitoring
-            jinja2 grafana_ingress_route.yaml.j2 \
+            jinja2 alertmanager_config.yaml.j2 \
+              -D NAMESPACE=$NAMESPACE \
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
-              -D NAMESPACE=$NAMESPACE > grafana_ingress_route.yaml
+              -D JENKINS_EMAIL_USERNAME=$JENKINS_EMAIL_USERNAME \
+              -D JENKINS_EMAIL_PASSWORD=$JENKINS_EMAIL_PASSWORD \
+              -D EMAIL_RECIPIENT=$EMAIL_RECIPIENT \
+              > alertmanager_config.yaml
             jinja2 alertmanager_ingress_route.yaml.j2 \
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
               -D NAMESPACE=$NAMESPACE > alertmanager_ingress_route.yaml
+            jinja2 grafana_configmap.yaml.j2 \
+              -D NAMESPACE=$NAMESPACE > grafana_config.yaml
+            jinja2 grafana_ingress_route.yaml.j2 \
+              -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
+              -D NAMESPACE=$NAMESPACE > grafana_ingress_route.yaml
+            jinja2 prometheus_alert_rules.yaml.j2 \
+              -D NAMESPACE=$NAMESPACE > prometheus_alert_rules.yaml
             jinja2 prometheus_ingress_route.yaml.j2 \
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
               -D NAMESPACE=$NAMESPACE > prometheus_ingress_route.yaml
+
           '''
         }
       }
@@ -99,6 +113,7 @@ pipeline {
             echo "Deploying monitoring stack using Helm..."
             sh '''
               cd $GIT_BRANCH/project/
+              kubectl apply -f kubernetes/monitoring/alertmanager_config.yaml
               helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
               helm repo update
 

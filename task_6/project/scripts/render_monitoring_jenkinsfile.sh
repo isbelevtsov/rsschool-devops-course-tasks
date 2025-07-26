@@ -9,6 +9,10 @@ ROUTE53_DOMAIN="aws.elysium-space.com"
 EMAIL_RECIPIENT="isbelevtsov@gmail.com"
 GIT_REPO="https://github.com/isbelevtsov/rsschool-devops-course-tasks.git"
 GIT_BRANCH="task_6"
+JENKINS_EMAIL_USERNAME=""
+JENKINS_EMAIL_PASSWORD=""
+NAMESPACE="monitoring"
+RELEASE_NAME="monitoring"
 
 
 for arg in "$@"; do
@@ -42,4 +46,8 @@ jinja2 "$JENKINS_CONFIG" \
     -D GIT_REPO="$GIT_REPO" \
     -D GIT_BRANCH="$GIT_BRANCH" \
     -D ROUTE53_DOMAIN="$ROUTE53_DOMAIN" \
+    -D JENKINS_EMAIL_USERNAME="$JENKINS_EMAIL_USERNAME" \
+    -D JENKINS_EMAIL_PASSWORD="$JENKINS_EMAIL_PASSWORD" \
+    -D NAMESPACE="$NAMESPACE" \
+    -D RELEASE_NAME="$RELEASE_NAME" \
     > "$NEW_JENKINS_CONFIG"
