@@ -17,12 +17,12 @@ grafana:
     enabled: false
     hosts:
       - grafana.aws.elysium-space.com # Replace with your domain
-  ingressRoute:
-    enabled: true
-    hosts:
-      - grafana.aws.elysium-space.com  # Replace with your domain
-    serviceName: monitoring-grafana  # Replace with your Grafana service name
-    servicePort: 3000
+  # ingressRoute:
+  #   enabled: true
+  #   hosts:
+  #     - grafana.aws.elysium-space.com  # Replace with your domain
+  #   serviceName: monitoring-grafana  # Replace with your Grafana service name
+  #   servicePort: 3000
   sidecar:
     datasources:
       enabled: true
@@ -32,15 +32,6 @@ grafana:
         - grafana_dashboard
       folder: /tmp/dashboards
       folderAnnotation: grafana_folder
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: Prometheus
-          type: prometheus
-          url: http://monitoring-kube-prometheus-prometheus.monitoring:9090
-          access: proxy
-          isDefault: true
 
 kubeStateMetrics:
   enabled: true
