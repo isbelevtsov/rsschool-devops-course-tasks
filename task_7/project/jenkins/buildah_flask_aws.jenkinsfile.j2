@@ -1,0 +1,217 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'buildah-agent'
+      defaultContainer 'buildah'
+    }
+  }
+
+  options {
+    ansiColor('xterm')
+    buildDiscarder(logRotator(numToKeepStr: '5'))
+    disableConcurrentBuilds()
+    disableResume()
+    parallelsAlwaysFailFast()
+  }
+
+  environment {
+    APP_URL = '{{ APP_URL }}'
+    AWS_ACCOUNT_ID = '{{ AWS_ACCOUNT_ID }}'
+    AWS_REGION = '{{ AWS_REGION }}'
+    BUILD_IMAGE = '{{ BUILD_IMAGE }}'
+    ECR_REGISTRY = '{{ ECR_REGISTRY }}'
+    EMAIL_RECIPIENT = '{{ EMAIL_RECIPIENT }}'
+    GIT_REPO = '{{ GIT_REPO }}'
+    GIT_BRANCH = '{{ GIT_BRANCH }}'
+    IMAGE_NAME = '{{ IMAGE_NAME }}'
+    IMAGE_TAG = '{{ IMAGE_TAG }}'
+    PUSH_IMAGE = '{{ PUSH_IMAGE }}'
+    SCAN_IMAGE = '{{ SCAN_IMAGE }}'
+    SONAR_ORGANIZATION = '{{ SONAR_ORGANIZATION }}'
+    SONAR_PROJECT_KEY = '{{ SONAR_PROJECT_KEY }}'
+  }
+
+  stages {
+    stage('Checkout Repository') {
+      steps {
+        git branch: "$GIT_BRANCH",
+        url: "$GIT_REPO",
+        credentialsId: 'GH_JENKINS_TOKEN'
+      }
+    }
+
+    stage('Install Required Packages') {
+      steps {
+        sh '''
+          echo "Installing required packages..."
+          dnf install -y python3 python3-pip curl unzip helm kubectl
+          pip install -r $GIT_BRANCH/project/app/requirements.txt pytest
+        '''
+      }
+    }
+
+    stage('Run Unit Test') {
+      steps {
+        sh '''
+          echo "Running unit tests..."
+          pytest $GIT_BRANCH/project/app/test_app.py
+        '''
+      }
+    }
+
+    stage('Run SonarQube Security Check') {
+      steps {
+        withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+          sh '''
+            echo "Running SonarQube security check..."
+            export SONAR_SCANNER_VERSION=7.0.2.4839
+            export SONAR_SCANNER_HOME=$HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux-x64
+            curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux-x64.zip
+            unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+            export PATH=$SONAR_SCANNER_HOME/bin:$PATH
+            export SONAR_SCANNER_OPTS="-server"
+            sonar-scanner \
+              -Dsonar.organization=$SONAR_ORGANIZATION \
+              -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+              -Dsonar.sources=$GIT_BRANCH/project/app/ \
+              -Dsonar.host.url=https://sonarcloud.io
+          '''
+        }
+      }
+    }
+
+    // stage('Manual Approval to Build Image') {
+    //   steps {
+    //     input message: 'Approve to build and push Docker image to Dockerhub?'
+    //   }
+    // }
+
+    stage('Build with Buildah') {
+      when {
+        environment name: 'BUILD_IMAGE', value: 'true'
+      }
+      steps {
+        sh '''
+          echo "Building the Docker image with Buildah..."
+          buildah bud -t $IMAGE_NAME:$IMAGE_TAG -f $GIT_BRANCH/project/app/Dockerfile $GIT_BRANCH/project/app
+        '''
+      }
+    }
+
+    stage('Push Image to ECR') {
+      when {
+        environment name: 'PUSH_IMAGE', value: 'true'
+      }
+      steps {
+        sh '''
+          echo "Pushing the Docker image to Amazon ECR..."
+          aws ecr get-login-password --region $AWS_REGION | buildah login --username AWS --password-stdin $ECR_REGISTRY
+          buildah tag $IMAGE_NAME:$IMAGE_TAG $ECR_REPO_URI/$IMAGE_NAME:$IMAGE_TAG
+          buildah push $IMAGE_NAME:$IMAGE_TAG docker://$ECR_REPO_URI/$IMAGE_NAME:$IMAGE_TAG
+        '''
+      }
+    }
+
+    stage('Get ECR Scan Results') {
+      when {
+        environment name: 'SCAN_IMAGE', value: 'true'
+      }
+      steps {
+        sh '''
+          echo "Fetching scan results for $IMAGE_NAME:$IMAGE_TAG"
+
+          IMAGE_DIGEST=$(aws ecr describe-images \
+              --region $AWS_REGION \
+              --repository-name $IMAGE_NAME \
+              --image-ids imageTag=$IMAGE_TAG \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)
+
+          sleep 10
+          echo "Waiting for scan to complete..."
+          for i in {1..20}; do
+            STATUS=$(aws ecr describe-image-scan-findings \
+                --region $AWS_REGION \
+                --repository-name $IMAGE_NAME \
+                --image-id imageDigest=$IMAGE_DIGEST \
+                --query 'imageScanStatus.status' \
+                --output text)
+
+            echo "Current scan status: $STATUS"
+            if [ "$STATUS" == "COMPLETE" ]; then
+              echo "Scan complete!"
+              break
+            fi
+
+            if [ "$STATUS" == "FAILED" ]; then
+              echo "Scan failed!"
+              exit 1
+            fi
+
+          done
+
+          echo "Scan results for $IMAGE_NAME:$IMAGE_TAG:"
+          aws ecr describe-image-scan-findings \
+              --region $AWS_REGION \
+              --repository-name $IMAGE_NAME \
+              --image-id imageDigest=$IMAGE_DIGEST \
+              --query 'imageScanFindings.findings[*].[name,severity,uri]' \
+              --output table
+        '''
+      }
+    }
+
+    stage('Deploy Flask Helm Chart to K8s with Helm') {
+      steps {
+        withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
+          sh '''
+            echo "Deploying application using Helm..."
+            cd $GIT_BRANCH/project/helm/flask-app
+            helm upgrade --install flask-app . \
+              --namespace flask-app \
+              --create-namespace \
+              --values values.yaml
+          '''
+        }
+      }
+    }
+
+    stage('Verify Application Deployment') {
+      steps {
+        sh '''
+          echo "Verifying application deployment..."
+          for i in {1..10}; do
+            if curl -sSf $APP_URL; then
+              echo "Application is up!"
+              exit 0
+            else
+              echo "Waiting for application to become ready..."
+              sleep 5
+            fi
+          done
+
+          echo "Application verification failed."
+          exit 1
+        '''
+      }
+    }
+  }
+
+  post {
+    success {
+      mail to: '${EMAIL_RECIPIENT}',
+        subject: "✅ SUCCESS: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+        body: "Job completed successfully!\n\nSee details: ${env.BUILD_URL}"
+    }
+    failure {
+      mail to: '${EMAIL_RECIPIENT}',
+        subject: "❌ FAILURE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+        body: "Job failed. Please review the logs:\n\n${env.BUILD_URL}"
+    }
+    unstable {
+      mail to: '${EMAIL_RECIPIENT}',
+        subject: "⚠️ UNSTABLE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+        body: "Job is unstable.\n\nDetails: ${env.BUILD_URL}"
+    }
+  }
+}

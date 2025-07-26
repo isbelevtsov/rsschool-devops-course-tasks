@@ -1,0 +1,51 @@
+alertmanager:
+  enabled: true
+  config:
+    existingSecret: alertmanager-config
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+    additionalRules:
+      - name: custom.rules
+        groups:
+          - name: instance.rules
+            rules:
+              - alert: InstanceDown
+                expr: up == 0
+                for: 1m
+                labels:
+                  severity: critical
+                annotations:
+                  summary: "Instance {{ $labels.instance }} down"
+                  description: "{{ $labels.instance }} of job {{ $labels.job }} is down"
+
+nodeExporter:
+  enabled: true
+
+grafana:
+  enabled: true
+  admin:
+    existingSecret: grafana-admin-secret
+    userKey: admin-user
+    passwordKey: admin-password
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+    hosts:
+      - grafana.aws.elysium-space.com # Replace with your domain
+  sidecar:
+    datasources:
+      enabled: true
+    dashboards:
+      enabled: true
+      labels:
+        - grafana_dashboard
+      # folder: /tmp/dashboards
+      folderAnnotation: grafana_folder
+
+kubeStateMetrics:
+  enabled: true

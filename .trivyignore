@@ -21,6 +21,8 @@ AVD-KSV-0125
 ## AVD-KSV-0125 (MEDIUM): Container web in deployment hello-world (namespace: web) uses an image from an untrusted registry.
 AVD-KSV-0118
 ## AVD-KSV-0118 (HIGH): deployment hello-world in web namespace is using the default security context, which allows root privileges
+AVD-AWS-0033
+## AVD-AWS-0033 (LOW): Repository is not encrypted using KMS.
 
 
 # No impact in our settings
