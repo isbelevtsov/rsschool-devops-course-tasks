@@ -74,7 +74,7 @@ pipeline {
       }
     }
 
-    stage('Render Monitoring Manifests') {i
+    stage('Render Monitoring Manifests') {
       steps {
         container ('multitool') {
           echo "Rendering Monitoring IngressRoute configuration..."
