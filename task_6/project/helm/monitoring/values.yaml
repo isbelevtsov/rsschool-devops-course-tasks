@@ -24,26 +24,23 @@ grafana:
     serviceName: monitoring-grafana  # Replace with your Grafana service name
     servicePort: 3000
   sidecar:
-    dashboards:
-      enabled: true
     datasources:
       enabled: true
+    dashboards:
+      enabled: true
+      labels:
+        - grafana_dashboard
+      folder: /tmp/dashboards
+      folderAnnotation: grafana_folder
   datasources:
     datasources.yaml:
       apiVersion: 1
       datasources:
         - name: Prometheus
           type: prometheus
-          url: http://monitoring-kube-prometheus-prometheus.monitoring:9090/
+          url: http://monitoring-kube-prometheus-prometheus.monitoring:9090
           access: proxy
           isDefault: true
-
-  dashboards:
-    default:
-      node-exporter-full:
-        gnetId: 1860
-        revision: 29
-        datasource: Prometheus
 
 kubeStateMetrics:
   enabled: true
