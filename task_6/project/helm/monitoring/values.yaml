@@ -10,13 +10,30 @@ nodeExporter:
 
 grafana:
   enabled: true
-  adminPassword: "admin"  # override with secret in production
+  adminPassword: "admin"  # You will be requested to change this password on first login
   service:
     type: ClusterIP
   ingress:
-    enabled: true
+    enabled: false
     hosts:
       - grafana.aws.elysium-space.com
+  ingressRoute:
+    enabled: true
+    hosts:
+      - grafana.aws.elysium-space.com  # Replace with your domain
+    serviceName: monitoring-grafana  # Replace with your Grafana service name
+    servicePort: 3000
+  sidecar:
+    dashboards:
+      enabled: true
+    datasources:
+      enabled: true
+  dashboards:
+    default:
+      node-exporter-full:
+        gnetId: 1860
+        revision: 29
+        datasource: Prometheus
 
 kubeStateMetrics:
   enabled: true

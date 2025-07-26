@@ -15,6 +15,18 @@ locals {
       template    = "./templates/nginx_flask.tpl"
       output_file = "/etc/nginx/sites-enabled/flask.conf"
     }
+    nginx_grafana = {
+      template    = "./templates/nginx_grafana.tpl"
+      output_file = "/etc/nginx/sites-enabled/grafana.conf"
+    }
+    nginx_prometheus = {
+      template    = "./templates/nginx_prometheus.tpl"
+      output_file = "/etc/nginx/sites-enabled/prometheus.conf"
+    }
+    nginx_alertmanager = {
+      template    = "./templates/nginx_alertmanager.tpl"
+      output_file = "/etc/nginx/sites-enabled/alertmanager.conf"
+    }
   }
 }
 
@@ -290,6 +302,13 @@ resource "aws_ssm_document" "apply_nginx_conf" {
             "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_jenkins.output_file} > /dev/null",
             "VALUES=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_flask\" --query \"Parameter.Value\" --output text --region ${var.aws_region})",
             "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_flask.output_file} > /dev/null",
+            "VALUES=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_grafana\" --query \"Parameter.Value\" --output text --region ${var.aws_region})",
+            "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_grafana.output_file} > /dev/null",
+            "VALUES=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_prometheus\" --query \"Parameter.Value\" --output text --region ${var.aws_region})",
+            "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_prometheus.output_file} > /dev/null",
+            "VALUES=$(aws ssm get-parameter --name \"/${var.project_name}/${var.environment_name}/${local.bastion_role}/nginx_alertmanager\" --query \"Parameter.Value\" --output text --region ${var.aws_region})",
+            "echo \"$VALUES\" | sudo tee ${local.nginx_configs.nginx_alertmanager.output_file} > /dev/null",
+            "sudo nginx -t",
             "sudo systemctl restart nginx"
           ]
         }

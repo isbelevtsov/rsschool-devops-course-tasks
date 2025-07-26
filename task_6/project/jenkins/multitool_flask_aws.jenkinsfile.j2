@@ -20,8 +20,11 @@ pipeline {
               workingDir: /home/jenkins/agent
             - name: multitool
               image: isbelevtsov/multitool:latest
-              imagePullPolicy: ifNotPresent
+              imagePullPolicy: IfNotPresent
               tty: true
+              workingDir: /home/jenkins/agent
+              command:
+                - cat
               resources:
                 requests:
                   memory: "512Mi"
@@ -29,12 +32,9 @@ pipeline {
                 limits:
                   memory: "1Gi"
                   cpu: "1"
-              privileged: true
-                runAsUser: "0"
-                ttyEnabled: true
-                workingDir: /home/jenkins/agent
-              command:
-                - cat
+              securityContext:
+                privileged: true
+                runAsUser: 0
               volumeMounts:
                 - name: containers-storage
                   mountPath: /var/lib/containers
