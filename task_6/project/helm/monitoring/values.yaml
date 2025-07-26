@@ -27,7 +27,10 @@ nodeExporter:
 
 grafana:
   enabled: true
-  adminPassword: "admin"  # You will be requested to change this password on first login
+  admin:
+    existingSecret: grafana-admin-secret
+    userKey: admin-user
+    passwordKey: admin-password
   service:
     type: ClusterIP
   ingress:

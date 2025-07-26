@@ -84,7 +84,7 @@ pipeline {
               -D NAMESPACE=$NAMESPACE \
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
               -D JENKINS_EMAIL_USERNAME=$JENKINS_EMAIL_USERNAME \
-              -D JENKINS_EMAIL_PASSWORD=$JENKINS_EMAIL_PASSWORD \
+              -D "JENKINS_EMAIL_PASSWORD=$JENKINS_EMAIL_PASSWORD" \
               -D EMAIL_RECIPIENT=$EMAIL_RECIPIENT \
               > alertmanager_config.yaml
             jinja2 alertmanager_ingress_route.yaml.j2 \
@@ -95,8 +95,8 @@ pipeline {
             jinja2 grafana_ingress_route.yaml.j2 \
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
               -D NAMESPACE=$NAMESPACE > grafana_ingress_route.yaml
-            jinja2 prometheus_alert_rules.yaml.j2 \
-              -D NAMESPACE=$NAMESPACE > prometheus_alert_rules.yaml
+            jinja2 prometheus_alert_rule.yaml.j2 \
+              -D NAMESPACE=$NAMESPACE > prometheus_alert_rule.yaml
             jinja2 prometheus_ingress_route.yaml.j2 \
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
               -D NAMESPACE=$NAMESPACE > prometheus_ingress_route.yaml
