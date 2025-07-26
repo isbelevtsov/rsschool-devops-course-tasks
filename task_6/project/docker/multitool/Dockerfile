@@ -10,6 +10,8 @@ RUN dnf install -y \
     make \
     gcc \
     python3 \
-    python3-pip
+    python3-pip && \
+    dnf clean all && \
+    pip3 install pytest
 
 ENTRYPOINT ["/bin/bash"]

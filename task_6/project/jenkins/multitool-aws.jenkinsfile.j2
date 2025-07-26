@@ -92,7 +92,7 @@ pipeline {
         container ('multitool') {
           sh '''
             echo "Installing required packages..."
-            pip install -r $GIT_BRANCH/project/app/requirements.txt pytest
+            pip install -r $GIT_BRANCH/project/app/requirements.txt
           '''
         }
       }
