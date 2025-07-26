@@ -16,7 +16,7 @@ grafana:
   ingress:
     enabled: false
     hosts:
-      - grafana.aws.elysium-space.com
+      - grafana.aws.elysium-space.com # Replace with your domain
   ingressRoute:
     enabled: true
     hosts:
@@ -28,6 +28,16 @@ grafana:
       enabled: true
     datasources:
       enabled: true
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://monitoring-kube-prometheus-prometheus.monitoring:9090/
+          access: proxy
+          isDefault: true
+
   dashboards:
     default:
       node-exporter-full:
