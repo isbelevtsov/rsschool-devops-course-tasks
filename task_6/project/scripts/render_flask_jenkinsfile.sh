@@ -26,14 +26,14 @@ SCAN_IMAGE=true
 for arg in "$@"; do
     echo "Processing argument: $arg"
     case $arg in
-        --jenkins-config=*)
+        --file=*)
             JENKINS_CONFIG="${arg#*=}"
-            echo "Jenkins configuration file set to: $JENKINS_CONFIG"
+            echo "Jenkins configuration template file set to: $JENKINS_CONFIG"
             ;;
         *)
             echo "Unknown option: $arg"
-            echo "Usage: $0 [--jenkins-config=<config_file>]"
-            echo "Example: $0 --jenkins-config=../jenkins/multitool-aws.jenkinsfile.j2"
+            echo "Usage: $0 [--file=<manifest_template_file>]"
+            echo "Example: $0 --file=multitool-aws.jenkinsfile.j2"
             exit 1
             ;;
     esac
@@ -48,6 +48,7 @@ NEW_JENKINS_CONFIG="${JENKINS_CONFIG%.j2}"
 FILENAME=$(basename "$JENKINS_CONFIG")
 
 echo "Rendering Jenkins configuration from $JENKINS_CONFIG to $NEW_JENKINS_CONFIG"
+cd ../jenkins/
 if [[ $FILENAME == multitool* ]]; then
     if [[ $FILENAME == *aws* ]]; then
         jinja2 "$JENKINS_CONFIG" \

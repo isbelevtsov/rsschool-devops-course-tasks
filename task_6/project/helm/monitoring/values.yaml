@@ -1,0 +1,22 @@
+alertmanager:
+  enabled: true
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+
+nodeExporter:
+  enabled: true
+
+grafana:
+  enabled: true
+  adminPassword: "admin"  # override with secret in production
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    hosts:
+      - grafana.aws.elysium-space.com
+
+kubeStateMetrics:
+  enabled: true

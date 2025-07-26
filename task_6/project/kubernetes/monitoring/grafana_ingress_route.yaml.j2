@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana-ingress-route
+  namespace: {{ NAMESPACE }}
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`grafana.{{ ROUTE53_DOMAIN }}`)  # Replace with your domain
+      kind: Rule
+      services:
+        - name: monitoring-grafana  # Replace with your Grafana service name
+          port: 3000
