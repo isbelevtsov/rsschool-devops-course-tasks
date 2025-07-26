@@ -17,7 +17,7 @@ on:
   #   types:
   #     - completed
   #   branches:
-  #     - task_6
+  #     - task_7
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}                                  # AWS default region. Set this in GitHub Variables

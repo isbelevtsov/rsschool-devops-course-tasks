@@ -1,0 +1,30 @@
+# VPC and Subnet Configuration
+# VPC CIDR Block
+vpc_cidr = "10.0.0.0/16"
+
+# AWS Region
+aws_region = "eu-north-1"
+
+# GitHub OIDC Trust Policy Setup
+aws_account_id = "123456789098" # Replace with your actual AWS account ID
+
+# Availability Zones and Subnet CIDRs
+azs = ["eu-north-1a", "eu-north-1b"]
+
+# Public and Private Subnet CIDRs
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.3.0/24", "10.0.4.0/24"]
+
+# SSH Access Configuration
+allowed_ssh_cidr = "1.2.3.4/32"
+
+# AWS instance type
+instance_type_bastion = "t3.nano"
+instance_type_cp      = "t3.medium"
+instance_type_worker  = "t3.small"
+
+# Domain name for Route 53 DNS records
+route53_domain = "aws.example.com"
+
+# Jenkins Persistent Data Directory
+jenkins_data_dir = "/data/jenkins"
