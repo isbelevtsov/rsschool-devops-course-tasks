@@ -28,6 +28,8 @@ env:
   JENKINS_ADMIN_USERNAME: ${{ secrets.JENKINS_ADMIN_USERNAME }}       # Jenkins admin username. Set this in GitHub Secrets
   JENKINS_ADMIN_PASSWORD: ${{ secrets.JENKINS_ADMIN_PASSWORD }}       # Jenkins admin password. Set this in GitHub Secrets
   JENKINS_DATA_DIR: ${{ vars.JENKINS_DATA_DIR }}                      # Jenkins data directory. Set this in GitHub Variables
+  JENKINS_MAIL_USERNAME: ${{ secrets.JENKINS_MAIL_USERNAME }}         # Jenkins mail username. Set this in GitHub Secrets
+  JENKINS_MAIL_PASSWORD: ${{ secrets.JENKINS_MAIL_PASSWORD }}       # Jenkins mail password. Set this in GitHub Secrets
   JENKINS_USER_LOGIN: ${{ secrets.JENKINS_USER_LOGIN }}               # Jenkins user login. Set this in GitHub Secrets
   JENKINS_USER_DISPLAY_NAME: ${{ secrets.JENKINS_USER_DISPLAY_NAME }} # Jenkins user display name. Set this in GitHub Secrets
   JENKINS_USER_PASSWORD: ${{ secrets.JENKINS_USER_PASSWORD }}         # Jenkins user password. Set this in GitHub Secrets
@@ -37,6 +39,7 @@ env:
   GH_JENKINS_SSH_KEY: ${{ secrets.GH_JENKINS_SSH_KEY }}               # GitHub SSH key for Jenkins. Set this in GitHub Secrets
   PROJECT_NAME: ${{ vars.PROJECT_NAME }}                              # Project name. Set this in GitHub Variables
   ROUTE53_DOMAIN: ${{ vars.ROUTE53_DOMAIN }}                          # AWS Route53 domain. Set this in GitHub Variables
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}                             # SonarQube token. Set this in GitHub Secrets
   WORKING_DIR_MAIN: ${{ vars.WORKING_DIR_MAIN }}                      # Main working directory. Set this in GitHub Variables
 
 permissions:
@@ -117,7 +120,8 @@ jobs:
             --with-decryption \
             --query "Parameter.Value" \
             --output text > kubeconfig
-                chmod 600 kubeconfig
+          chmod 600 kubeconfig
+          cp kubeconfig kubeconfig_raw
           sed -i "s|^\( *server: https://\)[^:]*|\1k8s.${{ env.ROUTE53_DOMAIN }}|" kubeconfig
           echo "export KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
@@ -133,9 +137,12 @@ jobs:
 
       - name: Render Jenkins manifests for Helm chart from Jinja2 templates
         run: |
+          KUBECONFIG_CONTENT=$(base64 -w 0 ../kubeconfig_raw)
           jinja2 jenkins_values.yaml.j2 \
             -D JENKINS_ADMIN_USERNAME='${{ env.JENKINS_ADMIN_USERNAME }}' \
             -D JENKINS_ADMIN_PASSWORD='${{ env.JENKINS_ADMIN_PASSWORD }}' \
+            -D JENKINS_MAIL_USERNAME='${{ env.JENKINS_MAIL_USERNAME }}' \
+            -D JENKINS_MAIL_PASSWORD='${{ env.JENKINS_MAIL_PASSWORD }}' \
             -D JENKINS_USER_LOGIN='${{ env.JENKINS_USER_LOGIN }}' \
             -D JENKINS_USER_DISPLAY_NAME='${{ env.JENKINS_USER_DISPLAY_NAME }}' \
             -D JENKINS_USER_PASSWORD='${{ env.JENKINS_USER_PASSWORD }}' \
@@ -147,6 +154,10 @@ jobs:
             -D DOCKER_HUB_PASSWORD='${{ env.DOCKER_HUB_TOKEN }}' \
             -D AWS_REGION='${{ env.AWS_REGION }}' \
             -D AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' \
+            -D PROJECT_NAME='${{ env.PROJECT_NAME }}' \
+            -D ENVIRONMENT_NAME='${{ env.ENVIRONMENT_NAME }}' \
+            -D SONAR_TOKEN='${{ env.SONAR_TOKEN }}' \
+            -D KUBECONFIG_CONTENT="$KUBECONFIG_CONTENT" \
             > jenkins_values.yaml
           jinja2 jenkins_ingress_route.yaml.j2 \
             -D ROUTE53_DOMAIN='${{ env.ROUTE53_DOMAIN }}' \
@@ -159,6 +170,7 @@ jobs:
       - name: Render kube2iam manifests from Jinja2 templates
         run: |
           jinja2 kube2iam.yaml.j2 \
+            -D AWS_REGION='${{ env.AWS_REGION }}' \
             -D AWS_ACCOUNT_ID='${{ env.AWS_ACCOUNT_ID }}' \
             -D PROJECT_NAME='${{ env.PROJECT_NAME }}' \
             -D ENVIRONMENT_NAME='${{ env.ENVIRONMENT_NAME }}' \
@@ -236,6 +248,11 @@ jobs:
       - name: Deploy kube2iam
         run: |
           kubectl apply -f kube2iam.yaml --kubeconfig kubeconfig
+        working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
+
+      - name: Add kube2iam label to nodes
+        run: |
+          kubectl label nodes --all iam.amazonaws.com/allowed=true --overwrite --kubeconfig kubeconfig
         working-directory: ${{ env.WORKING_DIR_KUBERNETES }}
 
       - name: Remove IP from Security Group
@@ -341,7 +358,6 @@ jobs:
           tags: |
             isbelevtsov/flask-app:latest
             isbelevtsov/flask-app:${{ github.sha }}
-            isbelevtsov/flask-app:${{ github.ref_name }}
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
