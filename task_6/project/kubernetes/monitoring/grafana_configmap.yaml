@@ -10,41 +10,30 @@ metadata:
 data:
   node-exporter.json: |
     {
+      "__inputs": [],
+      "__requires": [],
       "annotations": {
-        "list": [
-          {
-            "builtIn": 1,
-            "datasource": {
-              "type": "grafana",
-              "uid": "__grafana"
-            },
-            "enable": true,
-            "hide": true,
-            "iconColor": "#FFA500",
-            "name": "Dashboard links"
-          }
-        ]
+        "list": []
       },
-      "description": "",
       "editable": true,
       "gnetId": 1860,
       "graphTooltip": 0,
-      "id": 1,
-      "links": [],
+      "id": null,
+      "iteration": 1629393438494,
       "panels": [],
-      "refresh": "",
-      "schemaVersion": 16,
-      "tags": [],
+      "schemaVersion": 26,
+      "style": "dark",
+      "tags": ["node-exporter"],
       "templating": {
         "list": []
       },
       "time": {
-        "from": "now-6h",
+        "from": "now-1h",
         "to": "now"
       },
       "timepicker": {},
       "timezone": "",
       "title": "Node Exporter Full",
-      "uid": "",
-      "version": 1
+      "uid": "node-exporter-full",
+      "version": 40
     }

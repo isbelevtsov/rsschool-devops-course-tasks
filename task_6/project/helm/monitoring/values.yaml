@@ -17,12 +17,6 @@ grafana:
     enabled: false
     hosts:
       - grafana.aws.elysium-space.com # Replace with your domain
-  # ingressRoute:
-  #   enabled: true
-  #   hosts:
-  #     - grafana.aws.elysium-space.com  # Replace with your domain
-  #   serviceName: monitoring-grafana  # Replace with your Grafana service name
-  #   servicePort: 3000
   sidecar:
     datasources:
       enabled: true
@@ -30,7 +24,7 @@ grafana:
       enabled: true
       labels:
         - grafana_dashboard
-      folder: /tmp/dashboards
+      # folder: /tmp/dashboards
       folderAnnotation: grafana_folder
 
 kubeStateMetrics:
