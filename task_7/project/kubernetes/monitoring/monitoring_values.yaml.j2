@@ -56,27 +56,6 @@ grafana:
           addresses: "{{ EMAIL_RECIPIENT }}"
           singleEmail: true
           subject: "⚠️ Monitoring Alert"
-          {% raw %}
-          message: >
-            {{`🚨 *Monitoring Alert* 🚨
-
-            *Alert Name:* {{ .annotations.summary }}
-            *Description:* {{ .annotations.description }}
-            *Severity:* {{ .labels.severity }}
-            *Status:* {{ .status }}
-            *Starts At:* {{ .startsAt }}
-            *Ends At:* {{ .endsAt }}
-
-            *Instance:* {{ .labels.instance }}
-            *Namespace:* {{ .labels.namespace }}
-            *Pod:* {{ .labels.pod }}
-
-            Labels:
-            {{ range $key, $value := .labels }}
-              • {{ $key }}: {{ $value }}
-            {{ end }}
-            `}}
-          {% endraw %}
     notificationPolicies:
       default:
         contactPoint: "Email Default"
