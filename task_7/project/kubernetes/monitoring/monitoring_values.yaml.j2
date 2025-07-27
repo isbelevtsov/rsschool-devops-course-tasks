@@ -47,21 +47,5 @@ grafana:
       startTLSpolicy: "Always"
       user: "${GRAFANA_SMTP_USER}"
 
-  alerting:
-    enabled: true
-    contactPoints:
-      "Email Default":
-        type: "email"
-        settings:
-          addresses: "{{ EMAIL_RECIPIENT }}"
-          singleEmail: true
-          subject: "⚠️ Monitoring Alert"
-    notificationPolicies:
-      default:
-        contactPoint: "Email Default"
-        groupBy:
-          - alertname
-        continue: false
-
 kubeStateMetrics:
   enabled: true
