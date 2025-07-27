@@ -27,6 +27,8 @@ grafana:
         - grafana_dashboard
       folder: /tmp/dashboards
       folderAnnotation: grafana_folder
+  dashboardsConfigMaps:
+    default: grafana-default-dashboards
 
   envFromSecrets:
     - name: grafana-smtp-secret
@@ -46,6 +48,21 @@ grafana:
       skip_verify: false
       startTLS_policy: "Always"
       user: "${GRAFANA_SMTP_USER}"
+
+  alerting:
+    contactpoints.yaml:
+      apiVersion: 1
+      contactPoints:
+        - orgId: 1
+          name: admin-email
+          receivers:
+            - uid: cen4b1ckf03cwb
+              type: email
+              settings:
+                addresses: {{ JENKINS_EMAIL_USERNAME }}
+                singleEmail: true
+                html: true
+              disableResolveMessage: false
 
 kubeStateMetrics:
   enabled: true
