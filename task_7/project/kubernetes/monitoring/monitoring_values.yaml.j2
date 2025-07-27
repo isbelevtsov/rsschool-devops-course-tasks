@@ -47,21 +47,16 @@ grafana:
       startTLSpolicy: "Always"
       user: "${GRAFANA_SMTP_USER}"
 
-  alerting:
-    enabled: true
-    contactPoints:
-      "Email Default":
-        type: "email"
-        settings:
-          addresses: "{{ EMAIL_RECIPIENT }}"
-          singleEmail: true
-          subject: "⚠️ Monitoring Alert"
-          message: |
-            {% raw %}{{ template "default.message" . }}{% endraw %}
-            {% raw %}{{ template "default.alerts" . }}{% endraw %}
-            {% raw %}{{ template "default.alertsSummary" . }}{% endraw %}
-            {% raw %}{{ template "default.alertsDetails" . }}{% endraw %}
-            {% raw %}{{ template "default.alertsLabels" . }}{% endraw %}
+alerting:
+  enabled: true
+  contactPoints:
+    "Email Default":
+      type: "email"
+      settings:
+        addresses: "{{ EMAIL_RECIPIENT }}"
+        singleEmail: true
+        subject: "⚠️ Monitoring Alert"
+        message: "{{`{{ template \"default.message\" . }}`}}"
     notificationPolicies:
       default:
         contactPoint: "Email Default"
