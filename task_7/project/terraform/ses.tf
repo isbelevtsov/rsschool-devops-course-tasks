@@ -61,3 +61,10 @@ resource "aws_ssm_parameter" "grafana_smtp_from_address" {
   type  = "String"
   value = aws_ses_email_identity.monitoring_email.email
 }
+
+resource "aws_ssm_parameter" "grafana_smtp_password_v4" {
+  depends_on = [aws_iam_access_key.grafana_smtp_user_key]
+  name       = "/${var.project_name}/${var.environment_name}/kube/grafana/smtp_password_v4"
+  type       = "SecureString"
+  value      = aws_iam_access_key.grafana_smtp_user_key.ses_smtp_password_v4
+}
