@@ -5,6 +5,7 @@ set -e
 
 ### Environment variables for rendering ###
 # Global #
+AWS_REGION="eu-north-1"
 ROUTE53_DOMAIN="aws.elysium-space.com"
 EMAIL_RECIPIENT="isbelevtsov@gmail.com"
 GIT_REPO="https://github.com/isbelevtsov/rsschool-devops-course-tasks.git"

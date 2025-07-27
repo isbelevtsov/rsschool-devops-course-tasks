@@ -112,8 +112,37 @@ pipeline {
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
               -D NAMESPACE=$NAMESPACE \
               > prometheus_ingress_route.yaml
-
+            jinja2 monitoring_values.yaml.j2 \
+              -D AWS_REGION=$AWS_REGION \
+              -D EMAIL_RECIPIENT=$EMAIL_RECIPIENT \
+              -D GRAFANA_SMTP_USER=$GRAFANA_SMTP_USER \
+              -D GRAFANA_SMTP_PASSWORD=$GRAFANA_SMTP_PASSWORD \
+              -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
+              > monitoring_values.yaml
+            echo "Rendered manifests:"
+            ls -l *.yaml
           '''
+        }
+      }
+    }
+
+    stage('Create Monitoring Namespace') {
+      steps {
+        container ('multitool') {
+          withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
+            echo "Creating monitoring namespace..."
+            sh '''
+              if ! kubectl get namespace $NAMESPACE \
+                  > /dev/null 2>&1; then
+                echo "Namespace '$NAMESPACE' does not exist. Creating..."
+                kubectl create namespace $NAMESPACE \
+                  --dry-run=client -o yaml | \
+                kubectl apply -f -
+              else
+                echo "Namespace '$NAMESPACE' already exists. Skipping creation."
+              fi
+            '''
+          }
         }
       }
     }
@@ -125,7 +154,6 @@ pipeline {
             echo "Deploying monitoring stack using Helm..."
             sh '''
               cd $WORKING_DIR
-              kubectl create namespace $NAMESPACE || true
               kubectl apply -f grafana_admin_secret.yaml
               # kubectl apply -f alertmanager_config.yaml
               helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
