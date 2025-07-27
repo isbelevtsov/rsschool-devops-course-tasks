@@ -17,8 +17,10 @@ grafana:
   enabled: true
   # podAnnotations:
   #   iam.amazonaws.com/role: arn:aws:iam::{{ AWS_ACCOUNT_ID }}:role/{{ PROJECT_NAME }}-k3s-monitoring-ses-role-{{ ENVIRONMENT_NAME }}
-  adminUser: {{ GRAFANA_ADMIN_USER }}
-  adminPassword: {{ GRAFANA_ADMIN_PASSWORD }}
+  security:
+    existingSecret: grafana-admin-secret
+    userKey: admin-user
+    passwordKey: admin-password
   service:
     type: ClusterIP
   # ingress:
