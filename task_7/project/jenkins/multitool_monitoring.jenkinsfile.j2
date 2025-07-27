@@ -102,6 +102,11 @@ pipeline {
               -D GRAFANA_ADMIN_USER=$GRAFANA_ADMIN_USER \
               -D GRAFANA_ADMIN_PASSWORD=$GRAFANA_ADMIN_PASSWORD \
               > grafana_admin_secret.yaml
+            jinja2 grafana_smtp_secret.yaml.j2 \
+              -D NAMESPACE=$NAMESPACE \
+              -D GRAFANA_SMTP_USER=$GRAFANA_SMTP_USER \
+              -D GRAFANA_SMTP_PASSWORD=$GRAFANA_SMTP_PASSWORD \
+              > grafana_smtp_secret.yaml
             jinja2 grafana_configmap.yaml.j2 \
               -D NAMESPACE=$NAMESPACE > grafana_config.yaml
             jinja2 grafana_ingress_route.yaml.j2 \
@@ -118,8 +123,6 @@ pipeline {
             jinja2 monitoring_values.yaml.j2 \
               -D AWS_REGION=$AWS_REGION \
               -D EMAIL_RECIPIENT=$EMAIL_RECIPIENT \
-              -D GRAFANA_SMTP_USER=$GRAFANA_SMTP_USER \
-              -D GRAFANA_SMTP_PASSWORD=$GRAFANA_SMTP_PASSWORD \
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
               > monitoring_values.yaml
             echo "Rendered manifests:"
@@ -158,6 +161,7 @@ pipeline {
             sh '''
               cd $WORKING_DIR
               kubectl apply -f grafana_admin_secret.yaml
+              kubectl apply -f grafana_smtp_secret.yaml
               kubectl apply -f grafana_config.yaml
               # kubectl apply -f alertmanager_config.yaml
               helm repo add prometheus-community https://prometheus-community.github.io/helm-charts

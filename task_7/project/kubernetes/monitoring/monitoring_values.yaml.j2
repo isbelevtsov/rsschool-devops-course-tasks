@@ -27,6 +27,10 @@ grafana:
         - grafana_dashboard
       folder: /tmp/dashboards
       folderAnnotation: grafana_folder
+
+  envFromSecrets:
+    - name: grafana-smtp-secret
+
   grafana.ini:
     auth.anonymous:
       enabled: false
@@ -38,10 +42,27 @@ grafana:
       fromAddress: "monitoring@{{ ROUTE53_DOMAIN }}"
       fromName: "Monitoring"
       host: "email-smtp.{{ AWS_REGION }}.amazonaws.com:587"
-      password: {{ GRAFANA_SMTP_PASSWORD }}
+      password: "${GRAFANA_SMTP_PASSWORD}"
       skipVerify: false
       startTLSpolicy: "Always"
-      user: {{ GRAFANA_SMTP_USER }}
+      user: "${GRAFANA_SMTP_USER}"
+
+  alerting:
+    enabled: true
+    contactPoints:
+      - name: "Email Default"
+        type: "email"
+        settings:
+          addresses: "{{ EMAIL_RECIPIENT }}"
+          singleEmail: true
+          subject: "⚠️ Monitoring Alert"
+          message: |
+            {% raw %}{{ template "default.message" . }}{% endraw %}
+    notificationPolicies:
+      - contactPoint: "Email Default"
+        groupBy: ['alertname']
+        receiver: "Email Default"
+        continue: false
 
 kubeStateMetrics:
   enabled: true
