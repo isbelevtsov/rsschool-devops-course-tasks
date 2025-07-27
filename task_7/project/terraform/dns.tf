@@ -18,7 +18,7 @@ resource "aws_route53_record" "wildcard_bastion" {
 
 resource "aws_route53_record" "ses_dkim_records" {
   count   = 3
-  zone_id = data.aws_route53_zone.primary.zone_id
+  zone_id = data.aws_route53_zone.this.zone_id
   name    = "${aws_ses_domain_dkim.monitoring_email.dkim_tokens[count.index]}._domainkey.${var.route53_domain}"
   type    = "CNAME"
   ttl     = 300
@@ -26,7 +26,7 @@ resource "aws_route53_record" "ses_dkim_records" {
 }
 
 resource "aws_route53_record" "ses_domain_verification" {
-  zone_id = data.aws_route53_zone.primary.zone_id
+  zone_id = data.aws_route53_zone.this.zone_id
   name    = "_amazonses.${var.route53_domain}"
   type    = "TXT"
   ttl     = 300

@@ -26,7 +26,7 @@ resource "aws_ssm_parameter" "grafana_smtp_username" {
 }
 
 resource "aws_ssm_parameter" "grafana_smtp_password" {
-  depends_on = [data.external.generate_smtp_password.result.smtp_password]
+  depends_on = [data.external.generate_smtp_password]
   name       = "/${var.project_name}/${var.environment_name}/kube/grafana/smtp_password"
   type       = "SecureString"
   value      = data.external.generate_smtp_password.result.smtp_password
