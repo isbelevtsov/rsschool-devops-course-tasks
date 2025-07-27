@@ -51,36 +51,29 @@ grafana:
 
   alerting:
     enabled: true
-    contactpoints.yaml: |
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: grafana-alerting-contactpoints
-        namespace: {{ NAMESPACE }}
-      data:
-        contactpoints.yaml: |
-          apiVersion: 1
-          contactPoints:
-            - name: Email Default
-              type: email
-              settings:
-                addresses: "{{ JENKINS_EMAIL_USERNAME }}"
-                singleEmail: true
-                subject: "⚠️ Monitoring Alert from Grafana"
-          routes:
-            - receiver: Email Default
-              groupBy:
-                - alertname
-              groupInterval: 5m
-              repeatInterval: 1h
-              continue: true
-              groupWait: 30s
-              match:
-                severity: critical
-              groupByLabels:
-                - job
-                - instance
-              continue: true
+    contactpoints.yaml:
+      apiVersion: 1
+      contactPoints:
+        - name: Email Default
+          type: email
+          settings:
+            addresses: "{{ JENKINS_EMAIL_USERNAME }}"
+            singleEmail: true
+            subject: "⚠️ Monitoring Alert from Grafana"
+      routes:
+        - receiver: Email Default
+          groupBy:
+            - alertname
+          groupInterval: 5m
+          repeatInterval: 1h
+          continue: true
+          groupWait: 30s
+          match:
+            severity: critical
+          groupByLabels:
+            - job
+            - instance
+          continue: true
 
 kubeStateMetrics:
   enabled: true

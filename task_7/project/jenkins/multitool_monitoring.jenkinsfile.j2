@@ -123,7 +123,6 @@ pipeline {
             jinja2 monitoring_values.yaml.j2 \
               -D AWS_REGION=$AWS_REGION \
               -D EMAIL_RECIPIENT=$EMAIL_RECIPIENT \
-              -D NAMESPACE=$NAMESPACE \
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
               -D JENKINS_EMAIL_USERNAME=$JENKINS_EMAIL_USERNAME \
               > monitoring_values.yaml
