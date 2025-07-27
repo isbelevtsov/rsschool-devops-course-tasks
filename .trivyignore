@@ -23,6 +23,7 @@ AVD-KSV-0118
 ## AVD-KSV-0118 (HIGH): deployment hello-world in web namespace is using the default security context, which allows root privileges
 AVD-AWS-0033
 ## AVD-AWS-0033 (LOW): Repository is not encrypted using KMS.
-
+AVD-AWS-0143
+## AVD-AWS-0143 (LOW): One or more policies are attached directly to a user
 
 # No impact in our settings

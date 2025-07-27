@@ -1,0 +1,42 @@
+alertmanager:
+  enabled: true
+  # podAnnotations:
+  #   iam.amazonaws.com/role: arn:aws:iam::{{ AWS_ACCOUNT_ID }}:role/{{ PROJECT_NAME }}-k3s-monitoring-ses-role-{{ ENVIRONMENT_NAME }}
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+  # podAnnotations:
+  #   iam.amazonaws.com/role: arn:aws:iam::{{ AWS_ACCOUNT_ID }}:role/{{ PROJECT_NAME }}-k3s-monitoring-ses-role-{{ ENVIRONMENT_NAME }}
+
+
+nodeExporter:
+  enabled: true
+
+grafana:
+  enabled: true
+  # podAnnotations:
+  #   iam.amazonaws.com/role: arn:aws:iam::{{ AWS_ACCOUNT_ID }}:role/{{ PROJECT_NAME }}-k3s-monitoring-ses-role-{{ ENVIRONMENT_NAME }}
+  admin:
+    existingSecret: grafana-admin-secret
+    userKey: admin-user
+    passwordKey: admin-password
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+    hosts:
+      - grafana.aws.elysium-space.com
+  sidecar:
+    datasources:
+      enabled: true
+    dashboards:
+      enabled: true
+      labels:
+        - grafana_dashboard
+      folder: /tmp/dashboards
+      folderAnnotation: grafana_folder
+
+kubeStateMetrics:
+  enabled: true

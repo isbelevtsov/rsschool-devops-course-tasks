@@ -15,3 +15,20 @@ resource "aws_route53_record" "wildcard_bastion" {
 
   depends_on = [aws_instance.bastion]
 }
+
+resource "aws_route53_record" "ses_dkim_records" {
+  count   = 3
+  zone_id = data.aws_route53_zone.primary.zone_id
+  name    = "${aws_ses_domain_dkim.monitoring_email.dkim_tokens[count.index]}._domainkey.${var.route53_domain}"
+  type    = "CNAME"
+  ttl     = 300
+  records = ["${aws_ses_domain_dkim.monitoring_email.dkim_tokens[count.index]}.dkim.amazonses.com"]
+}
+
+resource "aws_route53_record" "ses_domain_verification" {
+  zone_id = data.aws_route53_zone.primary.zone_id
+  name    = "_amazonses.${var.route53_domain}"
+  type    = "TXT"
+  ttl     = 300
+  records = [aws_ses_domain_identity.monitoring_email.verification_token]
+}

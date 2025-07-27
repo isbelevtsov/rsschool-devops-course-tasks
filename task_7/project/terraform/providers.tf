@@ -20,6 +20,10 @@ terraform {
       source  = "hashicorp/template"
       version = "~> 2.2.0"
     }
+    external = {
+      source  = "hashicorp/external"
+      version = "~> 2.2.0"
+    }
   }
 
   backend "s3" {

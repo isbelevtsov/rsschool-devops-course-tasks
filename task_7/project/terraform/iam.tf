@@ -320,3 +320,115 @@ resource "aws_iam_role_policy" "worker_assume_kube2iam_role" {
     ]
   })
 }
+
+resource "aws_iam_role" "k3s_monitoring_ses_role" {
+  name = "${var.project_name}-k3s-monitoring-ses-role-${var.environment_name}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid    = "EC2AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      },
+      {
+        Sid    = "Kube2IAMAssumeRole",
+        Effect = "Allow",
+        Principal = {
+          AWS = [
+            "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-controlplane-role-${var.environment_name}",
+            "arn:aws:iam::${var.aws_account_id}:role/${var.project_name}-worker-role-${var.environment_name}"
+          ]
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "k3s_monitoring_ses_policy" {
+  name        = "${var.project_name}-k3s-monitoring-ses-policy-${var.environment_name}"
+  description = "Allow Grafana/Alertmanager to send emails via SES"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "monitoring_ses_attach" {
+  role       = aws_iam_role.k3s_monitoring_ses_role.name
+  policy_arn = aws_iam_policy.k3s_monitoring_ses_policy.arn
+}
+
+resource "aws_iam_role_policy" "controlplane_assume_kube2iam_ses_role" {
+  name = "assume-kube2iam-ses-role-controlplane"
+  role = aws_iam_role.controlplane_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = "sts:AssumeRole",
+        Resource = aws_iam_role.k3s_monitoring_ses_role.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "worker_assume_kube2iam_ses_role" {
+  name = "assume-kube2iam-ses-role-worker"
+  role = aws_iam_role.worker_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = "sts:AssumeRole",
+        Resource = aws_iam_role.k3s_monitoring_ses_role.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_user" "grafana_smtp_user" {
+  name = "${var.project_name}-grafana-smtp-${var.environment_name}"
+}
+
+resource "aws_iam_user_policy" "grafana_smtp_ses_policy" {
+  name = "${var.project_name}-GrafanaSESSendEmail-${var.environment_name}"
+  user = aws_iam_user.grafana_smtp_user.name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_access_key" "grafana_smtp_user_key" {
+  user = aws_iam_user.grafana_smtp_user.name
+}
