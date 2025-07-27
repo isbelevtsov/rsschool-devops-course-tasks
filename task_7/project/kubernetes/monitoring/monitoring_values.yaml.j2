@@ -39,12 +39,12 @@ grafana:
       level: info
     smtp:
       enabled: true
-      fromAddress: "monitoring@{{ ROUTE53_DOMAIN }}"
-      fromName: "Monitoring"
+      from_address: "monitoring@{{ ROUTE53_DOMAIN }}"
+      from_name: "Monitoring"
       host: "email-smtp.{{ AWS_REGION }}.amazonaws.com:587"
       password: "${GRAFANA_SMTP_PASSWORD}"
-      skipVerify: false
-      startTLSpolicy: "Always"
+      skip_verify: false
+      startTLS_policy: "Always"
       user: "${GRAFANA_SMTP_USER}"
 
 kubeStateMetrics:
