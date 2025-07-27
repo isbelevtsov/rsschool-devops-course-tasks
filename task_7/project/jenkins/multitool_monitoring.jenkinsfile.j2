@@ -158,6 +158,7 @@ pipeline {
             sh '''
               cd $WORKING_DIR
               kubectl apply -f grafana_admin_secret.yaml
+              kubectl apply -f grafana_config.yaml
               # kubectl apply -f alertmanager_config.yaml
               helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
               helm repo update
@@ -165,7 +166,9 @@ pipeline {
               helm upgrade --install $RELEASE_NAME $CHART \
                 -n $NAMESPACE \
                 -f $VALUES_FILE
-              kubectl apply -f .
+              kubectl apply -f alertmanager_ingress_route.yaml
+              kubectl apply -f grafana_ingress_route.yaml
+              kubectl apply -f prometheus_ingress_route.yaml
             '''
           }
         }
