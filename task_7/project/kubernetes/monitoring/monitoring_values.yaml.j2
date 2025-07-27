@@ -56,7 +56,14 @@ grafana:
           addresses: "{{ EMAIL_RECIPIENT }}"
           singleEmail: true
           subject: "⚠️ Monitoring Alert"
-          message: "{{`{{ template \"default.message\" . }}`}}"
+          message: |
+            {% raw %}
+            {{ template "default.message" . }}
+            {{ template "default.alerts" . }}
+            {{ template "default.alertsSummary" . }}
+            {{ template "default.alertsDetails" . }}
+            {{ template "default.alertsLabels" . }}
+            {% endraw %}
     notificationPolicies:
       default:
         contactPoint: "Email Default"
