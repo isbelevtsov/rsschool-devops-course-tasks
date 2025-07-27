@@ -163,7 +163,12 @@ pipeline {
               kubectl apply -f grafana_admin_secret.yaml
               kubectl apply -f grafana_smtp_secret.yaml
               kubectl apply -f grafana_config.yaml
-              kubectl create configmap grafana-default-dashboards -n $NAMESPACE --from-file=../../monitoring/
+              if ! kubectl get configmap grafana-default-dashboards -n $NAMESPACE > /dev/null 2>&1; then
+                echo "Creating configmap for Grafana default dashboards..."
+                kubectl create configmap grafana-default-dashboards -n $NAMESPACE --from-file=../../monitoring/
+              else
+                echo "Configmap for Grafana default dashboards already exists. Skipping creation."
+              fi
               # kubectl apply -f alertmanager_config.yaml
               helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
               helm repo update

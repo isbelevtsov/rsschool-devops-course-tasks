@@ -50,19 +50,29 @@ grafana:
       user: "${GRAFANA_SMTP_USER}"
 
   alerting:
-    contactpoints.yaml:
-      apiVersion: 1
-      contactPoints:
-        - orgId: 1
-          name: service-operators
-          receivers:
-            - uid: cen4b1ckf03cwb
-              type: email
-              settings:
-                addresses: {{ JENKINS_EMAIL_USERNAME }}
-                singleEmail: true
-                html: true
-              disableResolveMessage: false
+    enabled: true
+    contactpoints: |
+      [
+        {
+          "name": "Email Default",
+          "type": "email",
+          "settings": {
+            "addresses": "{{ JENKINS_EMAIL_USERNAME }}",
+            "singleEmail": true,
+            "subject": "⚠️ Monitoring Alert from Grafana"
+          }
+        }
+      ]
+
+    # Notification policies must also be a JSON string
+    notificationpolicies: |
+      [
+        {
+          "contactPoint": "Email Default",
+          "groupBy": ["alertname"],
+          "continue": false
+        }
+      ]
 
 kubeStateMetrics:
   enabled: true
