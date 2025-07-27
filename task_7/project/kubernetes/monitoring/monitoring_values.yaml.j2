@@ -58,11 +58,23 @@ grafana:
           subject: "⚠️ Monitoring Alert"
           message: |
             {% raw %}
-            {{ template "default.message" . }}
-            {{ template "default.alerts" . }}
-            {{ template "default.alertsSummary" . }}
-            {{ template "default.alertsDetails" . }}
-            {{ template "default.alertsLabels" . }}
+            🚨 *Monitoring Alert* 🚨
+
+            *Alert Name:* {{ .annotations.summary }}
+            *Description:* {{ .annotations.description }}
+            *Severity:* {{ .labels.severity }}
+            *Status:* {{ .status }}
+            *Starts At:* {{ .startsAt }}
+            *Ends At:* {{ .endsAt }}
+
+            *Instance:* {{ .labels.instance }}
+            *Namespace:* {{ .labels.namespace }}
+            *Pod:* {{ .labels.pod }}
+
+            Labels:
+            {{ range $key, $value := .labels }}
+              • {{ $key }}: {{ $value }}
+            {{ end }}
             {% endraw %}
     notificationPolicies:
       default:
