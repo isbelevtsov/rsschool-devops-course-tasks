@@ -56,15 +56,6 @@ grafana:
           addresses: "{{ EMAIL_RECIPIENT }}"
           singleEmail: true
           subject: "⚠️ Monitoring Alert"
-  alerting:
-    enabled: true
-    contactPoints:
-      "Email Default":
-        type: "email"
-        settings:
-          addresses: "{{ EMAIL_RECIPIENT }}"
-          singleEmail: true
-          subject: "⚠️ Monitoring Alert"
           message: |
             🚨 *Monitoring Alert* 🚨
 
