@@ -57,25 +57,23 @@ grafana:
           singleEmail: true
           subject: "⚠️ Monitoring Alert"
           message: |
-            {% raw %}
             🚨 *Monitoring Alert* 🚨
 
-            *Alert Name:* {{ .annotations.summary }}
-            *Description:* {{ .annotations.description }}
-            *Severity:* {{ .labels.severity }}
-            *Status:* {{ .status }}
-            *Starts At:* {{ .startsAt }}
-            *Ends At:* {{ .endsAt }}
+            *Alert Name:* {{ '{{' }} .annotations.summary {{ '}}' }}
+            *Description:* {{ '{{' }} .annotations.description {{ '}}' }}
+            *Severity:* {{ '{{' }} .labels.severity {{ '}}' }}
+            *Status:* {{ '{{' }} .status {{ '}}' }}
+            *Starts At:* {{ '{{' }} .startsAt {{ '}}' }}
+            *Ends At:* {{ '{{' }} .endsAt {{ '}}' }}
 
-            *Instance:* {{ .labels.instance }}
-            *Namespace:* {{ .labels.namespace }}
-            *Pod:* {{ .labels.pod }}
+            *Instance:* {{ '{{' }} .labels.instance {{ '}}' }}
+            *Namespace:* {{ '{{' }} .labels.namespace {{ '}}' }}
+            *Pod:* {{ '{{' }} .labels.pod {{ '}}' }}
 
             Labels:
-            {{ range $key, $value := .labels }}
-              • {{ $key }}: {{ $value }}
-            {{ end }}
-            {% endraw %}
+            {{ '{{' }} range $key, $value := .labels {{ '}}' }}
+              • {{ '{{' }} $key {{ '}}' }}: {{ '{{' }} $value {{ '}}' }}
+            {{ '{{' }} end {{ '}}' }}
     notificationPolicies:
       default:
         contactPoint: "Email Default"
