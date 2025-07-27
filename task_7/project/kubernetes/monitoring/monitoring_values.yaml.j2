@@ -50,7 +50,7 @@ grafana:
   alerting:
     enabled: true
     contactPoints:
-      - name: "Email Default"
+      "Email Default":
         type: "email"
         settings:
           addresses: "{{ EMAIL_RECIPIENT }}"
@@ -58,10 +58,15 @@ grafana:
           subject: "⚠️ Monitoring Alert"
           message: |
             {% raw %}{{ template "default.message" . }}{% endraw %}
+            {% raw %}{{ template "default.alerts" . }}{% endraw %}
+            {% raw %}{{ template "default.alertsSummary" . }}{% endraw %}
+            {% raw %}{{ template "default.alertsDetails" . }}{% endraw %}
+            {% raw %}{{ template "default.alertsLabels" . }}{% endraw %}
     notificationPolicies:
-      - contactPoint: "Email Default"
-        groupBy: ['alertname']
-        receiver: "Email Default"
+      default:
+        contactPoint: "Email Default"
+        groupBy:
+          - alertname
         continue: false
 
 kubeStateMetrics:
