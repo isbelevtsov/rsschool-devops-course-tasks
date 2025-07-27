@@ -53,12 +53,15 @@ pipeline {
   }
 
   environment {
+    AWS_REGION = "{{ AWS_REGION }}"
     CHART = "prometheus-community/kube-prometheus-stack"
     EMAIL_RECIPIENT = '{{ EMAIL_RECIPIENT }}'
     GIT_REPO = '{{ GIT_REPO }}'
     GIT_BRANCH = '{{ GIT_BRANCH }}'
     GRAFANA_ADMIN_USER = '{{ GRAFANA_ADMIN_USER }}'
     GRAFANA_ADMIN_PASSWORD = '{{ GRAFANA_ADMIN_PASSWORD }}'
+    GRAFANA_SMTP_USER = '{{ GRAFANA_SMTP_USER }}'
+    GRAFANA_SMTP_PASSWORD = '{{ GRAFANA_SMTP_PASSWORD }}'
     JENKINS_EMAIL_USERNAME = '{{ JENKINS_EMAIL_USERNAME }}'
     JENKINS_EMAIL_PASSWORD = '{{ JENKINS_EMAIL_PASSWORD }}'
     NAMESPACE = '{{ NAMESPACE }}'
@@ -120,7 +123,7 @@ pipeline {
               -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
               > monitoring_values.yaml
             echo "Rendered manifests:"
-            ls -l *.yaml
+            ls -lah *.yaml
           '''
         }
       }
