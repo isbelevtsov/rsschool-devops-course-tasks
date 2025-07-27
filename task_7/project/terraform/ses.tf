@@ -40,7 +40,7 @@ resource "aws_ssm_parameter" "grafana_smtp_user_key" {
   depends_on = [aws_iam_access_key.grafana_smtp_user_key]
   name       = "/${var.project_name}/${var.environment_name}/kube/grafana/smtp_user_key"
   type       = "SecureString"
-  value      = aws_iam_access_key.grafana_smtp_user_key.secret
+  value      = aws_iam_access_key.grafana_smtp_user_key.id
 }
 
 resource "aws_ssm_parameter" "grafana_smtp_password" {
