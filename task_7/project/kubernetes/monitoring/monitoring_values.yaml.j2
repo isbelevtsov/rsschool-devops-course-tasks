@@ -47,7 +47,7 @@ grafana:
     user: {{ GRAFANA_SMTP_USER }}
   alerting:
     enabled: true
-    contactPoints: |
+    contactPoints:
       - name: "{{ GRAFANA_SMTP_USER }}"
         type: email
         isDefault: true
