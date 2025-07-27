@@ -6,8 +6,18 @@ resource "aws_ses_domain_dkim" "monitoring_email" {
   domain = aws_ses_domain_identity.monitoring_email.domain
 }
 
+resource "aws_ses_domain_mail_from" "monitoring_email" {
+  domain           = aws_ses_domain_identity.monitoring_email.domain
+  mail_from_domain = "bounce.${aws_ses_domain_identity.monitoring_email.domain}"
+}
+
 resource "aws_ses_email_identity" "monitoring_email" {
-  email = "monitoring@${var.route53_domain}"
+  email = var.verified_email
+}
+
+resource "aws_ses_domain_mail_from" "monitoring_email" {
+  domain           = aws_ses_email_identity.monitoring_email.email
+  mail_from_domain = "monitoring@${var.route53_domain}"
 }
 
 data "external" "generate_smtp_password" {
@@ -23,6 +33,13 @@ resource "aws_ssm_parameter" "grafana_smtp_username" {
   name       = "/${var.project_name}/${var.environment_name}/kube/grafana/smtp_username"
   type       = "String"
   value      = aws_iam_user.grafana_smtp_user.name
+}
+
+resource "aws_ssm_parameter" "grafana_smtp_user_key" {
+  depends_on = [aws_iam_access_key.grafana_smtp_user_key]
+  name       = "/${var.project_name}/${var.environment_name}/kube/grafana/smtp_user_key"
+  type       = "SecureString"
+  value      = aws_iam_access_key.grafana_smtp_user_key.secret
 }
 
 resource "aws_ssm_parameter" "grafana_smtp_password" {

@@ -1,10 +1,8 @@
-# Lookup the public hosted zone using the variable
 data "aws_route53_zone" "this" {
   name         = var.route53_domain
   private_zone = false
 }
 
-# Create a wildcard A record
 resource "aws_route53_record" "wildcard_bastion" {
   zone_id = data.aws_route53_zone.this.zone_id
   name    = "*.${var.route53_domain}"
@@ -31,4 +29,20 @@ resource "aws_route53_record" "ses_domain_verification" {
   type    = "TXT"
   ttl     = 300
   records = [aws_ses_domain_identity.monitoring_email.verification_token]
+}
+
+resource "aws_route53_record" "example_ses_domain_mail_from_mx" {
+  zone_id = data.aws_route53_zone.this.zone_id
+  name    = aws_ses_domain_mail_from.monitoring_email.mail_from_domain
+  type    = "MX"
+  ttl     = "600"
+  records = ["10 feedback-smtp.${var.aws_region}.amazonses.com"]
+}
+
+resource "aws_route53_record" "example_ses_domain_mail_from_txt" {
+  zone_id = data.aws_route53_zone.this.zone_id
+  name    = aws_ses_domain_mail_from.monitoring_email.mail_from_domain
+  type    = "TXT"
+  ttl     = "600"
+  records = ["v=spf1 include:amazonses.com ~all"]
 }

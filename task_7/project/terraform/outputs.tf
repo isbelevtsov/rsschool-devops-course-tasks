@@ -34,6 +34,12 @@ output "grafana_smtp_username" {
   sensitive   = true
 }
 
+output "grafana_smtp_user_key" {
+  description = "Grafana SMTP user key stored in SSM Parameter Store"
+  value       = aws_ssm_parameter.grafana_smtp_user_key.value
+  sensitive   = true
+}
+
 output "grafana_smtp_password" {
   description = "Grafana SMTP password stored in SSM Parameter Store"
   value       = data.external.generate_smtp_password.result.smtp_password

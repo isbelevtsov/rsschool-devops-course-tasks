@@ -80,3 +80,9 @@ variable "jenkins_data_dir" {
   type        = string
   default     = "/data/jenkins"
 }
+
+variable "verified_email" {
+  description = "Email address to be verified with SES"
+  type        = string
+  default     = "username@gmail.com"
+}

@@ -48,6 +48,7 @@ env:
   ROUTE53_DOMAIN: ${{ vars.ROUTE53_DOMAIN }}                # AWS Route53 domain. Set this in GitHub Variables
   WORKING_DIR_INFRA: ${{ vars.WORKING_DIR_INFRA }}          # Working directory for Terraform. Set this in GitHub Variables
   TF_VERSION: ${{ vars.TF_VERSION }}                        # Terraform version. Set this in GitHub Variables
+  VERIFIED_EMAIL: ${{ vars.VERIFIED_EMAIL }}                # Email address to be verified with SES. Set this in GitHub Variables
   VPC_CIDR: ${{ vars.VPC_CIDR }}                            # AWS VPC CIDR. Set this in GitHub Variables
 
 permissions:
@@ -103,6 +104,7 @@ jobs:
           project_name          = "${{ env.PROJECT_NAME }}"
           environment_name      = "${{ env.ENVIRONMENT_NAME }}"
           route53_domain        = "${{ env.ROUTE53_DOMAIN }}"
+          verified_email        = "${{ env.VERIFIED_EMAIL }}"
 
           EOF
         working-directory: ${{ env.WORKING_DIR_INFRA }}
@@ -239,6 +241,7 @@ jobs:
           project_name          = "${{ env.PROJECT_NAME }}"
           environment_name      = "${{ env.ENVIRONMENT_NAME }}"
           route53_domain        = "${{ env.ROUTE53_DOMAIN }}"
+          verified_email        = "${{ env.VERIFIED_EMAIL }}"
 
           EOF
         working-directory: ${{ env.WORKING_DIR_INFRA }}
@@ -300,6 +303,7 @@ jobs:
           project_name          = "${{ env.PROJECT_NAME }}"
           environment_name      = "${{ env.ENVIRONMENT_NAME }}"
           route53_domain        = "${{ env.ROUTE53_DOMAIN }}"
+          verified_email        = "${{ env.VERIFIED_EMAIL }}"
 
           EOF
         working-directory: ${{ env.WORKING_DIR_INFRA }}

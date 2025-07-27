@@ -28,3 +28,5 @@ route53_domain = "aws.example.com"
 
 # Jenkins Persistent Data Directory
 jenkins_data_dir = "/data/jenkins"
+
+verified_email = "username@gmail.com"
