@@ -15,10 +15,11 @@ resource "aws_ses_email_identity" "monitoring_email" {
   email = var.verified_email
 }
 
-resource "aws_ses_domain_mail_from" "monitoring_email" {
-  domain           = aws_ses_email_identity.monitoring_email.email
-  mail_from_domain = "monitoring@${var.route53_domain}"
-}
+# Use this block to create the SES identity mail from configuration instead of the domain mail from configuration
+# resource "aws_ses_domain_mail_from" "monitoring_email" {
+#   domain           = aws_ses_email_identity.monitoring_email.email
+#   mail_from_domain = "monitoring@${var.route53_domain}"
+# }
 
 data "external" "generate_smtp_password" {
   program = ["${path.module}/templates/generate_smtp_password.py"]
