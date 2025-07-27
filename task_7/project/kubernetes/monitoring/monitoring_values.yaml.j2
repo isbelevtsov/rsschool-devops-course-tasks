@@ -27,15 +27,21 @@ grafana:
         - grafana_dashboard
       folder: /tmp/dashboards
       folderAnnotation: grafana_folder
-  smtp:
-    enabled: true
-    fromAddress: "monitoring@{{ ROUTE53_DOMAIN }}"
-    fromName: "Monitoring"
-    host: "email-smtp.{{ AWS_REGION }}.amazonaws.com:587"
-    password: {{ GRAFANA_SMTP_PASSWORD }}
-    skipVerify: false
-    startTLSpolicy: "Always"
-    user: {{ GRAFANA_SMTP_USER }}
+  config:
+    auth.anonymous:
+      enabled: false
+    log:
+      mode: console
+      level: info
+    smtp:
+      enabled: true
+      fromAddress: "monitoring@{{ ROUTE53_DOMAIN }}"
+      fromName: "Monitoring"
+      host: "email-smtp.{{ AWS_REGION }}.amazonaws.com:587"
+      password: {{ GRAFANA_SMTP_PASSWORD }}
+      skipVerify: false
+      startTLSpolicy: "Always"
+      user: {{ GRAFANA_SMTP_USER }}
 
 kubeStateMetrics:
   enabled: true
