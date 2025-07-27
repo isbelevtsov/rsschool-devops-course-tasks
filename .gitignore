@@ -154,3 +154,4 @@ development/
 **/kubeconfig
 **/test.sh
 **/*.bak
+**/kube-prometheus-stack
