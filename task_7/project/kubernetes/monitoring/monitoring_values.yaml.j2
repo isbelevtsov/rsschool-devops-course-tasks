@@ -56,7 +56,7 @@ grafana:
           addresses: "{{ EMAIL_RECIPIENT }}"
           singleEmail: true
           subject: "⚠️ Monitoring Alert"
-          message: |
+          message: >
             🚨 *Monitoring Alert* 🚨
 
             *Alert Name:* {{ "{{ .annotations.summary }}" }}
