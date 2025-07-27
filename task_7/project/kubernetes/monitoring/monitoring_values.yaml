@@ -1,0 +1,118 @@
+alertmanager:
+  enabled: true
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+
+nodeExporter:
+  enabled: true
+
+grafana:
+  enabled: true
+  # podAnnotations:
+  #   iam.amazonaws.com/role: arn:aws:iam::{{ AWS_ACCOUNT_ID }}:role/{{ PROJECT_NAME }}-k3s-monitoring-ses-role-{{ ENVIRONMENT_NAME }}
+  admin:
+    existingSecret: grafana-admin-secret
+    userKey: admin-user
+    passwordKey: admin-password
+  service:
+    type: ClusterIP
+  sidecar:
+    datasources:
+      enabled: true
+    dashboards:
+      enabled: true
+      labels:
+        - grafana_dashboard
+      folder: /tmp/dashboards
+      folderAnnotation: grafana_folder
+  dashboardsConfigMaps:
+    default: grafana-default-dashboards
+
+  envFromSecrets:
+    - name: grafana-smtp-secret
+
+  grafana.ini:
+    auth.anonymous:
+      enabled: false
+    log:
+      mode: console
+      level: info
+    smtp:
+      enabled: true
+      from_address: "monitoring@{{ ROUTE53_DOMAIN }}"
+      from_name: "Monitoring"
+      host: "email-smtp.{{ AWS_REGION }}.amazonaws.com:587"
+      password: "${GRAFANA_SMTP_PASSWORD}"
+      skip_verify: false
+      startTLS_policy: "Always"
+      user: "${GRAFANA_SMTP_USER}"
+
+  # alerting:
+  #   enabled: true
+  #   policies.yaml:
+  #     apiVersion: 1
+  #     policies:
+  #       - orgId: 1
+  #         receiver: email-default
+  #   rules.yaml:
+  #     apiVersion: 1
+  #     groups:
+  #       - orgId: 1
+  #         name: 'monitoring_my_rule_group'
+  #         folder: my_first_folder
+  #         interval: 60s
+  #         rules:
+  #           - uid: my_id_1
+  #             title: my_first_rule
+  #             condition: A
+  #             data:
+  #               - refId: A
+  #                 datasourceUid: '-100'
+  #                 model:
+  #                   conditions:
+  #                     - evaluator:
+  #                         params:
+  #                           - 3
+  #                         type: gt
+  #                       operator:
+  #                         type: and
+  #                       query:
+  #                         params:
+  #                           - A
+  #                       reducer:
+  #                         type: last
+  #                       type: query
+  #                   datasource:
+  #                     type: __expr__
+  #                     uid: '-100'
+  #                   expression: 1==0
+  #                   intervalMs: 1000
+  #                   maxDataPoints: 43200
+  #                   refId: A
+  #                   type: math
+  #             dashboardUid: my_dashboard
+  #             panelId: 123
+  #             noDataState: Alerting
+  #             for: 60s
+  #             annotations:
+  #               some_key: some_value
+  #             labels:
+  #               team: sre_team_1
+  #   contactpoints.yaml:
+  #     secret:
+  #       apiVersion: 1
+  #       contactPoints:
+  #         - orgId: 1
+  #           name: Email Default
+  #           receivers:
+  #             - uid: email-default
+  #               type: email
+  #               settings:
+  #                 addresses: "{{ JENKINS_EMAIL_USERNAME }}"
+  #                 singleEmail: true
+  #                 subject: "⚠️ Monitoring Alert from Grafana"
+
+kubeStateMetrics:
+  enabled: true
