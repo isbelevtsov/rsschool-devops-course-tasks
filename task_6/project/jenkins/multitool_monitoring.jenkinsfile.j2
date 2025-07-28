@@ -1,0 +1,177 @@
+pipeline {
+  agent {
+    kubernetes {
+      yaml '''
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: multitool-agent
+          namespace: jenkins
+          labels:
+            jenkins/label: multitool-agent
+        spec:
+          serviceAccountName: jenkins
+          restartPolicy: Never
+          containers:
+            - name: jnlp
+              image: jenkins/inbound-agent:latest
+              imagePullPolicy: IfNotPresent
+              workingDir: /home/jenkins/agent
+            - name: multitool
+              image: isbelevtsov/multitool:latest
+              imagePullPolicy: IfNotPresent
+              tty: true
+              workingDir: /home/jenkins/agent
+              command:
+                - cat
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "500m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "1"
+              securityContext:
+                privileged: true
+                runAsUser: 0
+              volumeMounts:
+                - name: containers-storage
+                  mountPath: /var/lib/containers
+          volumes:
+            - name: containers-storage
+              emptyDir: {}
+      '''
+    }
+  }
+
+  options {
+    ansiColor('xterm')
+    buildDiscarder(logRotator(numToKeepStr: '5'))
+    disableConcurrentBuilds()
+    disableResume()
+    parallelsAlwaysFailFast()
+  }
+
+  environment {
+    CHART = "prometheus-community/kube-prometheus-stack"
+    EMAIL_RECIPIENT = '{{ EMAIL_RECIPIENT }}'
+    GIT_REPO = '{{ GIT_REPO }}'
+    GIT_BRANCH = '{{ GIT_BRANCH }}'
+    JENKINS_EMAIL_USERNAME = '{{ JENKINS_EMAIL_USERNAME }}'
+    JENKINS_EMAIL_PASSWORD = '{{ JENKINS_EMAIL_PASSWORD }}'
+    NAMESPACE = '{{ NAMESPACE }}'
+    RELEASE_NAME = '{{ RELEASE_NAME }}'
+    ROUTE53_DOMAIN = '{{ ROUTE53_DOMAIN }}'
+    VALUES_FILE = "$GIT_BRANCH/project/helm/monitoring/values.yaml"
+  }
+
+  stages {
+    stage('Checkout Repository') {
+      steps {
+        git branch: "$GIT_BRANCH",
+        url: "$GIT_REPO",
+        credentialsId: 'GH_JENKINS_TOKEN'
+      }
+    }
+
+    stage('Render Monitoring Manifests') {
+      steps {
+        container ('multitool') {
+          echo "Rendering Monitoring IngressRoute configuration..."
+          sh '''
+            cd $GIT_BRANCH/project/kubernetes/monitoring
+            jinja2 alertmanager_config.yaml.j2 \
+              -D NAMESPACE=$NAMESPACE \
+              -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
+              -D JENKINS_EMAIL_USERNAME=$JENKINS_EMAIL_USERNAME \
+              -D "JENKINS_EMAIL_PASSWORD=$JENKINS_EMAIL_PASSWORD" \
+              -D EMAIL_RECIPIENT=$EMAIL_RECIPIENT \
+              > alertmanager_config.yaml
+            jinja2 alertmanager_ingress_route.yaml.j2 \
+              -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
+              -D NAMESPACE=$NAMESPACE > alertmanager_ingress_route.yaml
+            jinja2 grafana_configmap.yaml.j2 \
+              -D NAMESPACE=$NAMESPACE > grafana_config.yaml
+            jinja2 grafana_ingress_route.yaml.j2 \
+              -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
+              -D NAMESPACE=$NAMESPACE > grafana_ingress_route.yaml
+            jinja2 prometheus_alert_rule.yaml.j2 \
+              -D NAMESPACE=$NAMESPACE > prometheus_alert_rule.yaml
+            jinja2 prometheus_ingress_route.yaml.j2 \
+              -D ROUTE53_DOMAIN=$ROUTE53_DOMAIN \
+              -D NAMESPACE=$NAMESPACE > prometheus_ingress_route.yaml
+
+          '''
+        }
+      }
+    }
+
+    stage('Deploy Monitoring Stack with Helm') {
+      steps {
+        container ('multitool') {
+          withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
+            echo "Deploying monitoring stack using Helm..."
+            sh '''
+              cd $GIT_BRANCH/project/
+              kubectl apply -f kubernetes/monitoring/alertmanager_config.yaml
+              helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+              helm repo update
+
+              helm upgrade --install $RELEASE_NAME $CHART \
+                -n $NAMESPACE --create-namespace \
+                -f $VALUES_FILE
+              kubectl apply -f kubernetes/monitoring/
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Wait for Monitoring Stack to be Ready') {
+      steps {
+        container ('multitool') {
+          withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
+            echo "Waiting for monitoring stack to be ready..."
+            sh '''
+              kubectl wait --for=condition=available --timeout=600s deployment --all -n $NAMESPACE
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Verify Components') {
+      steps {
+        container ('multitool') {
+          withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
+            echo "Verifying monitoring stack components..."
+            sh '''
+              kubectl get all -n $NAMESPACE -o wide
+             '''
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "✅ Monitoring stack installed successfully!"
+      mail to: '${EMAIL_RECIPIENT}',
+        subject: "✅ SUCCESS: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+        body: "Job completed successfully!\n\nSee details: ${env.BUILD_URL}"
+    }
+    failure {
+      echo "❌ Deployment failed."
+      mail to: '${EMAIL_RECIPIENT}',
+        subject: "❌ FAILURE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+        body: "Job failed. Please review the logs:\n\n${env.BUILD_URL}"
+    }
+    unstable {
+      echo "⚠️ Job is unstable."
+      mail to: '${EMAIL_RECIPIENT}',
+        subject: "⚠️ UNSTABLE: Job '${env.JOB_NAME}' (#${env.BUILD_NUMBER})",
+        body: "Job is unstable.\n\nDetails: ${env.BUILD_URL}"
+    }
+  }
+}

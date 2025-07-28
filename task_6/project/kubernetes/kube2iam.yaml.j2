@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: default
+  annotations:
+    iam.amazonaws.com/allowed-roles: |
+      ["arn:aws:iam::{{ AWS_ACCOUNT_ID }}:role/{{ PROJECT_NAME }}-k3s-jenkins-ecr-role-{{ ENVIRONMENT_NAME }}"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube2iam
+  namespace: kube-system
+---
+apiVersion: v1
+items:
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: kube2iam
+    rules:
+      - apiGroups: [""]
+        resources: ["namespaces","pods"]
+        verbs: ["get","watch","list"]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: kube2iam
+    subjects:
+    - kind: ServiceAccount
+      name: kube2iam
+      namespace: kube-system
+    roleRef:
+      kind: ClusterRole
+      name: kube2iam
+      apiGroup: rbac.authorization.k8s.io
+kind: List
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kube2iam
+  namespace: kube-system
+  labels:
+    app: kube2iam
+spec:
+  selector:
+    matchLabels:
+      name: kube2iam
+  template:
+    metadata:
+      labels:
+        name: kube2iam
+    spec:
+      serviceAccountName: kube2iam
+      hostNetwork: true
+      containers:
+        - image: jtblin/kube2iam:latest
+          imagePullPolicy: Always
+          name: kube2iam
+          args:
+            - "--app-port=8181"
+            - "--base-role-arn=arn:aws:iam::{{ AWS_ACCOUNT_ID }}:role/"
+            - "--default-role={{ PROJECT_NAME }}-k3s-jenkins-ecr-role-{{ ENVIRONMENT_NAME }}"
+            - "--iptables=true"
+            - "--node=$(NODE_NAME)"
+            - "--host-interface=cni0"
+            - "--host-ip=$(HOST_IP)"
+            - "--use-regional-sts-endpoint"
+            - "--verbose"
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: AWS_REGION
+              value: "{{ AWS_REGION }}"
+          ports:
+            - containerPort: 8181
+              hostPort: 8181
+              name: http
+          securityContext:
+            privileged: true

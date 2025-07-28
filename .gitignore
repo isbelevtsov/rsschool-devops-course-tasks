@@ -154,3 +154,4 @@ development/
 **/kubeconfig
 **/test.sh
 **/*.bak
+**/kube2iam.yaml

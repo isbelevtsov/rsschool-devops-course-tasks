@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: prometheus-ingress-route
+  namespace: {{ NAMESPACE }}
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`prometheus.{{ ROUTE53_DOMAIN }}`)  # Replace with your domain
+      kind: Rule
+      services:
+        - name: monitoring-kube-prometheus-prometheus  # Replace with your Prometheus service name
+          port: 9090
