@@ -28,6 +28,7 @@ ______________________________________________________________________
 - [How to manage kubernetes cluster](#how-to-manage-kubernetes-cluster)
 - [GitHub Actions Workflow: K8s Management](#github-actions-workflow-k8s-management)
 - [Jenkins](#jenkins)
+- [Monitoring](#monitoring)
 - [Notes](#notes)
 - [Usability confirmation](#usability-confirmation)
 
@@ -635,6 +636,35 @@ At the end of this job you will have a Flask application deployed to your kubern
 
 ______________________________________________________________________
 
+## Monitoring
+
+As a prerequisites for Prometheus monitoring stack deployment we need to configure any kind of SMTP server or relay. For our purpose we will use Amazon SES for that. It's already configured through Infrastructure Terraform code. All stuff that need to be done manualy is a email confirmation. After you'll successfully deploy Terraform code you will receive email with confirmation link to address that you provide as variable.
+
+As fact that Grafana cant assume IAM instance role directly for SMT configuration you need to create separate user with `ses:SendMail` and `ses:SendRawMmail` policies. This configuration included in Terraform code too. You will need to get SMTP password and IAM user access key ID manualy. Grafana needs a specific configuration of user password that can be used with SMTP authentication. You will find it in AWS Parameter Store with `*password_v4` in key name. As SMTP username Grafana use an IAM user access key ID. It can be found in same place as password and it's value usually starts with `AKIA*`.
+
+All Jenkins pipelines represents as Jinja2 template that can be easily rendered with suggested scripts that you can find under `task_7/project/scripts/` directory. Will be using `multitool_monitoring.jenkinsfile` for stack deplying process.
+
+It's will do next thing:
+
+- Checkout repo code
+- Render all needed manifest and values file for Helm chart and post-install configuration
+- Pre-create namespace, admin secret, smtp secret and dashboard configuration with yaml manifests
+- Deploy Prometheus Community Kube Stack Hekl chart
+- Apply post-install configuration manifests with ingress routes for K3s native Traeffic ingress controller
+- Show output for all deployed resources under newly created `monitoring` namespace
+
+When pipeline execute successfully you will have:
+
+- Alertmanager
+- Grafana
+- Prometheus
+- Node Exporter
+- Kube State Metrics
+
+Grafana will have pre-installed Dashboards that was provided by Grafana marketplace and suits our configuration. It will already have configured admin user password, SMTP, ContactPoints and Alert Rules for future use.
+
+______________________________________________________________________
+
 ## Notes
 
 📎
@@ -651,30 +681,45 @@ ______________________________________________________________________
 
 <details><summary>Resources creation and usage proofs</summary>
 
-### Jenkins pipeline execution output<br>
+### Grafana UI<br>
 
+![Jenkins pipelineexecution output](screenshots/scr_01.png)<br>
+
+### Prometheus UI<br>
+
+![Jenkins pipelineexecution output](screenshots/scr_02.png)<br>
+
+### Prometheus metics<br>
+
+![Jenkins pipelineexecution output](screenshots/scr_03.png)<br>
 ![Jenkins pipelineexecution output](screenshots/scr_04.png)<br>
+
+### Grafana Datasources<br>
+
 ![Jenkins pipelineexecution output](screenshots/scr_05.png)<br>
+
+### Grafana preinstalled dashboards<br>
+
 ![Jenkins pipelineexecution output](screenshots/scr_06.png)<br>
 ![Jenkins pipelineexecution output](screenshots/scr_07.png)<br>
 ![Jenkins pipelineexecution output](screenshots/scr_08.png)<br>
+
+### Jenkins pipeline execution process<br>
+
 ![Jenkins pipelineexecution output](screenshots/scr_09.png)<br>
 ![Jenkins pipelineexecution output](screenshots/scr_10.png)<br>
+
+### Alertmanager UI<br>
+
 ![Jenkins pipelineexecution output](screenshots/scr_11.png)<br>
-![Jenkins pipelineexecution output](screenshots/scr_12.png)<br>
+
+### Grafana alert rules state<br>
+
 ![Jenkins pipelineexecution output](screenshots/scr_13.png)<br>
 ![Jenkins pipelineexecution output](screenshots/scr_14.png)<br>
 
-### Jenkins pipeline email notification<br>
+### Grafana test email confirmation
 
-![Jenkins pipeline email notification](screenshots/scr_15.png)<br>
-
-### SonarQube checks<br>
-
-![SonarQube checks](screenshots/scr_16.png)<br>
-
-### Flask application web browser connectivity test<br>
-
-![Jenkins pipeline email notification](screenshots/scr_17.png)<br>
+![Jenkins pipelineexecution output](screenshots/scr_15.png)<br>
 
 </details>
